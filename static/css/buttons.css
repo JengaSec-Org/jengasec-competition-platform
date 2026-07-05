@@ -1,0 +1,109 @@
+/* Buttons — Space Mono, uppercase, square-ish with sheen sweep on hover. */
+.btn {
+  display: inline-block;
+  padding: 0.7rem 1.6rem;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  text-align: center;
+  border-radius: var(--radius-btn);
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 36%;
+  left: -50%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.55s ease;
+}
+
+.btn:hover::after {
+  left: 130%;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--surface);
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  box-shadow: var(--glow-green);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: var(--surface);
+  border-color: var(--danger);
+}
+
+.btn-danger:hover {
+  background: transparent;
+  color: var(--danger);
+  box-shadow: 0 0 24px rgba(179, 0, 12, 0.25);
+}
+
+.btn-gold {
+  background: var(--gold);
+  color: var(--background);
+  border-color: var(--gold);
+}
+
+.btn-gold:hover {
+  background: var(--gold-light);
+  border-color: var(--gold-light);
+  box-shadow: var(--glow-gold);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-ghost:hover {
+  background: var(--primary);
+  color: var(--surface);
+}
+
+/* Ghost variant for dark surfaces (sidebar, dark panels) */
+.btn-ghost-dark {
+  background: transparent;
+  color: var(--text-inverse-dim);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-ghost-dark:hover {
+  border-color: var(--primary-light);
+  color: var(--text-inverse);
+  box-shadow: var(--glow-green);
+}
+
+.btn-sm {
+  padding: 0.4rem 1rem;
+  font-size: 11px;
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+.btn:disabled,
+.btn.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}

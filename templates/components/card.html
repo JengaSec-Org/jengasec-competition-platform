@@ -1,0 +1,16 @@
+{% comment %}
+Generic card wrapper.
+Usage:
+  {% include "components/card.html" with title="Submissions" body="No submissions yet." %}
+For rich content, extend the pattern directly instead:
+  <div class="card"> ... your markup ... </div>
+Params:
+  title  (optional) card heading
+  tag    (optional) Space Mono technical label above the title
+  body   (optional) plain-text body
+{% endcomment %}
+<div class="card">
+  {% if tag %}<span class="tlabel">{{ tag }}</span>{% endif %}
+  {% if title %}<h3 class="card-title">{{ title }}</h3>{% endif %}
+  {% if body %}<p class="text-muted">{{ body }}</p>{% endif %}
+</div>

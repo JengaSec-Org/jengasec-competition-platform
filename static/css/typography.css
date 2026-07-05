@@ -1,0 +1,66 @@
+/* Type scale: Bebas Neue display, DM Sans body, Space Mono labels. */
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  font-weight: 400;
+}
+
+h1 { font-size: clamp(2.2rem, 4.5vw, 3.4rem); }
+h2 { font-size: clamp(1.7rem, 3.2vw, 2.4rem); }
+h3 { font-size: clamp(1.3rem, 2.4vw, 1.7rem); }
+
+p {
+  line-height: 1.75;
+}
+
+/* Section header treatment (mirrors landing-site .sh) */
+.page-head {
+  margin-bottom: 2rem;
+}
+
+.page-head .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.page-head .eyebrow::before {
+  content: '';
+  width: 16px;
+  height: 2px;
+  background: var(--primary);
+}
+
+/* Technical label — uppercase Space Mono, the JengaSec signature */
+.tlabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.tlabel-muted {
+  color: var(--muted);
+}
+
+.tlabel-gold {
+  color: var(--gold);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.text-muted { color: var(--muted); }
+.text-danger { color: var(--danger); }
+.text-gold { color: var(--gold); }
+.text-green { color: var(--primary); }
+
+/* Comment-style annotations: // like this */
+.slashed::before {
+  content: '// ';
+  opacity: 0.6;
+}

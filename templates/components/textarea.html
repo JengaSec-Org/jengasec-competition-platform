@@ -1,0 +1,20 @@
+{% comment %}
+Labelled textarea (judge comments, feedback, justifications).
+Usage:
+  {% include "components/textarea.html" with name="comment" label="Judge Comment" required=True %}
+Params: name, label, value, placeholder, required, help, error, rows
+{% endcomment %}
+<div class="form-group">
+  <label class="form-label" for="id_{{ name }}">
+    {{ label }}{% if required %} <span class="req">*</span>{% endif %}
+  </label>
+  <textarea
+    class="textarea{% if error %} is-invalid{% endif %}"
+    id="id_{{ name }}"
+    name="{{ name }}"
+    rows="{{ rows|default:4 }}"
+    {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+    {% if required %}required{% endif %}>{% if value %}{{ value }}{% endif %}</textarea>
+  {% if help %}<div class="form-help">{{ help }}</div>{% endif %}
+  {% if error %}<div class="form-error">// {{ error }}</div>{% endif %}
+</div>

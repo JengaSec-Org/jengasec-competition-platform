@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard | JengaSec Evaluation Platform{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// MAIN_DASHBOARD</span></div>
+  <h1>Command <span class="text-green">Center</span></h1>
+</div>
+
+{# ---- KPI stat cards ---- #}
+<div class="stat-grid">
+  {% for stat in stats %}
+  <div class="card stat-card">
+    <div class="stat-value">{{ stat.value }}</div>
+    <div class="stat-label">{{ stat.label }}</div>
+    <span class="stat-tag">// {{ stat.tag }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+{# ---- Charts (sample data until analytics services land) ---- #}
+<div class="chart-grid">
+  <div class="card chart-card">
+    <span class="tlabel">// SCORE_DISTRIBUTION</span>
+    <h3 class="card-title">Score Distribution</h3>
+    <canvas id="scoreChart" aria-label="Score distribution chart" role="img"></canvas>
+  </div>
+  <div class="card chart-card">
+    <span class="tlabel">// SUBMISSION_TRENDS</span>
+    <h3 class="card-title">Submission Trends</h3>
+    <canvas id="trendChart" aria-label="Submission trends chart" role="img"></canvas>
+  </div>
+</div>
+
+{# ---- Recent activity ---- #}
+<div class="card card-flat">
+  <span class="tlabel">// RECENT_ACTIVITY</span>
+  <h3 class="card-title">Latest Submissions</h3>
+  {% include "components/table.html" with headers=activity_headers rows=activity_rows empty="No submissions yet — the competition has not opened" %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  jengasecChartDefaults();
+
+  // Placeholder datasets — replace with values from the analytics service.
+  new Chart(document.getElementById('scoreChart'), {
+    type: 'bar',
+    data: {
+      labels: ['0-49', '50-59', '60-69', '70-79', '80-89', '90-100'],
+      datasets: [{
+        label: 'Teams',
+        data: [0, 0, 0, 0, 0, 0],
+        backgroundColor: JENGASEC_COLORS.green,
+        hoverBackgroundColor: JENGASEC_COLORS.greenLight,
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
+
+  new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+      datasets: [{
+        label: 'Submissions',
+        data: [0, 0, 0, 0, 0, 0],
+        borderColor: JENGASEC_COLORS.gold,
+        backgroundColor: 'rgba(201, 150, 10, 0.12)',
+        fill: true,
+        tension: 0.35,
+        pointBackgroundColor: JENGASEC_COLORS.goldLight,
+      }],
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
+</script>
+{% endblock %}

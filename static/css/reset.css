@@ -1,0 +1,47 @@
+/* Minimal reset shared by every page. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+body {
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: var(--primary);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+ul[class],
+ol[class] {
+  list-style: none;
+}

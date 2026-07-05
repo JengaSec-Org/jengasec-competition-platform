@@ -1,0 +1,135 @@
+/* Top app bar — dark, fixed, wordmark + technical status + user chip. */
+.app-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-height);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 1.25rem;
+  background: var(--background);
+  border-bottom: 1px solid rgba(0, 200, 80, 0.18);
+}
+
+.app-nav::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 200, 80, 0.025) 2px,
+    rgba(0, 200, 80, 0.025) 4px
+  );
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  letter-spacing: 0.1em;
+  color: var(--text-inverse);
+  text-decoration: none;
+  position: relative;
+  z-index: 1;
+}
+
+.nav-brand img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.nav-brand .wm-sec {
+  color: var(--gold);
+}
+
+.nav-context {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(0, 200, 80, 0.55);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.nav-context .live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  box-shadow: var(--glow-green);
+  animation: navpulse 2s ease infinite;
+}
+
+@keyframes navpulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-inverse-dim);
+}
+
+.nav-user .avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-dark);
+  border: 1px solid rgba(0, 200, 80, 0.4);
+  color: var(--text-inverse);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.nav-toggle span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--text-inverse);
+  transition: all 0.3s;
+}
+
+@media (max-width: 900px) {
+  .nav-context { display: none; }
+  .nav-toggle { display: flex; }
+}

@@ -1,0 +1,15 @@
+{% comment %}
+Alert / flash message. Used automatically by base.html for Django messages.
+Usage:
+  {% include "components/alert.html" with level="success" text="Submission uploaded." %}
+Params:
+  level  success | info | warning | error   (default: info)
+  text   (required) message body
+{% endcomment %}
+<div class="alert alert-{{ level|default:'info' }}" role="alert">
+  <span class="alert-tag">
+    {% if level == 'success' %}[OK]{% elif level == 'error' %}[ERR]{% elif level == 'warning' %}[WARN]{% else %}[INFO]{% endif %}
+  </span>
+  <span>{{ text }}</span>
+  <button type="button" class="alert-close" aria-label="Dismiss">&times;</button>
+</div>

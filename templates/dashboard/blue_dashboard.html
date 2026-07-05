@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Blue Team | JengaSec Evaluation Platform{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// BLUE_TEAM_DASHBOARD</span></div>
+  <h1>Build. Defend. <span class="text-green">Prove It.</span></h1>
+</div>
+
+<div class="stat-grid">
+  <div class="card">
+    <span class="tlabel">// PROPOSAL</span>
+    <h3 class="card-title">Proposal Submission</h3>
+    <p class="text-muted">Submit your system proposal for AI-assisted evaluation and judge review.</p>
+    <div style="margin-top:1rem; display:flex; gap:0.75rem; align-items:center;">
+      {% include "components/badge.html" with label="Not Submitted" color="muted" %}
+      {% include "components/button.html" with label="Upload Proposal" variant="primary" size="sm" href="#" %}
+    </div>
+    <p class="form-help" style="margin-top:0.75rem;">// Upload portal opens with the submissions module (Pair 1)</p>
+  </div>
+
+  <div class="card">
+    <span class="tlabel">// SYSTEM_DEPLOYMENT</span>
+    <h3 class="card-title">System (Docker Image)</h3>
+    <p class="text-muted">After the proposal phase, ship your system as a Docker image for deployment and red team testing.</p>
+    <div style="margin-top:1rem;">
+      {% include "components/badge.html" with label="Phase Locked" color="gold" %}
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="tlabel">// RESULTS</span>
+    <h3 class="card-title">Scores &amp; Feedback</h3>
+    <p class="text-muted">Judge feedback and final scores are published here once results are finalized.</p>
+    <div style="margin-top:1rem;">
+      {% include "components/badge.html" with label="Awaiting Evaluation" color="muted" %}
+    </div>
+  </div>
+</div>
+
+<div class="panel-dark">
+  <div class="term-head">
+    <div class="term-dots"><span></span><span></span><span></span></div>
+    <span class="term-title">live_status.log — your application during the event</span>
+  </div>
+  <p class="mono" style="font-size:12px; color:rgba(255,255,255,0.55); position:relative; z-index:1;">
+    &gt; Live performance telemetry (uptime, requests, attacks detected) will stream here
+    while your system is under red team fire.<br>
+    &gt; STATUS :: OFFLINE — event has not started<span class="badge-cursor"></span>
+  </p>
+</div>
+{% endblock %}

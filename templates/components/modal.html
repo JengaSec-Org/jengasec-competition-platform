@@ -1,0 +1,29 @@
+{% comment %}
+Modal dialog. Open with a trigger anywhere on the page:
+  <button class="btn btn-primary" data-modal-open="confirm-modal">Open</button>
+Usage:
+  {% include "components/modal.html" with modal_id="confirm-modal" title="Confirm" body="Are you sure?" confirm_label="Yes, proceed" %}
+Params:
+  modal_id       (required) unique DOM id
+  title          (required) modal heading
+  body           (optional) plain-text body
+  confirm_label  (optional) renders a primary confirm button
+Close happens via the X, the backdrop, Escape, or any [data-modal-close].
+{% endcomment %}
+<div class="modal-overlay" id="{{ modal_id }}" role="dialog" aria-modal="true" aria-labelledby="{{ modal_id }}-title">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 class="modal-title" id="{{ modal_id }}-title">{{ title }}</h3>
+      <button type="button" class="alert-close" data-modal-close aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      {% if body %}<p>{{ body }}</p>{% endif %}
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-ghost btn-sm" data-modal-close>Cancel</button>
+      {% if confirm_label %}
+      <button type="submit" class="btn btn-primary btn-sm">{{ confirm_label }}</button>
+      {% endif %}
+    </div>
+  </div>
+</div>

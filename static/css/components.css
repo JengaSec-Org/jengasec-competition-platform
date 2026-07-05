@@ -1,0 +1,226 @@
+/* Shared small components: badges, alerts, pagination, modal, dropdown.
+   (Companion to the per-module stylesheets listed in the objectives doc.) */
+
+/* ---- Badges ---- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.badge-green {
+  color: var(--primary);
+  background: rgba(0, 122, 61, 0.1);
+  border-color: rgba(0, 122, 61, 0.3);
+}
+
+.badge-gold {
+  color: #8a6607;
+  background: rgba(201, 150, 10, 0.12);
+  border-color: rgba(201, 150, 10, 0.35);
+}
+
+.badge-red {
+  color: var(--danger);
+  background: rgba(179, 0, 12, 0.08);
+  border-color: rgba(179, 0, 12, 0.3);
+}
+
+.badge-muted {
+  color: var(--muted);
+  background: var(--surface-off);
+  border-color: var(--border);
+}
+
+/* ---- Alerts / Django messages ---- */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface);
+  font-size: 14px;
+  margin-bottom: 1rem;
+}
+
+.alert .alert-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding-top: 2px;
+}
+
+.alert-success { border-left-color: var(--primary-light); }
+.alert-success .alert-tag { color: var(--primary); }
+
+.alert-info { border-left-color: var(--gold); }
+.alert-info .alert-tag { color: var(--gold); }
+
+.alert-warning { border-left-color: var(--gold-light); }
+.alert-warning .alert-tag { color: #8a6607; }
+
+.alert-error { border-left-color: var(--danger); }
+.alert-error .alert-tag { color: var(--danger); }
+
+.alert .alert-close {
+  margin-left: auto;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* ---- Pagination ---- */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-top: 1.25rem;
+}
+
+.pagination a,
+.pagination .page-current,
+.pagination .page-gap {
+  min-width: 34px;
+  padding: 0.4rem 0.6rem;
+  text-align: center;
+  border-radius: var(--radius-btn);
+  text-decoration: none;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.pagination a:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.pagination .page-current {
+  color: var(--surface);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.pagination .page-gap {
+  border: none;
+  background: none;
+}
+
+/* ---- Modal ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 12, 8, 0.75);
+  backdrop-filter: blur(3px);
+  padding: 1.5rem;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal {
+  width: min(560px, 100%);
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  border-top: 3px solid var(--primary);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  animation: modalin 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes modalin {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.05em;
+}
+
+.modal-body {
+  padding: 1.4rem;
+}
+
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.4rem;
+  background: var(--surface-off);
+}
+
+/* ---- Dropdown ---- */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  z-index: 950;
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.dropdown.open .dropdown-menu {
+  display: block;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.6rem 1rem;
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.dropdown-item:hover {
+  background: rgba(0, 122, 61, 0.07);
+  color: var(--primary);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+}

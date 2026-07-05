@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Red Team | JengaSec Evaluation Platform{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// RED_TEAM_DASHBOARD</span></div>
+  <h1>Find It. Break It. <span class="text-danger">Report It.</span></h1>
+</div>
+
+<div class="stat-grid">
+  <div class="card" style="border-top-color: var(--danger);">
+    <span class="tlabel" style="color: var(--danger);">// TARGET_ENVIRONMENT</span>
+    <h3 class="card-title">Target Access</h3>
+    <p class="text-muted">A dockerized replica of your assigned blue team system. Connection details appear here when the engagement window opens.</p>
+    <div style="margin-top:1rem;">
+      {% include "components/badge.html" with label="No Target Assigned" color="muted" %}
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="tlabel">// FINDINGS</span>
+    <h3 class="card-title">Findings Report</h3>
+    <p class="text-muted">Submit your vulnerability report: identification, evidence, methodology, severity, and remediation.</p>
+    <div style="margin-top:1rem; display:flex; gap:0.75rem; align-items:center;">
+      {% include "components/badge.html" with label="Not Submitted" color="muted" %}
+      {% include "components/button.html" with label="Submit Report" variant="danger" size="sm" href="#" %}
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="tlabel">// RULES_OF_ENGAGEMENT</span>
+    <h3 class="card-title">Engagement Rules</h3>
+    <p class="text-muted">Stay in scope: only your assigned replica environment is a valid target. Out-of-scope activity is disqualifying.</p>
+    <div style="margin-top:1rem;">
+      {% include "components/badge.html" with label="Read Before Engaging" color="red" %}
+    </div>
+  </div>
+</div>
+
+<div class="panel-dark">
+  <div class="term-head">
+    <div class="term-dots"><span></span><span></span><span></span></div>
+    <span class="term-title">engagement.log</span>
+  </div>
+  <p class="mono" style="font-size:12px; color:rgba(255,255,255,0.55); position:relative; z-index:1;">
+    &gt; ENGAGEMENT_WINDOW :: CLOSED<br>
+    &gt; Target replicas are provisioned per team when the event goes live<span class="badge-cursor"></span>
+  </p>
+</div>
+{% endblock %}

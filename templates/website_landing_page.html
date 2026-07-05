@@ -1,0 +1,1905 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JengaSec 2026 | Kenya's Enterprise Cyber Simulation</title>
+<meta name="description" content="JengaSec 2026 is Kenya's first full-spectrum enterprise cybersecurity simulation. 350+ participants. Red vs Blue. APT attacks. Kikao executive panel. Nairobi, October 2026.">
+<meta name="author" content="Strathmore Cybersecurity Club">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#007A3D">
+<link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
+<link rel="canonical" href="https://jengasec.com">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jengasec.com">
+<meta property="og:title" content="JengaSec 2026 | Kenya's Enterprise Cyber Simulation">
+<meta property="og:description" content="Kenya's first full-spectrum enterprise cybersecurity simulation. 350+ participants. Nairobi, October 2026.">
+<meta property="og:image" content="https://jengasec.com/Jengasec.jpg">
+<meta property="og:site_name" content="JengaSec">
+<meta property="og:locale" content="en_KE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@sucybersec">
+<meta name="twitter:title" content="JengaSec 2026 | Kenya's Enterprise Cyber Simulation">
+<meta name="twitter:description" content="Kenya's first full-spectrum enterprise cybersecurity simulation. 350+ participants. Nairobi, October 2026.">
+<meta name="twitter:image" content="https://jengasec.com/Jengasec.jpg">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Event","name":"JengaSec 2026","startDate":"2026-10-14","eventStatus":"https://schema.org/EventScheduled","location":{"@type":"Place","name":"Strathmore University","address":{"@type":"PostalAddress","addressLocality":"Nairobi","addressCountry":"KE"}},"organizer":{"@type":"Organization","name":"Strathmore Cybersecurity Club","url":"https://jengasec.com","email":"sucybersec@strathmore.edu"},"url":"https://jengasec.com","isAccessibleForFree":true}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#007A3D;--gd:#004D26;--gl:#00C853;
+  --red:#B3000C;--gold:#C9960A;--gold2:#E8B020;
+  --black:#080C08;--white:#F8FAF8;--off:#EEF1EE;
+  --muted:#5A6A5A;--border:#CDD8CD;--card:#FFFFFF;
+  --dg:#0A2416;--mg:#0D3020;
+}
+html{scroll-behavior:smooth}
+/* FIX: horizontal overflow and max width */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+body{background:var(--white);color:var(--black);font-family:'DM Sans',sans-serif;overflow-x:hidden}
+img{max-width:100%;height:auto}
+@media(pointer:fine){
+  body.cursor-on,body.cursor-on a,body.cursor-on button{cursor:none}
+}
+
+/* ============ SKIP LINK ============ */
+.skip-link{position:absolute;left:-9999px;top:0;z-index:10001;
+  padding:0.75rem 1.5rem;background:var(--g);color:var(--white);
+  font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.08em;text-decoration:none}
+.skip-link:focus{left:0}
+
+/* ============ TERMINAL BOOT ============ */
+#boot{position:fixed;inset:0;z-index:10000;background:var(--black);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform 0.65s cubic-bezier(0.76,0,0.24,1),opacity 0.4s}
+#boot.done{transform:translateY(-100%);opacity:0;pointer-events:none;visibility:hidden;
+  transition:transform 0.65s cubic-bezier(0.76,0,0.24,1),opacity 0.45s,visibility 0s 0.7s}
+body.booting{overflow:hidden}
+#boot::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,
+    rgba(0,200,80,0.03) 2px,rgba(0,200,80,0.03) 4px)}
+.boot-inner{font-family:'Space Mono',monospace;font-size:clamp(10px,1.6vw,13px);
+  letter-spacing:0.06em;color:var(--gl);width:min(560px,86vw)}
+.boot-line{min-height:1.6em;white-space:nowrap;overflow:hidden;color:rgba(0,200,80,0.75)}
+.boot-line .ok{color:var(--gold2)}
+.boot-bar{margin-top:1rem;height:3px;background:rgba(0,200,80,0.12);position:relative;overflow:hidden}
+.boot-bar i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);
+  background:linear-gradient(90deg,var(--g),var(--gl));transition:transform 0.18s linear}
+.boot-pct{margin-top:0.5rem;font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:0.2em}
+
+/* ============ FILM GRAIN ============ */
+#grain{position:fixed;inset:-100px;z-index:9998;pointer-events:none;opacity:0.032;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain 0.9s steps(4) infinite}
+@keyframes grain{
+  0%{transform:translate(0,0)}25%{transform:translate(-38px,22px)}
+  50%{transform:translate(26px,-30px)}75%{transform:translate(-14px,-18px)}100%{transform:translate(0,0)}
+}
+
+/* ============ CUSTOM CURSOR ============ */
+#cur-dot,#cur-ring{position:fixed;top:0;left:0;pointer-events:none;z-index:10001;
+  border-radius:50%;transform:translate(-50%,-50%);display:none}
+body.cursor-on #cur-dot,body.cursor-on #cur-ring{display:block}
+#cur-dot{width:6px;height:6px;background:var(--gl);
+  box-shadow:0 0 10px rgba(0,200,80,0.9)}
+#cur-ring{width:34px;height:34px;border:1px solid rgba(0,200,80,0.5);
+  transition:width 0.25s,height 0.25s,border-color 0.25s,background 0.25s}
+#cur-ring.hovering{width:56px;height:56px;border-color:var(--gold2);
+  background:rgba(0,200,80,0.06)}
+
+/* ============ AFRICAN PATTERN ============ */
+.apat{position:relative}
+.apat::before{content:'';position:absolute;inset:-4%;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg width='96' height='96' viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M48 4L92 48L48 92L4 48Z' stroke='white' stroke-width='0.5' stroke-opacity='0.07' fill='none'/%3E%3Cpath d='M48 20L76 48L48 76L20 48Z' stroke='white' stroke-width='0.45' stroke-opacity='0.055' fill='none'/%3E%3Cpath d='M48 34L62 48L48 62L34 48Z' stroke='%23E8B020' stroke-width='0.4' stroke-opacity='0.06' fill='none'/%3E%3Cpath d='M48 4L57 13L48 22L39 13Z' stroke='%23E8B020' stroke-width='0.35' stroke-opacity='0.05' fill='none'/%3E%3Cpath d='M48 74L57 83L48 92L39 83Z' stroke='%23E8B020' stroke-width='0.35' stroke-opacity='0.05' fill='none'/%3E%3Cpath d='M4 48L13 39L22 48L13 57Z' stroke='white' stroke-width='0.35' stroke-opacity='0.045' fill='none'/%3E%3Cpath d='M74 48L83 39L92 48L83 57Z' stroke='white' stroke-width='0.35' stroke-opacity='0.045' fill='none'/%3E%3Cpath d='M48 34L55 48L41 48Z' stroke='%2300C853' stroke-width='0.3' stroke-opacity='0.045' fill='none'/%3E%3Cpath d='M48 62L55 48L41 48Z' stroke='%2300C853' stroke-width='0.3' stroke-opacity='0.045' fill='none'/%3E%3C/svg%3E");
+  background-size:96px 96px;animation:patlive 14s ease-in-out infinite}
+@keyframes patlive{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.955;transform:scale(1.014)}}
+.apat-light::before{
+  background-image:url("data:image/svg+xml,%3Csvg width='96' height='96' viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M48 4L92 48L48 92L4 48Z' stroke='%23007A3D' stroke-width='0.5' stroke-opacity='0.06' fill='none'/%3E%3Cpath d='M48 20L76 48L48 76L20 48Z' stroke='%23007A3D' stroke-width='0.45' stroke-opacity='0.045' fill='none'/%3E%3Cpath d='M48 34L62 48L48 62L34 48Z' stroke='%23C9960A' stroke-width='0.4' stroke-opacity='0.05' fill='none'/%3E%3Cpath d='M48 4L57 13L48 22L39 13Z' stroke='%23C9960A' stroke-width='0.35' stroke-opacity='0.045' fill='none'/%3E%3Cpath d='M48 34L55 48L41 48Z' stroke='%23007A3D' stroke-width='0.3' stroke-opacity='0.04' fill='none'/%3E%3Cpath d='M48 62L55 48L41 48Z' stroke='%23007A3D' stroke-width='0.3' stroke-opacity='0.04' fill='none'/%3E%3C/svg%3E")}
+.apat-dark::before{
+  background-image:url("data:image/svg+xml,%3Csvg width='96' height='96' viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M48 4L92 48L48 92L4 48Z' stroke='%2300C853' stroke-width='0.45' stroke-opacity='0.05' fill='none'/%3E%3Cpath d='M48 20L76 48L48 76L20 48Z' stroke='%2300C853' stroke-width='0.4' stroke-opacity='0.04' fill='none'/%3E%3Cpath d='M48 34L62 48L48 62L34 48Z' stroke='%23C9960A' stroke-width='0.4' stroke-opacity='0.05' fill='none'/%3E%3Cpath d='M48 34L55 48L41 48Z' stroke='%2300C853' stroke-width='0.3' stroke-opacity='0.04' fill='none'/%3E%3Cpath d='M48 62L55 48L41 48Z' stroke='%2300C853' stroke-width='0.3' stroke-opacity='0.04' fill='none'/%3E%3C/svg%3E")}
+
+/* ambient glow orbs — always drifting */
+.orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(70px);opacity:0.5}
+.orb-g{background:radial-gradient(circle,rgba(0,122,61,0.35),transparent 70%)}
+.orb-au{background:radial-gradient(circle,rgba(201,150,10,0.22),transparent 70%)}
+.orb1{width:420px;height:420px;top:-10%;left:-8%;animation:orbf1 18s ease-in-out infinite}
+.orb2{width:340px;height:340px;bottom:-14%;right:-6%;animation:orbf2 22s ease-in-out infinite}
+@keyframes orbf1{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,40px)}}
+@keyframes orbf2{0%,100%{transform:translate(0,0)}50%{transform:translate(-50px,-55px)}}
+
+/* ============ SCROLL PROGRESS ============ */
+#prog{position:fixed;top:0;left:0;height:2px;width:0%;z-index:9999;
+  background:linear-gradient(90deg,var(--red) 0%,var(--gold) 40%,var(--g) 100%);
+  transition:width 0.08s linear;pointer-events:none;
+  box-shadow:0 0 10px rgba(0,200,80,0.5)}
+
+/* ============ NAV ============ */
+nav{position:fixed;top:2px;left:0;right:0;z-index:9999;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.1rem 5%;background:transparent;border-bottom:1px solid transparent;
+  transition:background 0.35s,border-color 0.35s,padding 0.35s,backdrop-filter 0.35s}
+nav.scrolled{padding:0.85rem 5%;background:rgba(248,250,248,0.97);
+  backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nl{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.1em;
+  color:var(--white);display:flex;align-items:center;gap:0.7rem;text-decoration:none;
+  transition:color 0.35s}
+nav.scrolled .nl{color:var(--black)}
+.nl-spear{width:22px;height:22px;object-fit:contain;flex-shrink:0}
+.nl .wm-sec{position:relative;display:inline-block;color:var(--gold)}
+.nl .wm-sec.wm-glitch{animation:navglitch 0.4s steps(2) 1}
+@keyframes navglitch{
+  0%{transform:translateX(0);text-shadow:none}
+  25%{transform:translateX(-2px);text-shadow:2px 0 var(--red),-2px 0 var(--gl)}
+  50%{transform:translateX(2px);text-shadow:-2px 0 var(--red),2px 0 var(--gl)}
+  75%{transform:translateX(-1px);text-shadow:1px 0 var(--red),-1px 0 var(--gl)}
+  100%{transform:translateX(0);text-shadow:none}
+}
+.nav-links{display:flex;gap:2rem;list-style:none}
+.nav-links a{font-family:'Space Mono',monospace;font-size:12px;font-weight:500;letter-spacing:0.04em;
+  color:rgba(255,255,255,0.7);text-decoration:none;transition:color 0.2s;
+  position:relative;padding-bottom:3px}
+nav.scrolled .nav-links a{color:var(--muted)}
+.nav-links a::after{content:'';position:absolute;left:0;bottom:0;height:2px;width:0;
+  background:var(--g);box-shadow:0 0 6px rgba(0,200,80,0.6);transition:width 0.25s}
+.nav-links a:hover{color:var(--gl)}
+nav.scrolled .nav-links a:hover{color:var(--g)}
+.nav-links a.active{color:var(--gl)}
+nav.scrolled .nav-links a.active{color:var(--g)}
+.nav-links a.active::after{width:100%}
+.nav-cta{padding:0.5rem 1.4rem;background:var(--g);color:var(--white);
+  font-size:12px;font-weight:600;letter-spacing:0.06em;
+  text-decoration:none;border:2px solid var(--g);transition:all 0.2s;
+  font-family:'Space Mono',monospace;display:inline-block;position:relative;overflow:hidden}
+.nav-cta:hover{background:transparent;color:var(--gl)}
+nav.scrolled .nav-cta:hover{color:var(--g)}
+.hamburger{display:none;flex-direction:column;gap:5px;
+  cursor:pointer;padding:4px;background:none;border:none}
+.hamburger span{display:block;width:22px;height:2px;background:var(--white);transition:all 0.3s}
+nav.scrolled .hamburger span{background:var(--black)}
+
+/* ============ MOBILE MENU ============ */
+.mmenu{display:none;position:fixed;inset:0;z-index:10000;
+  background:rgba(8,12,8,0.98);flex-direction:column;
+  align-items:center;justify-content:flex-start;gap:2.2rem;
+  overflow-y:auto;padding:5.5rem 1rem 2.5rem}
+/* auto margins center the menu when it fits, allow scrolling when it doesn't */
+.mmenu > a:first-of-type{margin-top:auto}
+.mmenu .mmenu-login{margin-bottom:auto}
+@media(max-height:780px){
+  .mmenu{gap:1.4rem}
+  .mmenu a{font-size:2.1rem}
+}
+.mmenu::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,
+    rgba(0,200,80,0.02) 3px,rgba(0,200,80,0.02) 6px)}
+.mmenu.open{display:flex}
+.mmenu a{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.9rem,7.5vw,2.6rem);
+  letter-spacing:0.1em;color:var(--white);text-decoration:none;transition:color 0.2s;
+  opacity:0;transform:translateY(22px);position:relative;z-index:1}
+.mmenu.open a{animation:mlink 0.5s cubic-bezier(0.22,1,0.36,1) forwards}
+.mmenu.open a:nth-child(2){animation-delay:0.06s}
+.mmenu.open a:nth-child(3){animation-delay:0.13s}
+.mmenu.open a:nth-child(4){animation-delay:0.2s}
+@keyframes mlink{to{opacity:1;transform:translateY(0)}}
+.mmenu a:hover{color:var(--gold)}
+.mclose{position:absolute;top:1.5rem;right:5%;font-size:1.1rem;
+  cursor:pointer;background:none;border:none;z-index:1;
+  font-family:'Space Mono',monospace;color:rgba(255,255,255,0.35);letter-spacing:0.1em}
+
+/* ============ HERO ============ */
+.hero{min-height:100vh;display:flex;flex-direction:column;
+  justify-content:flex-end;padding:0 5% 4rem;position:relative;overflow:hidden}
+.hero-img{position:absolute;inset:-4%;
+  background-image:url('{% static "images/Jengasec.jpg" %}');
+  background-size:cover;background-position:center;
+  background-repeat:no-repeat;background-color:#0A1F10;
+  will-change:transform;transition:transform 0.18s ease-out}
+.hero-overlay{position:absolute;inset:0;
+  background:linear-gradient(160deg,rgba(0,50,20,0.9) 0%,rgba(0,70,30,0.7) 40%,rgba(0,20,8,0.95) 100%)}
+.hero-fade{position:absolute;bottom:0;left:0;right:0;height:60%;
+  background:linear-gradient(to top,rgba(0,15,6,0.98) 0%,transparent 100%)}
+.hero-scan{position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,
+    rgba(0,200,80,0.022) 2px,rgba(0,200,80,0.022) 4px)}
+/* grid now drifts on its own */
+.hero-grid{position:absolute;inset:0;pointer-events:none;z-index:1;
+  background-image:linear-gradient(rgba(0,200,80,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,200,80,0.03) 1px,transparent 1px);
+  background-size:50px 50px;animation:griddrift 60s linear infinite}
+@keyframes griddrift{from{background-position:0 0,0 0}to{background-position:0 -600px,-600px 0}}
+#rain,#particles{position:absolute;inset:0;pointer-events:none}
+#rain{z-index:1;opacity:0.5}
+#particles{z-index:1}
+.hero-beam{position:absolute;left:0;right:0;height:120px;z-index:2;pointer-events:none;
+  background:linear-gradient(to bottom,transparent,rgba(0,200,80,0.05),transparent);
+  animation:beam 9s cubic-bezier(0.45,0,0.55,1) infinite}
+@keyframes beam{0%{top:-15%}55%{top:105%}100%{top:105%}}
+.gslice{position:absolute;left:0;right:0;height:0;z-index:2;pointer-events:none;
+  background:rgba(0,200,80,0.06);mix-blend-mode:screen;
+  border-top:1px solid rgba(0,200,80,0.18);opacity:0}
+.gslice.fire{animation:gslice 0.32s steps(3) 1}
+@keyframes gslice{
+  0%{opacity:0;transform:translateX(0)}
+  20%{opacity:1;height:14px;transform:translateX(-18px)}
+  55%{opacity:1;height:6px;transform:translateX(14px)}
+  100%{opacity:0;transform:translateX(0)}
+}
+.hero-content{position:relative;z-index:3;max-width:940px}
+
+/* LIVE TERMINAL FEED — runs forever on its own */
+.hero-term{position:absolute;right:5%;bottom:4rem;z-index:3;width:360px;
+  background:rgba(4,14,7,0.82);border:1px solid rgba(0,200,80,0.22);
+  backdrop-filter:blur(6px);box-shadow:0 20px 60px rgba(0,0,0,0.5),inset 0 0 30px rgba(0,200,80,0.03);
+  font-family:'Space Mono',monospace;overflow:hidden}
+.hero-term::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,
+    rgba(0,200,80,0.04) 2px,rgba(0,200,80,0.04) 4px)}
+.term-head{display:flex;align-items:center;gap:0.6rem;
+  padding:0.55rem 0.9rem;border-bottom:1px solid rgba(0,200,80,0.15);
+  background:rgba(0,25,10,0.7)}
+.term-dots{display:flex;gap:5px}
+.term-dots span{width:8px;height:8px;border-radius:50%;display:block}
+.term-dots span:nth-child(1){background:var(--red)}
+.term-dots span:nth-child(2){background:var(--gold)}
+.term-dots span:nth-child(3){background:var(--gl)}
+.term-title{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35)}
+.term-live{margin-left:auto;font-size:8px;letter-spacing:0.16em;color:var(--gl);
+  display:flex;align-items:center;gap:0.35rem}
+.term-live::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--gl);
+  box-shadow:0 0 6px rgba(0,200,80,0.9);animation:pulse 1.4s ease infinite}
+.term-body{height:168px;padding:0.7rem 0.9rem;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:flex-end}
+.term-line{font-size:10px;line-height:1.75;letter-spacing:0.03em;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;animation:termin 0.25s ease-out}
+@keyframes termin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.tl-time{color:rgba(255,255,255,0.25)}
+.tl-red{color:#FF5A63}
+.tl-grn{color:var(--gl)}
+.tl-au{color:var(--gold2)}
+.tl-dim{color:rgba(255,255,255,0.42)}
+
+/* terminal status badge */
+.hero-badge{display:inline-flex;align-items:center;gap:0.55rem;
+  padding:0.4rem 1rem;margin-bottom:1.4rem;
+  border:1px solid rgba(0,200,80,0.28);background:rgba(0,20,8,0.55);
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.15em;
+  text-transform:uppercase;color:rgba(160,255,190,0.72);
+  position:relative;overflow:hidden;box-shadow:inset 0 0 20px rgba(0,200,80,0.05)}
+.hero-badge::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,
+    rgba(0,200,80,0.05) 2px,rgba(0,200,80,0.05) 3px)}
+.hero-badge::before{content:'';position:absolute;top:0;bottom:0;width:40px;left:-60px;
+  background:linear-gradient(90deg,transparent,rgba(0,200,80,0.15),transparent);
+  animation:badgesweep 4s ease-in-out infinite}
+@keyframes badgesweep{0%,60%{left:-60px}90%,100%{left:110%}}
+.bdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;
+  background:var(--gl);box-shadow:0 0 8px rgba(0,200,80,0.8);
+  animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(1.5)}}
+.badge-cursor{display:inline-block;width:6px;height:11px;
+  background:var(--gl);margin-left:2px;animation:blink 0.9s step-end infinite;vertical-align:middle}
+
+.hero h1{font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(5rem,15vw,13rem);line-height:0.85;letter-spacing:0.02em;color:var(--white)}
+#jenga{display:block}
+.glitch{color:rgba(255,255,255,0.42);display:block;position:relative;cursor:default}
+.glitch::before,.glitch::after{content:attr(data-text);position:absolute;top:0;left:0;
+  font-family:'Bebas Neue',sans-serif;font-size:1em;line-height:0.85;
+  color:rgba(255,255,255,0.42);overflow:hidden;opacity:0;pointer-events:none}
+.glitch::before{text-shadow:-2px 0 var(--red);
+  clip-path:polygon(0 25%,100% 25%,100% 52%,0 52%)}
+.glitch::after{text-shadow:2px 0 var(--gl);
+  clip-path:polygon(0 58%,100% 58%,100% 84%,0 84%)}
+.glitch.glitching::before{animation:gt 0.55s steps(3) 1}
+.glitch.glitching::after{animation:gb 0.55s steps(3) 1}
+@keyframes gt{
+  0%{transform:translateX(0);opacity:0}
+  15%{transform:translateX(-5px) skewX(-3deg);opacity:1}
+  35%{transform:translateX(5px);opacity:1}
+  55%{transform:translateX(-3px) skewX(2deg);opacity:1}
+  75%{transform:translateX(2px);opacity:1}
+  100%{transform:translateX(0);opacity:0}
+}
+@keyframes gb{
+  0%{transform:translateX(0);opacity:0}
+  18%{transform:translateX(5px) skewX(3deg);opacity:1}
+  38%{transform:translateX(-5px);opacity:1}
+  58%{transform:translateX(3px) skewX(-2deg);opacity:1}
+  78%{transform:translateX(-2px);opacity:1}
+  100%{transform:translateX(0);opacity:0}
+}
+.glitch:hover{color:rgba(255,255,255,0.5)}
+.glitch:hover::before{opacity:1;animation:rgbT 0.28s steps(2) infinite}
+.glitch:hover::after{opacity:1;animation:rgbB 0.28s steps(2) infinite}
+@keyframes rgbT{0%,100%{transform:translateX(-4px)}50%{transform:translateX(3px)}}
+@keyframes rgbB{0%,100%{transform:translateX(4px)}50%{transform:translateX(-3px)}}
+
+.hero h1 .gold{color:var(--gold);display:block;font-size:0.36em;
+  letter-spacing:0.14em;font-family:'Space Mono',monospace;font-weight:400;margin-top:0.1em}
+.hero-tagline{margin-top:1.5rem;font-size:15px;font-weight:300;
+  line-height:1.9;color:rgba(255,255,255,0.6);max-width:480px;
+  border-left:2px solid var(--gold);padding-left:1rem;min-height:5rem}
+.tw-cursor{display:inline-block;width:2px;height:1em;
+  background:var(--gl);margin-left:2px;vertical-align:middle;
+  animation:blink 0.8s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.hero-decode{margin-top:1rem;font-family:'Space Mono',monospace;
+  font-size:clamp(0.7rem,1.4vw,0.9rem);letter-spacing:0.12em;color:var(--gl);min-height:1.5rem;
+  text-shadow:0 0 10px rgba(0,200,80,0.35)}
+.hero-ctas{display:flex;gap:1rem;margin-top:1.75rem;flex-wrap:wrap}
+.btn-red,.btn-ghost,.btn-green{position:relative;overflow:hidden}
+.btn-red::after,.btn-green::after{content:'';position:absolute;top:0;bottom:0;width:36%;left:-50%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,0.22),transparent);
+  transform:skewX(-20deg);transition:left 0.55s ease}
+.btn-red:hover::after,.btn-green:hover::after{left:130%}
+.btn-red{padding:0.85rem 2.2rem;background:var(--red);color:var(--white);
+  font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  text-decoration:none;border:2px solid var(--red);font-family:'Space Mono',monospace;
+  transition:background 0.2s,color 0.2s,border-color 0.2s,box-shadow 0.2s;display:inline-block}
+.btn-red:hover{background:transparent;color:var(--white);border-color:rgba(255,255,255,0.6);
+  box-shadow:0 0 24px rgba(179,0,12,0.35)}
+.btn-ghost{padding:0.85rem 2.2rem;border:2px solid rgba(255,255,255,0.2);
+  color:rgba(255,255,255,0.6);font-size:12px;font-weight:500;letter-spacing:0.08em;
+  text-transform:uppercase;text-decoration:none;font-family:'Space Mono',monospace;
+  transition:border-color 0.2s,color 0.2s,box-shadow 0.2s;display:inline-block}
+.btn-ghost:hover{border-color:var(--gl);color:var(--white);
+  box-shadow:0 0 24px rgba(0,200,80,0.2),inset 0 0 18px rgba(0,200,80,0.06)}
+.btn-green{padding:0.85rem 2.2rem;background:var(--g);color:var(--white);
+  font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  text-decoration:none;border:2px solid var(--g);font-family:'Space Mono',monospace;
+  transition:background 0.2s,color 0.2s,border-color 0.2s,box-shadow 0.2s;display:inline-block}
+.btn-green:hover{background:transparent;color:var(--gl);border-color:var(--gl);
+  box-shadow:0 0 24px rgba(0,200,80,0.3)}
+/* nav right group: login (hint + button) then partner CTA, hamburger */
+.nav-right{display:flex;align-items:center;gap:1rem;flex-shrink:0;
+  position:relative;z-index:1}
+.nav-login{display:flex;align-items:center;gap:0.75rem;text-decoration:none}
+.nav-login-hint{font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:0.04em;white-space:nowrap;color:rgba(255,255,255,0.45);
+  transition:color 0.35s}
+nav.scrolled .nav-login-hint{color:var(--muted)}
+.nav-login:hover .nav-login-hint{color:rgba(255,255,255,0.7)}
+nav.scrolled .nav-login:hover .nav-login-hint{color:var(--black)}
+.nav-login-btn{padding:0.5rem 1.4rem;border:2px solid rgba(255,255,255,0.25);
+  color:rgba(255,255,255,0.75);font-size:12px;font-weight:600;letter-spacing:0.06em;
+  font-family:'Space Mono',monospace;display:inline-block;transition:all 0.2s}
+.nav-login:hover .nav-login-btn{border-color:var(--gl);color:var(--gl)}
+nav.scrolled .nav-login-btn{color:var(--muted);border-color:var(--border)}
+nav.scrolled .nav-login:hover .nav-login-btn{color:var(--g);border-color:var(--g)}
+/* progressive de-cramping: drop the hint first, then tighten links,
+   then collapse links+CTA into the hamburger while Login stays visible */
+@media(max-width:1380px){
+  .nav-login-hint{display:none}
+}
+@media(max-width:1200px){
+  .nav-links{gap:1.2rem}
+  .nav-links a{font-size:11px}
+}
+@media(max-width:1024px){
+  .nav-links,.nav-cta{display:none}
+  .hamburger{display:flex}
+}
+/* mobile menu login block */
+.mmenu-login{display:flex;flex-direction:column;align-items:center;gap:0.7rem;
+  margin-top:0.8rem;position:relative;z-index:1}
+.mmenu-login span{font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.4);
+  text-align:center;padding:0 1.5rem}
+.mmenu .mmenu-login a{font-size:2rem;color:var(--gl);
+  border:2px solid rgba(0,200,80,0.45);padding:0.15rem 2.4rem}
+.mmenu .mmenu-login a:hover{color:var(--white);border-color:var(--gl);
+  box-shadow:0 0 24px rgba(0,200,80,0.25)}
+/* while the menu is open its CLOSE button owns the top bar —
+   hide the nav's login + hamburger so nothing overlaps it */
+.mmenu.open ~ nav .nav-login,
+.mmenu.open ~ nav .hamburger{visibility:hidden;pointer-events:none}
+.magnetic{will-change:transform}
+
+/* countdown */
+.hero-count{margin-top:1.75rem;display:inline-flex;align-items:center;gap:1.4rem;
+  padding:0.85rem 1.4rem;flex-wrap:wrap;position:relative;overflow:hidden;
+  border:1px solid rgba(0,200,80,0.16);background:rgba(0,20,8,0.5);
+  font-family:'Space Mono',monospace}
+.hero-count::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,
+    rgba(0,200,80,0.03) 2px,rgba(0,200,80,0.03) 4px)}
+.cd-label{font-size:9px;letter-spacing:0.22em;text-transform:uppercase;
+  color:rgba(0,200,80,0.55);width:100%;margin-bottom:-0.4rem}
+.cd-unit{display:flex;flex-direction:column;align-items:center;min-width:44px}
+.cd-num{font-size:clamp(1.3rem,2.6vw,1.8rem);font-weight:700;color:var(--white);line-height:1;
+  font-variant-numeric:tabular-nums;transition:text-shadow 0.3s}
+.cd-num.tickflash{text-shadow:0 0 14px rgba(0,200,80,0.8)}
+.cd-u{font-size:8px;letter-spacing:0.2em;text-transform:uppercase;
+  color:rgba(255,255,255,0.3);margin-top:0.35rem}
+.cd-sep{color:rgba(0,200,80,0.4);font-size:1.2rem;align-self:flex-start;padding-top:0.15rem;
+  animation:blink 1s step-end infinite}
+.cd-live{font-size:clamp(1rem,2.4vw,1.5rem);font-weight:700;color:var(--gl);
+  letter-spacing:0.18em;text-shadow:0 0 12px rgba(0,200,80,0.5);
+  animation:pulse 1.6s ease infinite}
+
+/* ============ PARTNERS ============ */
+.partners{background:var(--dg);padding:2.5rem 5%}
+.partners-inner{display:flex;align-items:center;justify-content:center;
+  flex-wrap:wrap;max-width:1200px;margin:0 auto}
+.partners-label{font-family:'Space Mono',monospace;font-size:9px;
+  letter-spacing:0.22em;text-transform:uppercase;
+  color:rgba(255,255,255,0.22);flex-shrink:0;
+  padding-right:2.5rem;margin-right:2.5rem;
+  border-right:1px solid rgba(255,255,255,0.07);white-space:nowrap}
+.partners-logos{display:flex;align-items:center;justify-content:center;gap:3rem;flex-wrap:wrap}
+.plogo{display:flex;align-items:center;justify-content:center;
+  height:72px;opacity:0.75;transition:opacity 0.25s,transform 0.25s}
+.plogo:hover{opacity:1;transform:scale(1.05)}
+.plogo img{height:100%;max-height:72px;max-width:160px;width:auto;object-fit:contain;
+  mix-blend-mode:luminosity;filter:brightness(1.3) contrast(0.9);
+  transition:filter 0.25s,mix-blend-mode 0.25s}
+.plogo:hover img{mix-blend-mode:normal;filter:none}
+
+/* ============ DUAL TICKER — always sliding ============ */
+/* ============ SPONSORS — nodes on a circuit rail ============ */
+.sec-sponsors{background:var(--black);padding:4.5rem 5% 5rem;position:relative;overflow:hidden;
+  border-top:1px solid rgba(255,255,255,0.04)}
+.sec-sponsors::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 60% at 50% 42%,rgba(0,122,61,0.08),transparent)}
+.sp-hd{text-align:center;margin-bottom:3.25rem;position:relative;z-index:1}
+.sp-eyebrow{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.28em;
+  text-transform:uppercase;color:rgba(201,150,10,0.55);margin-bottom:0.7rem}
+.sp-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.8rem,3.6vw,2.6rem);
+  letter-spacing:0.06em;color:var(--white);line-height:1}
+.sp-title em{color:var(--gold);font-style:normal}
+
+/* the rail: a circuit line the sponsor nodes sit on */
+.sp-logos{display:flex;align-items:stretch;justify-content:center;
+  gap:clamp(2rem,5vw,5rem);flex-wrap:wrap;position:relative;z-index:1;
+  max-width:1100px;margin:0 auto}
+.sp-rail{position:absolute;left:4%;right:4%;top:50%;height:1px;z-index:0;
+  background:linear-gradient(90deg,transparent,rgba(0,200,80,0.25) 15%,rgba(201,150,10,0.3) 50%,rgba(0,200,80,0.25) 85%,transparent)}
+.sp-rail::after{content:'';position:absolute;top:-1px;width:60px;height:3px;left:-70px;
+  background:linear-gradient(90deg,transparent,var(--gl),transparent);
+  filter:blur(1px);animation:railpulse 4.5s cubic-bezier(0.45,0,0.55,1) infinite}
+@keyframes railpulse{0%{left:-8%}100%{left:105%}}
+
+/* sponsor node */
+.sp-logo-wrap{display:flex;flex-direction:column;align-items:center;gap:0.9rem;
+  position:relative;z-index:1}
+/* connector diamond docking the frame to the rail */
+.sp-logo-wrap::before{content:'';position:absolute;top:-7px;left:50%;
+  width:10px;height:10px;transform:translateX(-50%) rotate(45deg);
+  background:var(--black);border:1.5px solid rgba(0,200,80,0.5);
+  transition:background 0.35s,box-shadow 0.35s,border-color 0.35s;z-index:2}
+.sp-logo-wrap:hover::before{background:var(--gl);border-color:var(--gl);
+  box-shadow:0 0 14px rgba(0,200,80,0.7)}
+.sp-logo-frame{position:relative;padding:2rem 2.75rem;
+  background:linear-gradient(170deg,rgba(13,48,32,0.55),rgba(8,16,10,0.85));
+  border:1px solid rgba(255,255,255,0.08);
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+  transition:border-color 0.35s,filter 0.35s,transform 0.35s;overflow:hidden}
+.sp-logo-frame::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  transform:scaleX(0);transition:transform 0.45s cubic-bezier(0.22,1,0.36,1)}
+.sp-logo-frame::after{content:'';position:absolute;left:0;right:0;height:36px;top:-44px;
+  background:linear-gradient(to bottom,transparent,rgba(0,200,80,0.06),transparent);
+  animation:spscan 5s linear infinite;pointer-events:none}
+.sp-logo-wrap:hover .sp-logo-frame{border-color:rgba(201,150,10,0.35);
+  filter:brightness(1.15);transform:translateY(-5px)}
+.sp-logo-wrap:hover .sp-logo-frame::before{transform:scaleX(1)}
+.sp-logo-frame img{height:clamp(46px,7vw,70px);width:auto;max-width:210px;
+  object-fit:contain;display:block;
+  filter:grayscale(1) brightness(1.5) contrast(0.85);
+  transition:filter 0.4s}
+.sp-logo-wrap:hover .sp-logo-frame img{filter:grayscale(0) brightness(1) contrast(1)}
+/* rank chip: diamond + label */
+.sp-logo-rank{display:flex;align-items:center;gap:0.45rem;
+  font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.22em;
+  text-transform:uppercase;color:rgba(201,150,10,0.65)}
+.sp-logo-rank i{width:6px;height:6px;transform:rotate(45deg);
+  background:var(--gold);font-style:normal;flex-shrink:0;opacity:0.7}
+.sp-logo-name{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:0.1em;
+  color:rgba(255,255,255,0.42);text-align:center;margin-top:-0.35rem;
+  transition:color 0.3s}
+.sp-logo-wrap:hover .sp-logo-name{color:rgba(255,255,255,0.7)}
+/* pending logo text */
+.sp-slot-text{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.16em;
+  text-transform:uppercase;color:rgba(255,255,255,0.16);text-align:center;line-height:1.8}
+/* "more coming" */
+.sp-more{text-align:center;margin-top:3rem;position:relative;z-index:1}
+.sp-more p{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.16em;
+  text-transform:uppercase;color:rgba(255,255,255,0.2)}
+.sp-more a{color:var(--gl);text-decoration:none;transition:color 0.2s,text-shadow 0.2s}
+.sp-more a:hover{color:var(--white);text-shadow:0 0 10px rgba(0,200,80,0.5)}
+/* marquee mode — for 6+ logos: add class "marquee" to .sp-logos, wrap cards in .sp-logos-track x2 */
+.sp-logos.marquee{flex-wrap:nowrap;overflow:hidden;gap:0;
+  mask-image:linear-gradient(90deg,transparent,black 8%,black 92%,transparent)}
+.sp-logos.marquee .sp-logos-track{display:flex;gap:clamp(2.5rem,5vw,5rem);
+  animation:sp-scroll 28s linear infinite;white-space:nowrap}
+@keyframes sp-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+.ticker{background:var(--black);padding:0.55rem 0;overflow:hidden;
+  border-top:1px solid rgba(0,200,80,0.07);border-bottom:1px solid rgba(0,200,80,0.07)}
+/* FIX: ensure ticker doesn't cause horizontal overflow */
+.ticker {
+  overflow: hidden;
+  width: 100%;
+}
+.ticker+.ticker{border-top:none;padding-top:0}
+.ticker-track{display:flex;white-space:nowrap;width:max-content;will-change:transform;
+  animation:tick 24s linear infinite}
+.ticker-track.rev{animation:tickrev 32s linear infinite}
+.ticker:hover .ticker-track{animation-play-state:paused}
+.ti{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.08em;
+  color:rgba(255,255,255,0.18);padding:0 1.2rem;flex-shrink:0;
+  border-right:1px solid rgba(255,255,255,0.04)}
+.ti.g{color:rgba(0,200,80,0.55);text-shadow:0 0 8px rgba(0,200,80,0.4)}
+.ti.au{color:rgba(201,150,10,0.55);text-shadow:0 0 8px rgba(232,176,32,0.3)}
+@keyframes tick{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+@keyframes tickrev{from{transform:translate3d(-50%,0,0)}to{transform:translate3d(0,0,0)}}
+
+/* ============ PROBLEM BANNER ============ */
+.prob{background:var(--g);padding:3.75rem 5%;position:relative;overflow:hidden}
+/* self-running shimmer sweep across the banner */
+.prob .prob-sweep{position:absolute;top:0;bottom:0;width:180px;left:-220px;z-index:0;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,0.06),transparent);
+  transform:skewX(-14deg);animation:probsweep 7s ease-in-out infinite}
+@keyframes probsweep{0%,55%{left:-220px}95%,100%{left:110%}}
+.prob-inner{max-width:1200px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:2rem;flex-wrap:wrap;position:relative;z-index:1}
+.prob-text{font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(1.8rem,4vw,3rem);letter-spacing:0.04em;
+  color:var(--white);line-height:1.05;max-width:620px}
+.prob-text em{color:var(--gold2);font-style:normal}
+.prob-sub{font-size:14px;color:rgba(255,255,255,0.58);
+  max-width:360px;line-height:1.85;
+  border-left:2px solid rgba(255,255,255,0.18);padding-left:1.25rem}
+
+/* ============ SECTION SCAFFOLD ============ */
+.sec{padding:6rem 5%}
+.sec-dark{background:var(--black);color:var(--white)}
+.sh{margin-bottom:3rem;position:relative;z-index:1}
+.sh-eye{display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem}
+.sh-line{width:0;height:2px;background:var(--g);transition:width 0.6s cubic-bezier(0.22,1,0.36,1) 0.15s}
+.sh.visible .sh-line{width:16px}
+.sh-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.18em;
+  text-transform:uppercase;color:var(--g)}
+.sh-title{font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2rem,4.5vw,3.5rem);line-height:1;letter-spacing:0.03em;
+  clip-path:inset(0 100% 0 0);transition:clip-path 0.85s cubic-bezier(0.22,1,0.36,1) 0.1s;
+  position:relative}
+.sh.visible .sh-title{clip-path:inset(0 0% 0 0)}
+.sh::after{content:'';position:absolute;top:0;bottom:0;width:3px;left:0;
+  background:linear-gradient(to bottom,transparent,var(--gl),transparent);
+  opacity:0;pointer-events:none}
+.sh.visible::after{animation:shsweep 0.85s cubic-bezier(0.22,1,0.36,1) 0.1s 1}
+@keyframes shsweep{0%{left:0;opacity:1}90%{opacity:1}100%{left:min(100%,560px);opacity:0}}
+.outline-g{color:var(--g)}
+.sec-dark .sh-title{color:var(--white)}
+.sec-dark .outline-g{color:var(--g)}
+
+/* entrances */
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity 0.65s,transform 0.65s}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.slide-l{opacity:0;transform:translateX(-44px);transition:opacity 0.7s cubic-bezier(0.22,1,0.36,1),transform 0.7s cubic-bezier(0.22,1,0.36,1)}
+.slide-r{opacity:0;transform:translateX(44px);transition:opacity 0.7s cubic-bezier(0.22,1,0.36,1),transform 0.7s cubic-bezier(0.22,1,0.36,1)}
+.slide-l.visible,.slide-r.visible{opacity:1;transform:translateX(0)}
+
+/* ============ HOW IT WORKS ============ */
+.sec-how{padding:6rem 5%;background:var(--off);position:relative;overflow:hidden}
+.how-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;position:relative;z-index:1;
+  perspective:1200px}
+.how-card{background:var(--card);border:1px solid var(--border);
+  border-top:3px solid var(--g);padding:2rem;
+  position:relative;overflow:hidden;
+  transition:transform 0.35s,box-shadow 0.35s,opacity 0.7s cubic-bezier(0.22,1,0.36,1);
+  transform-style:preserve-3d;--mx:50%;--my:50%}
+.how-card::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M18 2L34 18L18 34L2 18Z' stroke='%23007A3D' stroke-width='0.5' stroke-opacity='0.06' fill='none'/%3E%3Cpath d='M18 9L27 18L18 27L9 18Z' stroke='%23C9960A' stroke-width='0.4' stroke-opacity='0.05' fill='none'/%3E%3C/svg%3E");
+  background-size:36px 36px;background-position:bottom right;opacity:0.7}
+.how-card .spot{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:0;
+  background:radial-gradient(240px circle at var(--mx) var(--my),rgba(0,200,80,0.09),transparent 65%);
+  transition:opacity 0.3s}
+.how-card:hover .spot{opacity:1}
+.how-card:hover{box-shadow:0 24px 56px rgba(0,80,40,0.14)}
+/* idle breathing on the top border so cards feel alive without hover */
+.how-card::after{content:'';position:absolute;top:-3px;left:0;right:0;height:3px;z-index:3;
+  background:linear-gradient(90deg,transparent,rgba(0,200,80,0.9),transparent);
+  background-size:200% 100%;opacity:0.55;animation:borderflow 4.5s linear infinite}
+@keyframes borderflow{from{background-position:200% 0}to{background-position:-200% 0}}
+.cnr{position:absolute;width:22px;height:22px;pointer-events:none;z-index:2;opacity:0;
+  transition:opacity 0.3s,transform 0.35s cubic-bezier(0.22,1,0.36,1)}
+.cnr-tl{top:8px;left:8px;border-top:2px solid var(--gl);border-left:2px solid var(--gl);
+  transform:translate(6px,6px)}
+.cnr-br{bottom:8px;right:8px;border-bottom:2px solid var(--gl);border-right:2px solid var(--gl);
+  transform:translate(-6px,-6px)}
+.how-card:hover .cnr{opacity:1;transform:translate(0,0)}
+.how-tag{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.15em;
+  text-transform:uppercase;color:var(--g);margin-bottom:1rem;
+  position:relative;z-index:1;display:block}
+.how-bg-num{font-family:'Bebas Neue',sans-serif;font-size:7rem;
+  color:rgba(0,122,61,0.04);position:absolute;top:-1rem;right:0.5rem;
+  line-height:1;pointer-events:none;z-index:0;transition:color 0.35s,transform 0.45s}
+.how-card:hover .how-bg-num{color:rgba(0,122,61,0.09);transform:translateY(-4px)}
+.how-icon{width:60px;height:60px;margin-bottom:1.25rem;
+  object-fit:contain;display:block;position:relative;z-index:1;
+  animation:iconfloat 5s ease-in-out infinite;
+  transition:transform 0.4s cubic-bezier(0.22,1,0.36,1),filter 0.35s}
+.how-card:nth-child(2) .how-icon{animation-delay:0.7s}
+.how-card:nth-child(3) .how-icon{animation-delay:1.4s}
+.how-card:nth-child(4) .how-icon{animation-delay:2.1s}
+@keyframes iconfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.how-card:hover .how-icon{filter:drop-shadow(0 6px 14px rgba(0,122,61,0.25))}
+.how-name{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;
+  letter-spacing:0.03em;margin-bottom:0.15rem;color:var(--black);position:relative;z-index:1}
+.how-swahili{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--gl);margin-bottom:0.85rem;position:relative;z-index:1}
+.how-desc{font-size:13px;line-height:1.8;color:var(--muted);position:relative;z-index:1}
+
+/* ============ STATS ============ */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;background:rgba(255,255,255,0.04);margin-top:2rem;position:relative;z-index:1}
+.stat-card{background:var(--black);padding:2.25rem 1.75rem;
+  border-top:3px solid var(--g);
+  transition:background 0.3s,opacity 0.7s cubic-bezier(0.22,1,0.36,1);
+  position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M18 2L34 18L18 34L2 18Z' stroke='%2300C853' stroke-width='0.4' stroke-opacity='0.04' fill='none'/%3E%3C/svg%3E");
+  background-size:36px 36px;pointer-events:none}
+/* idle data pulse traveling the top border */
+.stat-card::after{content:'';position:absolute;top:-3px;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,rgba(0,200,80,0.9),transparent);
+  background-size:200% 100%;opacity:0.5;animation:borderflow 5s linear infinite}
+.stat-card:nth-child(2)::after{animation-delay:1.2s}
+.stat-card:nth-child(3)::after{animation-delay:2.4s}
+.stat-card:nth-child(4)::after{animation-delay:3.6s}
+.stat-card:hover{background:#0A180A}
+.stat-n{font-family:'Bebas Neue',sans-serif;font-size:3.2rem;line-height:1;color:var(--white);
+  transition:text-shadow 0.3s}
+.stat-n.glow{text-shadow:0 0 18px rgba(0,200,80,0.75),0 0 40px rgba(0,200,80,0.3)}
+.stat-n em{color:var(--g);font-style:normal}
+.stat-l{font-size:12px;line-height:1.5;color:rgba(255,255,255,0.26);margin-top:0.5rem}
+
+/* ============ CONTACT ============ */
+.sec-contact{background:var(--dg);padding:6.5rem 5%;position:relative;overflow:hidden}
+.sec-contact::after{content:'';position:absolute;
+  top:-20%;right:-10%;width:50%;height:80%;
+  background:radial-gradient(ellipse at center,rgba(0,122,61,0.1) 0%,transparent 70%);
+  pointer-events:none}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:5rem;
+  align-items:center;position:relative;z-index:1;max-width:1100px}
+.contact-left .sh-label{color:rgba(255,255,255,0.3)}
+.contact-left .sh-line{background:var(--gold)}
+.contact-left .sh-title{color:var(--white);font-size:clamp(2.5rem,5vw,4rem)}
+.contact-pitch{font-size:15px;line-height:1.9;
+  color:rgba(255,255,255,0.45);margin-top:1.5rem;max-width:420px}
+.contact-right{background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.07);
+  padding:3rem;display:flex;flex-direction:column;
+  align-items:center;gap:1.75rem;position:relative;overflow:hidden}
+.contact-right::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--g),var(--gold),var(--g));
+  background-size:200% 100%;animation:goldflow 5s linear infinite}
+@keyframes goldflow{from{background-position:0% 0}to{background-position:200% 0}}
+.contact-email{font-family:'Space Mono',monospace;
+  font-size:clamp(0.85rem,1.6vw,1.05rem);letter-spacing:0.06em;
+  color:var(--gl);text-decoration:none;transition:color 0.2s,text-shadow 0.2s;
+  word-break:break-all;text-align:center}
+.contact-email:hover{color:var(--white);text-shadow:0 0 14px rgba(0,200,80,0.6)}
+.contact-divider{width:40px;height:1px;background:rgba(255,255,255,0.08)}
+.contact-sub{font-family:'Space Mono',monospace;font-size:11px;
+  letter-spacing:0.04em;color:rgba(255,255,255,0.25);line-height:1.7;text-align:center}
+.btn-green{padding:1rem 3rem;background:var(--g);color:var(--white);
+  font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  text-decoration:none;border:2px solid var(--g);font-family:'Space Mono',monospace;
+  transition:background 0.25s,color 0.25s,border-color 0.25s,box-shadow 0.25s;display:inline-block}
+.btn-green:hover{background:transparent;color:var(--gl);border-color:var(--gl);
+  box-shadow:0 0 28px rgba(0,200,80,0.25)}
+
+/* SPONSOR SLOTS — uncomment when sponsors confirmed
+.logos-sec{background:var(--mg);padding:3rem 5%;border-top:1px solid rgba(255,255,255,0.04)}
+.logos-label{text-align:center;font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.2);margin-bottom:2rem}
+.logos-grid{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:1.5rem}
+.logo-slot{width:156px;height:62px;border:1.5px dashed rgba(255,255,255,0.08);
+  display:flex;align-items:center;justify-content:center;transition:border-color 0.2s}
+.logo-slot:hover{border-color:var(--g)}
+.logo-slot span{font-family:'Space Mono',monospace;font-size:9px;
+  letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.1)}
+*/
+
+/* ============ FOOTER ============ */
+footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
+  padding:2.5rem 5%;display:flex;justify-content:space-between;
+  align-items:center;flex-wrap:wrap;gap:1.5rem}
+.ft-brand{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;
+  letter-spacing:0.1em;color:var(--white)}
+.ft-brand em{color:var(--gold);font-style:normal}
+.ft-sub{font-family:'Space Mono',monospace;font-size:10px;
+  color:rgba(255,255,255,0.18);margin-top:0.3rem;letter-spacing:0.04em}
+.ft-right{text-align:right}
+.ft-right a{font-family:'Space Mono',monospace;font-size:12px;color:var(--gl);text-decoration:none}
+.ft-right a:hover{text-shadow:0 0 10px rgba(0,200,80,0.6)}
+.ft-right p{font-family:'Space Mono',monospace;font-size:10px;
+  color:rgba(255,255,255,0.14);margin-top:0.3rem;letter-spacing:0.04em}
+
+/* ============ TIMELINE / ROADMAP ============ */
+.sec-road{background:var(--off);padding:6rem 5%;position:relative;overflow:hidden}
+.road{position:relative;max-width:820px;margin:0 auto;padding-left:2.2rem;z-index:1}
+.road::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:2px;
+  background:linear-gradient(to bottom,var(--g),var(--gold),var(--g));opacity:0.35}
+.road-line{content:'';position:absolute;left:7px;top:8px;width:2px;height:0;
+  background:linear-gradient(to bottom,var(--g),var(--gl));
+  box-shadow:0 0 8px rgba(0,200,80,0.5);transition:height 1.4s cubic-bezier(0.22,1,0.36,1)}
+.road.visible .road-line{height:calc(100% - 16px)}
+.road-item{position:relative;padding:0 0 2.6rem 1.6rem}
+.road-item:last-child{padding-bottom:0}
+.road-dot{position:absolute;left:-2.2rem;top:4px;width:16px;height:16px;
+  border:2px solid var(--g);background:var(--off);transform:rotate(45deg);
+  transition:background 0.4s,box-shadow 0.4s}
+.road-item.visible .road-dot{background:var(--gl);border-color:var(--gl);
+  box-shadow:0 0 14px rgba(0,200,80,0.6)}
+.road-when{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.2em;
+  text-transform:uppercase;color:var(--g);margin-bottom:0.3rem}
+.road-what{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.03em;
+  color:var(--black);margin-bottom:0.35rem}
+.road-what em{color:var(--g);font-style:normal}
+.road-note{font-size:13px;line-height:1.75;color:var(--muted);max-width:520px}
+/* participant CTA band */
+.join{margin:3.5rem auto 0;max-width:820px;position:relative;z-index:1;
+  background:var(--black);border:1px solid rgba(0,200,80,0.25);
+  padding:1.75rem 2rem;display:flex;align-items:center;justify-content:space-between;
+  gap:1.5rem;flex-wrap:wrap;overflow:hidden}
+.join::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,
+    rgba(0,200,80,0.03) 2px,rgba(0,200,80,0.03) 4px)}
+.join-txt{font-family:'Space Mono',monospace;position:relative;z-index:1}
+.join-cmd{font-size:clamp(0.85rem,1.8vw,1.05rem);color:var(--gl);letter-spacing:0.06em;
+  text-shadow:0 0 10px rgba(0,200,80,0.35)}
+.join-sub{font-size:10px;letter-spacing:0.14em;color:rgba(255,255,255,0.3);
+  margin-top:0.4rem;text-transform:uppercase}
+.join .btn-green{position:relative;z-index:1;white-space:nowrap}
+
+/* ============ SPEAKERS — classified dossiers, Maasai craft ============ */
+.sec-speak{background:var(--dg);color:var(--white);padding:6rem 5%;position:relative;overflow:hidden;isolation:isolate}
+.speak-bg{position:absolute;inset:0;z-index:-2;
+  background-image:url('{% static "images/speakers-bg.jpg" %}');background-size:cover;background-position:center;background-attachment: fixed; 
+  background-color:var(--dg)}
+.speak-overlay{position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(160deg,rgba(6,26,15,0.94) 0%,rgba(8,32,18,0.82) 45%,rgba(4,16,9,0.96) 100%)}
+.speak-tag{font-family:'Space Mono',monospace;font-size:clamp(0.72rem,1.4vw,0.9rem);
+  letter-spacing:0.12em;color:var(--gl);margin:-1.75rem 0 3rem;position:relative;z-index:1}
+.speak-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;position:relative;z-index:1;max-width:1300px}
+
+/* dossier card: notched ID-card corners */
+.sp-card{position:relative;background:linear-gradient(170deg,rgba(13,48,32,0.85),rgba(8,16,10,0.95));
+  border:1px solid rgba(0,200,80,0.2);border-top:2px solid var(--g);
+  clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+  transition:transform 0.35s,filter 0.35s;overflow:hidden}
+.sp-card:hover{transform:translateY(-5px);filter:brightness(1.12)}
+.sp-card::after{content:'';position:absolute;left:0;right:0;height:40px;top:-48px;
+  background:linear-gradient(to bottom,transparent,rgba(0,200,80,0.08),transparent);
+  animation:spscan 4s linear infinite;pointer-events:none}
+@keyframes spscan{0%{top:-48px}100%{top:112%}}
+
+.sp-body{display:flex;flex-direction:column;align-items:flex-start;gap:1.1rem;padding:1.7rem 1.5rem 1.8rem}
+
+/* diamond avatar: concentric frames echoing the site pattern */
+.sp-ava-wrap{flex-shrink:0;width:76px;height:76px;display:flex;
+  align-items:center;justify-content:center}
+.sp-ava{width:52px;height:52px;transform:rotate(45deg);position:relative;
+  border:1.5px solid rgba(0,200,80,0.55);
+  outline:1px solid rgba(201,150,10,0.4);outline-offset:5px;
+  background:
+    repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,200,80,0.09) 3px,rgba(0,200,80,0.09) 4px),
+    radial-gradient(circle at 50% 50%,rgba(0,200,80,0.2),rgba(0,20,8,0.7));
+  transition:outline-color 0.35s,border-color 0.35s,box-shadow 0.35s}
+.sp-card:hover .sp-ava{border-color:var(--gl);outline-color:var(--gold2);
+  box-shadow:0 0 22px rgba(0,200,80,0.35)}
+.sp-ava span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  transform:rotate(-45deg);font-family:'Space Mono',monospace;font-weight:700;
+  color:rgba(0,200,80,0.7);font-size:1.15rem;text-shadow:0 0 8px rgba(0,200,80,0.5)}
+
+.sp-info{min-width:0}
+.sp-slot{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.18em;
+  text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:0.5rem}
+/* redacted name: heavy blocks, leaking characters */
+.sp-name{font-family:'Space Mono',monospace;font-size:clamp(0.78rem,1.05vw,0.95rem);font-weight:700;
+  letter-spacing:0.14em;color:var(--gl);min-height:1.4em;
+  text-shadow:0 0 12px rgba(0,200,80,0.35);white-space:nowrap;overflow:hidden}
+.sp-name .rx{color:rgba(0,200,80,0.32);text-shadow:none}
+.sp-status{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.14em;
+  color:rgba(232,176,32,0.75);margin-top:0.55rem;display:flex;align-items:center;gap:0.45rem}
+.sp-status i{width:5px;height:5px;transform:rotate(45deg);background:var(--gold2);
+  animation:pulse 1.8s ease infinite;font-style:normal;flex-shrink:0}
+
+/* ============ FAQ ============ */
+.sec-faq{background:var(--black);color:var(--white);padding:6rem 5%;position:relative;overflow:hidden}
+.faq-list{max-width:820px;position:relative;z-index:1;
+  border:1px solid rgba(0,200,80,0.14);background:rgba(8,12,8,0.5)}
+.faq-item+.faq-item{border-top:1px solid rgba(0,200,80,0.1)}
+.faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:1.25rem 1.5rem;background:none;border:none;cursor:pointer;text-align:left;
+  font-family:'Space Mono',monospace;font-size:clamp(0.78rem,1.5vw,0.95rem);
+  letter-spacing:0.08em;color:rgba(255,255,255,0.75);transition:color 0.2s,background 0.2s}
+.faq-q:hover{color:var(--gl);background:rgba(0,200,80,0.03)}
+.faq-q .pfx{color:var(--gl);margin-right:0.6rem}
+.faq-x{font-size:1.1rem;color:var(--gold2);flex-shrink:0;
+  transition:transform 0.35s cubic-bezier(0.22,1,0.36,1)}
+.faq-item.open .faq-x{transform:rotate(45deg)}
+.faq-item.open .faq-q{color:var(--gl)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height 0.45s cubic-bezier(0.22,1,0.36,1)}
+.faq-a-in{padding:0 1.5rem 1.4rem;font-size:13.5px;line-height:1.85;
+  color:rgba(255,255,255,0.5);max-width:640px}
+.faq-a-in strong{color:var(--gold2);font-weight:600}
+
+/* ============ EASTER EGG ============ */
+#egg{position:fixed;inset:0;z-index:10002;background:rgba(4,8,4,0.96);
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:1rem;
+  cursor:pointer}
+#egg.on{display:flex;animation:eggin 0.25s steps(3) 1}
+@keyframes eggin{0%{transform:translateX(-8px);filter:hue-rotate(40deg)}
+  50%{transform:translateX(8px)}100%{transform:translateX(0)}}
+#egg::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,
+    rgba(0,200,80,0.05) 2px,rgba(0,200,80,0.05) 4px)}
+.egg-big{font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,10vw,7rem);
+  letter-spacing:0.06em;color:var(--gl);
+  text-shadow:3px 0 var(--red),-3px 0 rgba(255,255,255,0.5),0 0 40px rgba(0,200,80,0.5);
+  animation:eggjit 0.18s steps(2) infinite}
+@keyframes eggjit{0%,100%{transform:translateX(0)}50%{transform:translateX(-2px) skewX(-1deg)}}
+.egg-sub{font-family:'Space Mono',monospace;font-size:clamp(0.7rem,1.6vw,0.95rem);
+  letter-spacing:0.18em;color:var(--gold2)}
+.egg-hint{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.2em;
+  color:rgba(255,255,255,0.25);margin-top:1.5rem;text-transform:uppercase}
+
+/* ============ RESPONSIVE ============ */
+@media(max-width:1400px){
+  .hero-term{display:none}
+}
+@media(max-width:1100px) and (min-width:769px){
+  .how-grid{grid-template-columns:repeat(2,1fr)}
+  .speak-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:768px){
+  nav{padding:1rem 4%}
+  nav.scrolled{padding:0.85rem 4%}
+  .nav-links{display:none}
+  .nav-cta{display:none}
+  .nav-right{gap:0.75rem}
+  .nav-login-btn{padding:0.4rem 1rem;font-size:11px}
+  .hamburger{display:flex}
+  .sec,.sec-how,.sec-dark,.sec-contact,.sec-road,.sec-speak,.sec-faq,footer,.partners,.prob{padding-left:4%;padding-right:4%}
+  .speak-grid{grid-template-columns:1fr}
+  .sp-rail{display:none}
+  .sp-logo-wrap::before{display:none}
+  .sec-sponsors{padding:3.5rem 4% 4rem}
+  .sp-ava-wrap{width:64px;height:64px}
+  .sp-ava{width:44px;height:44px}
+  .join{flex-direction:column;align-items:flex-start}
+  .sp-name{font-size:0.85rem}
+  .hero{padding:8rem 4% 3.5rem}
+  .how-grid,.stats-grid{grid-template-columns:1fr}
+  .contact-grid{grid-template-columns:1fr;gap:2.5rem}
+  .partners-label{border-right:none;padding-right:0;margin-right:0;
+    margin-bottom:1rem;width:100%;text-align:center}
+  .partners-logos{gap:2rem}
+  footer{text-align:center;justify-content:center}
+  .ft-right{text-align:center}
+  .prob-inner{flex-direction:column;align-items:flex-start}
+  .contact-right{width:100%;padding:2.25rem 1.5rem}
+  .hero-count{gap:0.9rem;padding:0.75rem 1rem}
+  .cd-unit{min-width:36px}
+  .slide-l,.slide-r{transform:translateY(24px)}
+  .slide-l.visible,.slide-r.visible{transform:translateY(0)}
+  #rain{display:none}
+  .orb{display:none}
+  /* ensure images stay within container on mobile */
+  .how-icon{width:48px;height:48px}
+  .sp-logo-frame img{max-width:120px;height:auto}
+}
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<!-- terminal boot sequence -->
+<div id="boot" aria-hidden="true">
+  <div class="boot-inner">
+    <div class="boot-line" id="bl0"></div>
+    <div class="boot-line" id="bl1"></div>
+    <div class="boot-line" id="bl2"></div>
+    <div class="boot-line" id="bl3"></div>
+    <div class="boot-bar"><i id="bbar"></i></div>
+    <div class="boot-pct" id="bpct">0%</div>
+  </div>
+</div>
+
+<div id="grain" aria-hidden="true"></div>
+<div id="cur-dot" aria-hidden="true"></div>
+<div id="cur-ring" aria-hidden="true"></div>
+<div id="prog" aria-hidden="true"></div>
+
+<div class="mmenu" id="mm" aria-hidden="true">
+  <button class="mclose" id="mc" aria-label="Close menu">CLOSE ✕</button>
+
+  <a href="#how" onclick="cm()">How It Works</a>
+  <a href="#road" onclick="cm()">Timeline</a>
+  <a href="#speakers" onclick="cm()">Speakers</a>
+  <a href="#numbers" onclick="cm()">Numbers</a>
+  <a href="#faq" onclick="cm()">FAQ</a>
+  <a href="#contact" onclick="cm()">Contact</a>
+  <a href="#contact" onclick="cm()" style="color:var(--gold)">Partner With Us →</a>
+  <a href="mailto:sucybersec@strathmore.edu?subject=JengaSec%202026%20Team%20Registration" style="color:var(--gl)">Register Your Team →</a>
+  <div class="mmenu-login">
+    <span>Already registered or an active party?</span>
+    <a href="{% url 'login' %}">Login →</a>
+  </div>
+</div>
+
+<nav id="nav" aria-label="Main navigation">
+  <a class="nl" href="#home" id="wordmark">
+    <img src="{% static 'images/logo.png' %}" alt="JengaSec spear logo" class="nl-spear">
+    Jenga<span class="wm-sec" id="wmsec">Sec</span>
+  </a>
+  <ul class="nav-links" id="navlinks">
+    <li><a href="#how" data-txt="How It Works">How It Works</a></li>
+    <li><a href="#road" data-txt="Timeline">Timeline</a></li>
+    <li><a href="#speakers" data-txt="Speakers">Speakers</a></li>
+    <li><a href="#numbers" data-txt="Numbers">Numbers</a></li>
+    <li><a href="#faq" data-txt="FAQ">FAQ</a></li>
+    <li><a href="#contact" data-txt="Contact">Contact</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="{% url 'login' %}" class="nav-login magnetic">
+      <span class="nav-login-hint">Already registered or an active party?</span>
+      <span class="nav-login-btn">Login</span>
+    </a>
+    <a href="#contact" class="nav-cta magnetic">Partner With Us</a>
+    <button class="hamburger" id="mb" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<main id="main">
+
+<section class="hero" id="home">
+  <div class="hero-img" id="heroimg" aria-hidden="true"></div>
+  <div class="hero-overlay" aria-hidden="true"></div>
+  <canvas id="rain" aria-hidden="true"></canvas>
+  <canvas id="particles" aria-hidden="true"></canvas>
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="hero-scan" aria-hidden="true"></div>
+  <div class="hero-beam" aria-hidden="true"></div>
+  <div class="gslice" id="gslice" aria-hidden="true"></div>
+  <div class="hero-fade" aria-hidden="true"></div>
+
+  <!-- live simulation feed — streams forever -->
+  <aside class="hero-term" aria-label="Simulated live event feed">
+    <div class="term-head">
+      <div class="term-dots"><span></span><span></span><span></span></div>
+      <span class="term-title">morani_feed.log</span>
+      <span class="term-live">LIVE</span>
+    </div>
+    <div class="term-body" id="termbody"></div>
+  </aside>
+
+  <div class="hero-content">
+    <div class="hero-badge"><span class="bdot"></span>&gt;_ STRATHMORE_UNIVERSITY :: NAIROBI :: OCT_2026 :: STATUS: ARMING<span class="badge-cursor"></span></div>
+    <h1>
+      <span id="jenga" data-text="Jenga">Jenga</span>
+      <span class="glitch" id="glitch" data-text="Sec">Sec</span>
+      <span class="gold">// October 2026</span>
+    </h1>
+    <p class="hero-tagline" id="tw"></p>
+    <div class="hero-decode" id="dec" data-value="> CTFs AND HACKATHONS DON'T CUT IT ANYMORE.">&gt; CTFs AND HACKATHONS DON'T CUT IT ANYMORE.</div>
+    <div class="hero-ctas">
+      <!-- Registration is by email for now; swap for the platform's
+           online team registration page when Pair 1 ships it. -->
+      <a href="mailto:sucybersec@strathmore.edu?subject=JengaSec%202026%20Team%20Registration" class="btn-green magnetic">Register Your Team</a>
+      <a href="#contact" class="btn-red magnetic">Partner With Us</a>
+      <a href="#how" class="btn-ghost magnetic">How It Works</a>
+    </div>
+    <div class="hero-count" id="countdown" role="timer" aria-label="Countdown to JengaSec 2026">
+      <span class="cd-label">// T-MINUS :: EVENT_START 2026-10-14</span>
+      <div class="cd-unit"><span class="cd-num" id="cd-d">--</span><span class="cd-u">Days</span></div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit"><span class="cd-num" id="cd-h">--</span><span class="cd-u">Hrs</span></div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit"><span class="cd-num" id="cd-m">--</span><span class="cd-u">Min</span></div>
+      <span class="cd-sep">:</span>
+      <div class="cd-unit"><span class="cd-num" id="cd-s">--</span><span class="cd-u">Sec</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNERS — /logo/ folder, natural colour, mix-blend on dark bg -->
+<div class="partners">
+  <div class="partners-inner">
+    <span class="partners-label">// In partnership with</span>
+    <div class="partners-logos">
+      <div class="plogo"><img src="{% static 'logo/SCSC LOGO.png' %}" alt="Strathmore Cybersecurity Club"></div>
+      <div class="plogo"><img src="{% static 'logo/Strath.png' %}" alt="Strathmore University"></div>
+      <div class="plogo"><img src="{% static 'logo/KCA.png' %}" alt="KCA Cybersecurity Club"></div>
+      <div class="plogo"><img src="{% static 'logo/SheLeadsTech_Logo.png' %}" alt="She Leads Tech"></div>
+      <div class="plogo"><img src="{% static 'logo/ISG Strath.png' %}" alt="ISACA Student Chapter Strathmore"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SPONSORS — uncomment when confirmed. Currently showing 3.
+     To add more: duplicate .sp-logo-wrap blocks.
+     When you reach 6+, add class "marquee" to .sp-logos and
+     wrap all .sp-logo-wrap in &lt;div class="sp-logos-track"&gt;×2
+     ============================================================ -->
+<div class="sec-sponsors fade-up">
+  <div class="sp-hd">
+    <div class="sp-eyebrow">// 2026_CORE_PARTNERS</div>
+    <div class="sp-title">Powered by<em>.</em></div>
+  </div>
+
+  <div class="sp-logos">
+    <div class="sp-rail" aria-hidden="true"></div>
+
+    <!-- CORE 01: Strathmore University -->
+    <div class="sp-logo-wrap slide-l">
+      <div class="sp-logo-frame">
+        <img src="{% static 'logo/Strath.png' %}" alt="Strathmore University">
+      </div>
+      <div class="sp-logo-rank"><i></i>CORE_01</div>
+      <div class="sp-logo-name">Strathmore University</div>
+    </div>
+
+    <!-- CORE 02: ISACA Kenya Chapter -->
+    <div class="sp-logo-wrap fade-up" style="transition-delay:0.1s">
+      <div class="sp-logo-frame">
+        <img src="{% static 'logo/ISACA Kenya.png' %}" alt="ISACA Kenya Chapter">
+      </div>
+      <div class="sp-logo-rank"><i></i>CORE_02</div>
+      <div class="sp-logo-name">ISACA Kenya Chapter</div>
+    </div>
+
+    <!-- CORE 03: Digital Africa — drop logo/DigitalAfrica.png in when ready -->
+    <div class="sp-logo-wrap slide-r" style="transition-delay:0.2s">
+      <div class="sp-logo-frame sp-pending" id="da-frame">
+        <img src="{% static 'logo/DigitalAfrica.png' %}" alt="Digital Africa" id="da-img">
+      </div>
+      <div class="sp-logo-rank"><i></i>CORE_03</div>
+      <div class="sp-logo-name">Digital Africa</div>
+    </div>
+
+    <!-- ADD FUTURE SPONSORS HERE — copy a .sp-logo-wrap block.
+         At 6+ logos: add class "marquee" to .sp-logos and wrap all
+         .sp-logo-wrap blocks in two duplicated .sp-logos-track divs -->
+
+  </div>
+
+  <div class="sp-more">
+    <p>// More core partners to be announced &mdash; <a href="mailto:sucybersec@strathmore.edu?subject=JengaSec%202026%20Sponsorship">enquire about a seat</a></p>
+  </div>
+</div>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span class="ti g">APT_SIMULATION</span><span class="ti">CLOUD_SECURITY</span><span class="ti g">RED_VS_BLUE</span><span class="ti">SOCIAL_ENGINEERING</span><span class="ti g">PRIVILEGE_ESCALATION</span><span class="ti">KIKAO_PANEL</span><span class="ti g">MAARIFA_SESSIONS</span><span class="ti">MORANI_HUNTING_GROUNDS</span><span class="ti g">JENGABANK</span><span class="ti">INSIDER_THREAT</span><span class="ti g">350+_PARTICIPANTS</span><span class="ti">FREE_ENTRY</span><span class="ti g">KENYA_PROVING_GROUND</span>
+    <span class="ti g">APT_SIMULATION</span><span class="ti">CLOUD_SECURITY</span><span class="ti g">RED_VS_BLUE</span><span class="ti">SOCIAL_ENGINEERING</span><span class="ti g">PRIVILEGE_ESCALATION</span><span class="ti">KIKAO_PANEL</span><span class="ti g">MAARIFA_SESSIONS</span><span class="ti">MORANI_HUNTING_GROUNDS</span><span class="ti g">JENGABANK</span><span class="ti">INSIDER_THREAT</span><span class="ti g">350+_PARTICIPANTS</span><span class="ti">FREE_ENTRY</span><span class="ti g">KENYA_PROVING_GROUND</span>
+  </div>
+</div>
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track rev">
+    <span class="ti au">SQL_INJECTION</span><span class="ti">LATERAL_MOVEMENT</span><span class="ti au">CLOUD_EXPLOITATION</span><span class="ti">AI_ASSISTED_HYBRID</span><span class="ti au">SERIKALI_SYSTEMS</span><span class="ti">CASCADING_DEPENDENCIES</span><span class="ti au">EXECUTIVE_REVIEW</span><span class="ti">STRATHMORE_NAIROBI</span><span class="ti au">BUILD_ATTACK_DEFEND</span><span class="ti">OCT_2026</span>
+    <span class="ti au">SQL_INJECTION</span><span class="ti">LATERAL_MOVEMENT</span><span class="ti au">CLOUD_EXPLOITATION</span><span class="ti">AI_ASSISTED_HYBRID</span><span class="ti au">SERIKALI_SYSTEMS</span><span class="ti">CASCADING_DEPENDENCIES</span><span class="ti au">EXECUTIVE_REVIEW</span><span class="ti">STRATHMORE_NAIROBI</span><span class="ti au">BUILD_ATTACK_DEFEND</span><span class="ti">OCT_2026</span>
+  </div>
+</div>
+
+<div class="prob apat">
+  <div class="prob-sweep" aria-hidden="true"></div>
+  <div class="prob-inner">
+    <div class="prob-text slide-l">CTFs develop tools.<br><em>JengaSec develops judgment.</em></div>
+    <p class="prob-sub slide-r">Most talent pipelines produce professionals assessed individually, within their discipline, under controlled conditions. JengaSec produces something different: technologists who have built an enterprise, defended it under fire, and explained their decisions to a room of executives.</p>
+  </div>
+</div>
+
+<!-- HOW IT WORKS — four phases -->
+<section class="sec-how apat apat-light" id="how">
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line"></div><span class="sh-label">// How It Works</span></div>
+    <h2 class="sh-title">Four phases.<br><span class="outline-g">One complete lifecycle.</span></h2>
+  </div>
+  <div class="how-grid">
+
+    <!-- Phase 01 — Build (Pre-Event) -->
+    <!-- Icon: icons/build.png — place in /icons/ folder -->
+    <div class="how-card tilt slide-l">
+      <div class="spot"></div>
+      <span class="cnr cnr-tl"></span><span class="cnr cnr-br"></span>
+      <div class="how-bg-num">01</div>
+      <span class="how-tag">// Phase_01 — Pre-Event</span>
+      <img src="{% static 'icons/build.png' %}" alt="Build" class="how-icon">
+      <div class="how-name">Build</div>
+      <div class="how-swahili">// Construction</div>
+      <p class="how-desc">Blue teams architect and construct their assigned enterprise before the event: full-stack systems with login screens, APIs, databases and core business logic. Organic vulnerabilities emerge from genuine architectural decisions, not planted traps.</p>
+    </div>
+
+    <!-- Phase 02 — Maarifa (During Event) -->
+    <div class="how-card tilt slide-r" style="transition-delay:0.08s">
+      <div class="spot"></div>
+      <span class="cnr cnr-tl"></span><span class="cnr cnr-br"></span>
+      <div class="how-bg-num">02</div>
+      <span class="how-tag">// Phase_02 — During Event</span>
+      <img src="{% static 'icons/Maarifa.png' %}" alt="Maarifa" class="how-icon">
+      <div class="how-name">Maarifa</div>
+      <div class="how-swahili">// Knowledge</div>
+      <p class="how-desc">Each day opens with two keynotes: one hard cybersecurity talk, one from the wider industry. Tech does not exist in isolation, and what you hear in the morning directly shapes what gets attacked and defended in the afternoon.</p>
+    </div>
+
+    <!-- Phase 03 — Morani Hunting Grounds (During Event) -->
+    <div class="how-card tilt slide-l" style="transition-delay:0.16s">
+      <div class="spot"></div>
+      <span class="cnr cnr-tl"></span><span class="cnr cnr-br"></span>
+      <div class="how-bg-num">03</div>
+      <span class="how-tag">// Phase_03 — During Event</span>
+      <img src="{% static 'icons/Morani hunting.png' %}" alt="Morani Hunting Grounds" class="how-icon">
+      <div class="how-name">Morani Hunting Grounds</div>
+      <div class="how-swahili">// Mastery_Under_Pressure</div>
+      <p class="how-desc">Red teams execute APT-style attacks on systems they did not build: social engineering, cloud exploitation, SQL injection, privilege escalation, lateral movement. Blue teams defend in real time. AI assists both sides, but human judgment is what gets scored.</p>
+    </div>
+
+    <!-- Phase 04 — Kikao (During Event) -->
+    <div class="how-card tilt slide-r" style="transition-delay:0.24s">
+      <div class="spot"></div>
+      <span class="cnr cnr-tl"></span><span class="cnr cnr-br"></span>
+      <div class="how-bg-num">04</div>
+      <span class="how-tag">// Phase_04 — During Event</span>
+      <img src="{% static 'icons/Kikao.png' %}" alt="Kikao" class="how-icon">
+      <div class="how-name">Kikao</div>
+      <div class="how-swahili">// Dialogue_&_Reflection</div>
+      <p class="how-desc">CFOs, CTOs and CISOs forensically review what actually happened. They interrogate blue team architecture and red team attack chains in front of the room. Winners are announced here, followed by open Q&amp;A on entering the industry.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- TIMELINE / ROADMAP -->
+<section class="sec-road apat apat-light" id="road">
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line"></div><span class="sh-label">// The Road to October</span></div>
+    <h2 class="sh-title">The clock is<br><span class="outline-g">already running.</span></h2>
+  </div>
+  <div class="road" id="road-track">
+    <div class="road-line" aria-hidden="true"></div>
+    <div class="road-item">
+      <div class="road-dot"></div>
+      <div class="road-when">// Now</div>
+      <div class="road-what">Interest registration <em>open</em></div>
+      <p class="road-note">Students and young techies across Kenya lock in early. Free entry, limited slots.</p>
+    </div>
+    <div class="road-item">
+      <div class="road-dot"></div>
+      <div class="road-when">// Mid 2026</div>
+      <div class="road-what">Team formation &amp; <em>role assignment</em></div>
+      <p class="road-note">Teams of up to four, each with at least one security specialist. Red and Blue roles assigned.</p>
+    </div>
+    <div class="road-item">
+      <div class="road-dot"></div>
+      <div class="road-when">// Pre-Event</div>
+      <div class="road-what">Build <em>phase</em></div>
+      <p class="road-note">Blue teams construct their enterprise: logins, APIs, databases, cloud layer. What you build is what gets attacked.</p>
+    </div>
+    <div class="road-item">
+      <div class="road-dot"></div>
+      <div class="road-when">// 14 Oct 2026 · Strathmore, Nairobi</div>
+      <div class="road-what">Event days: <em>Maarifa · Morani · Kikao</em></div>
+      <p class="road-note">Three to four days of full-spectrum simulation, ending in the executive review room.</p>
+    </div>
+  </div>
+  <div class="join fade-up">
+    <div class="join-txt">
+      <div class="join-cmd">&gt; ./register --interest --team=4 <span class="badge-cursor"></span></div>
+      <div class="join-sub">// Participants :: free entry :: medium-to-advanced</div>
+    </div>
+    <a href="mailto:sucybersec@strathmore.edu?subject=JengaSec%202026%20Participant%20Interest" class="btn-green magnetic">Register Interest</a>
+  </div>
+</section>
+
+<!-- SPEAKERS — encrypted placeholders -->
+<section class="sec-speak apat apat-dark" id="speakers">
+  <div class="speak-bg" aria-hidden="true"></div>
+  <div class="speak-overlay" aria-hidden="true"></div>
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line" style="background:var(--gl)"></div><span class="sh-label" style="color:var(--gl)">// Speakers &amp; Panel</span></div>
+    <h2 class="sh-title" style="color:var(--white)">Identities<br><span style="color:var(--gl)">still encrypted.</span></h2>
+  </div>
+  <p class="speak-tag">&gt; SPEAKER_MANIFEST :: DECRYPTING... clearance pending. Names drop closer to October.</p>
+
+  <div class="speak-grid">
+    <div class="sp-card slide-l">
+      <div class="sp-body">
+        <div class="sp-ava-wrap" aria-hidden="true"><div class="sp-ava"><span>?</span></div></div>
+        <div class="sp-info">
+          <div class="sp-slot">// LAIBON</div>
+          <div class="sp-name" data-code="DECRYPTING_LAIBON">DECRYPTING...</div>
+          <div class="sp-status"><i></i>MAARIFA :: CYBERSECURITY_KEYNOTE</div>
+        </div>
+      </div>
+    </div>
+    <div class="sp-card fade-up" style="transition-delay:0.07s">
+      <div class="sp-body">
+        <div class="sp-ava-wrap" aria-hidden="true"><div class="sp-ava"><span>?</span></div></div>
+        <div class="sp-info">
+          <div class="sp-slot">// LAIBON</div>
+          <div class="sp-name" data-code="DECRYPTING_LAIBON">DECRYPTING...</div>
+          <div class="sp-status"><i></i>MAARIFA :: INDUSTRY_KEYNOTE</div>
+        </div>
+      </div>
+    </div>
+    <div class="sp-card fade-up" style="transition-delay:0.14s">
+      <div class="sp-body">
+        <div class="sp-ava-wrap" aria-hidden="true"><div class="sp-ava"><span>?</span></div></div>
+        <div class="sp-info">
+          <div class="sp-slot">// LAIBON</div>
+          <div class="sp-name" data-code="DECRYPTING_LAIBON">DECRYPTING...</div>
+          <div class="sp-status"><i></i>KIKAO :: EXECUTIVE_PANEL</div>
+        </div>
+      </div>
+    </div>
+    <div class="sp-card slide-r" style="transition-delay:0.21s">
+      <div class="sp-body">
+        <div class="sp-ava-wrap" aria-hidden="true"><div class="sp-ava"><span>?</span></div></div>
+        <div class="sp-info">
+          <div class="sp-slot">// LAIBON</div>
+          <div class="sp-name" data-code="DECRYPTING_LAIBON">DECRYPTING...</div>
+          <div class="sp-status"><i></i>KIKAO :: EXECUTIVE_PANEL</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec sec-dark apat apat-dark" id="numbers">
+  <div class="orb orb-g orb1" aria-hidden="true"></div>
+  <div class="orb orb-au orb2" aria-hidden="true"></div>
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line"></div><span class="sh-label">// The Numbers</span></div>
+    <h2 class="sh-title">Built at<br><span class="outline-g">real scale.</span></h2>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card slide-l">
+      <div class="stat-n" data-count="350" data-suffix="+">350<em>+</em></div>
+      <div class="stat-l">Participants from universities and tech communities across Kenya</div>
+    </div>
+    <div class="stat-card slide-r" style="transition-delay:0.08s">
+      <div class="stat-n" data-count="117" data-prefix="~">~117</div>
+      <div class="stat-l">Teams of three to four, each with a security specialist. Red and Blue roles assigned pre-event</div>
+    </div>
+    <div class="stat-card no-count slide-l" style="transition-delay:0.16s">
+      <div class="stat-n">3<em>–4</em></div>
+      <div class="stat-l">Days of full-spectrum simulation spanning Build, Maarifa, Morani, and Kikao</div>
+    </div>
+    <div class="stat-card no-count slide-r" style="transition-delay:0.24s">
+      <div class="stat-n"><em>Free</em></div>
+      <div class="stat-l">Entry for all participants, open to all students and tech community members</div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="sec-faq" id="faq">
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line" style="background:var(--gold)"></div><span class="sh-label" style="color:var(--gold)">// FAQ</span></div>
+    <h2 class="sh-title" style="color:var(--white)">Questions,<br><span style="color:var(--gold)">answered.</span></h2>
+  </div>
+  <div class="faq-list">
+    <div class="faq-item">
+      <button class="faq-q" aria-expanded="false"><span><span class="pfx">&gt;</span>who_can_enter?</span><span class="faq-x">+</span></button>
+      <div class="faq-a"><div class="faq-a-in">University students and young tech professionals across Kenya. If you build, break or defend systems, this is your arena. <strong>Entry is free.</strong></div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" aria-expanded="false"><span><span class="pfx">&gt;</span>do_i_need_a_team?</span><span class="faq-x">+</span></button>
+      <div class="faq-a"><div class="faq-a-in">Yes. Teams of <strong>up to four members</strong>, and at least <strong>one member must be a security specialist</strong>. Mixed skill sets win: builders, breakers, and someone who can write it all up.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" aria-expanded="false"><span><span class="pfx">&gt;</span>what_skill_level?</span><span class="faq-x">+</span></button>
+      <div class="faq-a"><div class="faq-a-in"><strong>Medium to advanced.</strong> You should be comfortable working on real systems, whether building them or attacking them. Maarifa sessions sharpen you further during the event itself.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" aria-expanded="false"><span><span class="pfx">&gt;</span>what_does_it_cost?</span><span class="faq-x">+</span></button>
+      <div class="faq-a"><div class="faq-a-in">Nothing. JengaSec is <strong>free for all participants</strong>, students and tech community members alike.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" aria-expanded="false"><span><span class="pfx">&gt;</span>how_do_i_register?</span><span class="faq-x">+</span></button>
+      <div class="faq-a"><div class="faq-a-in">Email <a href="mailto:sucybersec@strathmore.edu?subject=JengaSec%202026%20Participant%20Interest" style="color:var(--gl);text-decoration:none">sucybersec@strathmore.edu</a> with your name, institution and team status, or hit Register Interest above. Slots are limited.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec-contact apat apat-dark" id="contact">
+  <div class="orb orb-g orb2" aria-hidden="true"></div>
+  <div class="contact-grid">
+    <div class="contact-left slide-l">
+      <div class="sh">
+        <div class="sh-eye">
+          <div class="sh-line" style="background:var(--gold)"></div>
+          <span class="sh-label" style="color:rgba(255,255,255,0.3)">// Partner With Us</span>
+        </div>
+        <h2 class="sh-title" style="color:var(--white);font-size:clamp(2.5rem,5vw,4rem)">
+          Ready to be<br><span style="color:var(--gold)">in the room?</span>
+        </h2>
+      </div>
+      <p class="contact-pitch">We are actively seeking founding partners for JengaSec 2026. Direct access to Kenya's strongest emerging technical talent, before the rest of the industry knows their names.</p>
+    </div>
+    <div class="contact-right slide-r" style="transition-delay:0.15s">
+      <a href="mailto:sucybersec@strathmore.edu" class="contact-email">sucybersec@strathmore.edu</a>
+      <div class="contact-divider"></div>
+      <p class="contact-sub">Strathmore Cybersecurity Club // Strathmore University, Nairobi, Kenya // @sucybersec</p>
+      <a href="mailto:sucybersec@strathmore.edu" class="btn-green magnetic">Send Us a Message</a>
+    </div>
+  </div>
+</section>
+
+<!-- SPONSOR LOGO SLOTS — uncomment when sponsors confirmed
+<div class="logos-sec">
+  <div class="logos-label">// 2026 Partners & Sponsors</div>
+  <div class="logos-grid">
+    <div class="logo-slot"><span>Your_Logo</span></div>
+    <div class="logo-slot"><span>Your_Logo</span></div>
+    <div class="logo-slot"><span>Your_Logo</span></div>
+    <div class="logo-slot"><span>Your_Logo</span></div>
+  </div>
+</div>
+-->
+
+
+<!-- easter egg: type "jenga" anywhere -->
+<div id="egg" aria-hidden="true">
+  <div class="egg-big">ACCESS GRANTED</div>
+  <div class="egg-sub">&gt; SEE YOU IN OCTOBER :: NAIROBI_2026</div>
+  <div class="egg-hint">// click anywhere to close</div>
+</div>
+
+</main>
+
+<footer>
+  <div>
+    <div class="ft-brand">Jenga<em>Sec</em> 2026</div>
+    <div class="ft-sub">// Strathmore Cybersecurity Club · Nairobi, Kenya · @sucybersec</div>
+  </div>
+  <div class="ft-right">
+    <a href="mailto:sucybersec@strathmore.edu">sucybersec@strathmore.edu</a>
+    <p>// Kenya's proving ground for enterprise-ready technologists</p>
+  </div>
+</footer>
+
+<script>
+'use strict';
+/* Effects always run. No motion gating — this is a show. */
+const finePointer=window.matchMedia('(pointer: fine)').matches;
+const CH="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./\\[]{}><_#@!";
+
+/* ---------- consistent load position: never restore a mid-page scroll on reload ---------- */
+if('scrollRestoration' in history)history.scrollRestoration='manual';
+if(!location.hash)window.scrollTo(0,0);
+
+/* ---------- terminal boot (runs every load, identical every time) ---------- */
+const boot=document.getElementById('boot');
+document.body.classList.add('booting');
+function endBoot(){
+  if(window.__bootDone)return;
+  window.__bootDone=true;
+  boot.classList.add('done');
+  document.body.classList.remove('booting');
+  if(!location.hash)window.scrollTo(0,0);
+  setTimeout(()=>{if(boot.parentNode)boot.remove();},800);
+}
+(function(){
+  const lines=[
+    '> jengasec --init --env=nairobi',
+    '> loading MORANI_HUNTING_GROUNDS ......... <span class="ok">[OK]</span>',
+    '> arming RED_TEAMS :: BLUE_TEAMS ......... <span class="ok">[OK]</span>',
+    '> handshake STRATHMORE_UNIVERSITY ........ <span class="ok">[OK]</span>'
+  ];
+  const bbar=document.getElementById('bbar'),bpct=document.getElementById('bpct');
+  let li=0;
+  function typeLine(){
+    if(li<lines.length){
+      document.getElementById('bl'+li).innerHTML=lines[li];
+      li++;
+      bbar.style.transform='scaleX('+(li/lines.length)+')';
+      bpct.textContent=Math.round(li/lines.length*100)+'%';
+      setTimeout(typeLine,180);
+    }else{
+      setTimeout(endBoot,240);
+    }
+  }
+  setTimeout(typeLine,120);
+  /* hard failsafe: overlay is gone by 3s no matter what */
+  setTimeout(endBoot,3000);
+})();
+
+/* ---------- custom cursor ---------- */
+if(finePointer){
+  document.body.classList.add('cursor-on');
+  const dot=document.getElementById('cur-dot'),ring=document.getElementById('cur-ring');
+  let mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my;
+  addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;
+    dot.style.left=mx+'px';dot.style.top=my+'px';},{passive:true});
+  (function ringLoop(){
+    rx+=(mx-rx)*0.16;ry+=(my-ry)*0.16;
+    ring.style.left=rx+'px';ring.style.top=ry+'px';
+    requestAnimationFrame(ringLoop);
+  })();
+  document.querySelectorAll('a,button,.how-card').forEach(el=>{
+    el.addEventListener('mouseenter',()=>ring.classList.add('hovering'));
+    el.addEventListener('mouseleave',()=>ring.classList.remove('hovering'));
+  });
+}
+
+/* ---------- scroll progress + nav weight ---------- */
+const prog=document.getElementById('prog');
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  prog.style.width=((h.scrollTop/(h.scrollHeight-h.clientHeight))*100)+'%';
+  nav.classList.toggle('scrolled',h.scrollTop>40);
+},{passive:true});
+if(document.documentElement.scrollTop>40)nav.classList.add('scrolled');
+
+/* ---------- active nav link ---------- */
+const navAnchors=[...document.querySelectorAll('#navlinks a')];
+const navSections=navAnchors.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
+const navObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      navAnchors.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));
+    }
+  });
+},{rootMargin:'-40% 0px -55% 0px'});
+navSections.forEach(s=>navObs.observe(s));
+
+/* ---------- nav link scramble on hover ---------- */
+navAnchors.forEach(a=>{
+  let siv=null;
+  a.addEventListener('mouseenter',()=>{
+    const txt=a.dataset.txt;let i=0;clearInterval(siv);
+    siv=setInterval(()=>{
+      a.textContent=txt.split('').map((c,idx)=>{
+        if(c===' ')return ' ';
+        if(idx<i)return txt[idx];
+        return CH[Math.floor(Math.random()*CH.length)];
+      }).join('');
+      if(i>=txt.length){clearInterval(siv);a.textContent=txt;}
+      i+=0.9;
+    },24);
+  });
+});
+
+/* ---------- mobile menu ---------- */
+const mm=document.getElementById('mm');
+document.getElementById('mb').onclick=()=>{mm.classList.add('open');mm.setAttribute('aria-hidden','false')};
+document.getElementById('mc').onclick=cm;
+function cm(){mm.classList.remove('open');mm.setAttribute('aria-hidden','true')}
+
+/* ---------- hero "Jenga" decode-in ---------- */
+const jenga=document.getElementById('jenga');
+function decodeJenga(){
+  const txt=jenga.dataset.text;let i=0;
+  const jiv=setInterval(()=>{
+    jenga.textContent=txt.split('').map((c,idx)=>{
+      if(idx<i)return txt[idx];
+      return CH[Math.floor(Math.random()*CH.length)];
+    }).join('');
+    if(i>=txt.length){clearInterval(jiv);jenga.textContent=txt;}
+    i+=0.35;
+  },40);
+}
+
+/* ---------- hero glitch: auto-fire + slice bands + nav wordmark ---------- */
+const glitchEl=document.getElementById('glitch');
+const gslice=document.getElementById('gslice');
+function glitchBurst(){
+  glitchEl.classList.remove('glitching');void glitchEl.offsetWidth;
+  glitchEl.classList.add('glitching');
+  gslice.style.top=(10+Math.random()*70)+'%';
+  gslice.classList.remove('fire');void gslice.offsetWidth;gslice.classList.add('fire');
+  setTimeout(()=>glitchEl.classList.remove('glitching'),600);
+}
+function fireGlitch(){
+  glitchBurst();
+  setTimeout(fireGlitch,4600+Math.random()*1400);
+}
+setTimeout(fireGlitch,2000);
+/* mobile: tap "Sec" for the burst (hover equivalent) */
+glitchEl.addEventListener('touchstart',glitchBurst,{passive:true});
+const wmsec=document.getElementById('wmsec');
+document.getElementById('wordmark').addEventListener('mouseenter',()=>{
+  wmsec.classList.remove('wm-glitch');
+  void wmsec.offsetWidth;
+  wmsec.classList.add('wm-glitch');
+});
+
+/* ---------- decode line: hover + AUTO-CYCLING phrases ---------- */
+const dec=document.getElementById('dec');
+const decPhrases=[
+  "> CTFs AND HACKATHONS DON'T CUT IT ANYMORE.",
+  "> BUILD IT. SECURE IT. ATTACK IT. DOCUMENT IT.",
+  "> 350+ TECHNOLOGISTS. ONE PROVING GROUND.",
+  "> RED VS BLUE. FULL ENTERPRISE STACK.",
+  "> NAIROBI :: OCTOBER 2026 :: FREE ENTRY."
+];
+let decIdx=0,iv=null;
+function decode(){
+  let i=0;clearInterval(iv);
+  const val=dec.dataset.value;
+  iv=setInterval(()=>{
+    dec.textContent=val.split('').map((c,idx)=>{
+      if(c===' ')return ' ';
+      if(idx<i)return val[idx];
+      return CH[Math.floor(Math.random()*CH.length)];
+    }).join('');
+    if(i>=val.length){clearInterval(iv);dec.textContent=val;}
+    i+=0.7;
+  },22);
+}
+dec.addEventListener('mouseover',decode);
+/* rotate through phrases forever */
+setInterval(()=>{
+  decIdx=(decIdx+1)%decPhrases.length;
+  dec.dataset.value=decPhrases[decIdx];
+  decode();
+},7000);
+
+/* ---------- typewriter ---------- */
+const twEl=document.getElementById('tw');
+const twTxt="Kenya's first full-spectrum enterprise cybersecurity simulation. Build it. Secure it. Attack it. Document it.";
+let ti=0;
+function startTW(){
+  const cur=document.createElement('span');cur.className='tw-cursor';twEl.appendChild(cur);
+  function t(){
+    if(ti<twTxt.length){
+      twEl.insertBefore(document.createTextNode(twTxt[ti]),cur);
+      ti++;setTimeout(t,twTxt[ti-1]==='.'?300:38+Math.random()*20);
+    }
+  }t();
+}
+window.addEventListener('load',()=>{
+  const wait=window.__bootDone?0:900;
+  setTimeout(decodeJenga,wait+200);
+  setTimeout(decode,wait+800);
+  setTimeout(startTW,wait+600);
+});
+
+/* ---------- LIVE TERMINAL FEED — streams forever ---------- */
+const termBody=document.getElementById('termbody');
+if(termBody){
+  const feed=[
+    ['red','[RED-{T}]','initiating recon on jengabank.internal'],
+    ['red','[RED-{T}]','payload staged :: phishing_v{N}.eml'],
+    ['red','[RED-{T}]','SQLi probe /api/v1/accounts?id='],
+    ['red','[RED-{T}]','privilege escalation attempt :: svc_backup'],
+    ['red','[RED-{T}]','lateral movement 10.0.{N}.{M} -> 10.0.{N}.{K}'],
+    ['grn','[BLU-{T}]','anomaly detected :: auth spike node-{N}'],
+    ['grn','[BLU-{T}]','session revoked :: uid_{N}{M} quarantined'],
+    ['grn','[BLU-{T}]','WAF rule deployed :: block pattern #{N}{M}'],
+    ['grn','[BLU-{T}]','incident logged :: IR-2026-0{N}{M}'],
+    ['grn','[BLU-{T}]','backup integrity verified :: OK'],
+    ['au','[KIKAO]','documentation snapshot committed'],
+    ['au','[AUDIT]','attack chain entry appended :: step {N}'],
+    ['dim','[SYS]','cascading dependency check :: serikali.gov.sim'],
+    ['dim','[SYS]','cloud env heartbeat :: OK'],
+    ['dim','[AI]','agent assist invoked :: human review pending']
+  ];
+  function rnd(n){return Math.floor(Math.random()*n)}
+  function stamp(){
+    const d=new Date();
+    return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+  }
+  function pushLine(){
+    const f=feed[rnd(feed.length)];
+    const msg=f[2].replace(/\{T\}/g,String(rnd(117)+1).padStart(2,'0'))
+                  .replace(/\{N\}/g,rnd(9)+1).replace(/\{M\}/g,rnd(9)+1).replace(/\{K\}/g,rnd(9)+1);
+    const el=document.createElement('div');
+    el.className='term-line';
+    el.innerHTML='<span class="tl-time">'+stamp()+'</span> <span class="tl-'+f[0]+'">'+f[1].replace(/\{T\}/g,String(rnd(117)+1).padStart(2,'0'))+'</span> <span class="tl-dim">'+msg+'</span>';
+    termBody.appendChild(el);
+    while(termBody.children.length>9)termBody.removeChild(termBody.firstChild);
+    schedule();
+  }
+  function schedule(){setTimeout(pushLine,700+Math.random()*1600)}
+  schedule();
+}
+
+/* ---------- countdown ---------- */
+const target=new Date('2026-10-14T08:00:00+03:00').getTime();
+const cdEl=document.getElementById('countdown');
+const cdD=document.getElementById('cd-d'),cdH=document.getElementById('cd-h'),
+      cdM=document.getElementById('cd-m'),cdS=document.getElementById('cd-s');
+function pad(n){return String(n).padStart(2,'0')}
+function tickCD(){
+  const diff=target-Date.now();
+  if(diff<=0){
+    cdEl.innerHTML='<span class="cd-label">// EVENT_STATUS</span><span class="cd-live">&gt;&gt; EVENT LIVE &lt;&lt;</span>';
+    clearInterval(cdTimer);
+    return;
+  }
+  cdD.textContent=pad(Math.floor(diff/86400000));
+  cdH.textContent=pad(Math.floor(diff/3600000)%24);
+  cdM.textContent=pad(Math.floor(diff/60000)%60);
+  const sv=pad(Math.floor(diff/1000)%60);
+  if(cdS.textContent!==sv){
+    cdS.classList.add('tickflash');
+    setTimeout(()=>cdS.classList.remove('tickflash'),240);
+  }
+  cdS.textContent=sv;
+}
+tickCD();
+const cdTimer=setInterval(tickCD,1000);
+
+/* ---------- hero parallax ---------- */
+const heroImg=document.getElementById('heroimg');
+const hero=document.getElementById('home');
+let px=0,py=0,sy=0;
+hero.addEventListener('mousemove',e=>{
+  const r=hero.getBoundingClientRect();
+  px=((e.clientX-r.left)/r.width-0.5)*14;
+  py=((e.clientY-r.top)/r.height-0.5)*10;
+  applyParallax();
+},{passive:true});
+window.addEventListener('scroll',()=>{
+  sy=Math.min(window.scrollY*0.12,80);
+  applyParallax();
+},{passive:true});
+function applyParallax(){
+  heroImg.style.transform='translate3d('+(-px)+'px,'+(-py+sy)+'px,0) scale(1.04)';
+}
+
+/* ---------- digital rain — clears every frame, can never leave residue ---------- */
+const rain=document.getElementById('rain');
+let heroVisible=true;
+new IntersectionObserver(e=>{heroVisible=e[0].isIntersecting;},{threshold:0}).observe(hero);
+if(rain&&innerWidth>768){
+  const rctx=rain.getContext('2d');
+  const RCH='01アイウエオカキク>#$%&+=/\\';
+  const TRAIL=9;
+  let rw,rh,cols,drops;
+  function sizeRain(){
+    rw=rain.width=rain.offsetWidth||1;
+    rh=rain.height=rain.offsetHeight||1;
+    cols=Math.floor(rw/26);
+    drops=Array.from({length:cols},()=>({y:Math.random()*-40,chars:[]}));
+  }
+  sizeRain();
+  /* re-measure once fully loaded and on resize, in case layout settled late */
+  addEventListener('load',sizeRain,{passive:true});
+  addEventListener('resize',sizeRain,{passive:true});
+  setInterval(()=>{
+    if(!heroVisible)return;
+    rctx.clearRect(0,0,rw,rh);
+    rctx.font='12px "Space Mono",monospace';
+    for(let i=0;i<cols;i++){
+      const d=drops[i];
+      d.chars.unshift(RCH[Math.floor(Math.random()*RCH.length)]);
+      if(d.chars.length>TRAIL)d.chars.pop();
+      for(let t=0;t<d.chars.length;t++){
+        const a=t===0?0.5:0.16*(1-t/TRAIL);
+        rctx.fillStyle='rgba(0,200,80,'+a+')';
+        rctx.fillText(d.chars[t],i*26,(d.y-t)*14);
+      }
+      d.y++;
+      if((d.y-TRAIL)*14>rh&&Math.random()>0.96){d.y=Math.random()*-20;d.chars=[];}
+    }
+  },72);
+}
+
+/* ---------- particle network ---------- */
+const canvas=document.getElementById('particles');
+if(canvas){
+  const ctx=canvas.getContext('2d');
+  let W,H,pts=[];
+  let mouse={x:-9999,y:-9999};
+  hero.addEventListener('mousemove',e=>{    const r=canvas.getBoundingClientRect();
+    mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;
+  },{passive:true});
+  hero.addEventListener('mouseleave',()=>{mouse.x=-9999;mouse.y=-9999;},{passive:true});
+  function sizeCanvas(){W=canvas.width=canvas.offsetWidth;H=canvas.height=canvas.offsetHeight;}
+  function seed(){
+    const n=Math.min(Math.floor(W*H/22000),70);
+    pts=Array.from({length:n},()=>({
+      x:Math.random()*W,y:Math.random()*H,
+      vx:(Math.random()-0.5)*0.22,vy:(Math.random()-0.5)*0.22,
+      r:Math.random()*1.4+0.6
+    }));
+  }
+  sizeCanvas();seed();
+  addEventListener('resize',()=>{sizeCanvas();seed();},{passive:true});
+  function frame(){
+    if(heroVisible){
+      ctx.clearRect(0,0,W,H);
+      for(const p of pts){
+        p.x+=p.vx;p.y+=p.vy;
+        if(p.x<0||p.x>W)p.vx*=-1;
+        if(p.y<0||p.y>H)p.vy*=-1;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        ctx.fillStyle='rgba(0,200,80,0.32)';
+        ctx.fill();
+      }
+      for(let i=0;i<pts.length;i++){
+        const mdx=pts[i].x-mouse.x,mdy=pts[i].y-mouse.y;
+        const md=mdx*mdx+mdy*mdy;
+        if(md<26000){
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x,pts[i].y);
+          ctx.lineTo(mouse.x,mouse.y);
+          ctx.strokeStyle='rgba(232,176,32,'+(0.16*(1-md/26000))+')';
+          ctx.lineWidth=0.7;
+          ctx.stroke();
+        }
+        for(let j=i+1;j<pts.length;j++){
+          const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y;
+          const d=dx*dx+dy*dy;
+          if(d<12100){
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x,pts[i].y);
+            ctx.lineTo(pts[j].x,pts[j].y);
+            ctx.strokeStyle='rgba(0,200,80,'+(0.11*(1-d/12100))+')';
+            ctx.lineWidth=0.6;
+            ctx.stroke();
+          }
+        }
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- magnetic buttons ---------- */
+if(finePointer){
+  document.querySelectorAll('.magnetic').forEach(btn=>{
+    btn.addEventListener('mousemove',e=>{
+      const r=btn.getBoundingClientRect();
+      const x=(e.clientX-r.left-r.width/2)*0.22;
+      const y=(e.clientY-r.top-r.height/2)*0.32;
+      btn.style.transform='translate('+x+'px,'+y+'px)';
+    });
+    btn.addEventListener('mouseleave',()=>{btn.style.transform='translate(0,0)'});
+  });
+}
+
+/* ---------- 3D tilt + spotlight on cards ---------- */
+if(finePointer){
+  document.querySelectorAll('.tilt').forEach(card=>{
+    card.addEventListener('mousemove',e=>{
+      const r=card.getBoundingClientRect();
+      const x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+      card.style.setProperty('--mx',(x*100)+'%');
+      card.style.setProperty('--my',(y*100)+'%');
+      const rx=(0.5-y)*7,ry=(x-0.5)*7;
+      card.style.transform='translateY(-6px) rotateX('+rx+'deg) rotateY('+ry+'deg)';
+    });
+    card.addEventListener('mouseleave',()=>{card.style.transform='';});
+  });
+}
+
+/* ---------- scroll-velocity skew on tickers ---------- */
+(function(){
+  let lastY=window.scrollY,skew=0;
+  const tickers=[...document.querySelectorAll('.ticker')];
+  (function skewLoop(){
+    const y=window.scrollY;
+    const v=Math.max(-8,Math.min(8,(y-lastY)*0.35));
+    lastY=y;
+    skew+=(v-skew)*0.12;
+    tickers.forEach((t,i)=>{t.style.transform='skewX('+(i%2?skew:-skew)+'deg)';});
+    requestAnimationFrame(skewLoop);
+  })();
+})();
+
+/* ---------- entrance reveals ---------- */
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});
+},{threshold:0.07});
+document.querySelectorAll('.fade-up,.slide-l,.slide-r,.sh').forEach(e=>obs.observe(e));
+
+/* ---------- stat counters — fast, glow at peak ---------- */
+function animateCounters(){
+  document.querySelectorAll('.stat-card:not(.no-count) .stat-n').forEach(el=>{
+    const num=parseInt(el.dataset.count,10);
+    if(!num)return;
+    const pre=el.dataset.prefix||'',suf=el.dataset.suffix||'';
+    let s=0;
+    const t=setInterval(()=>{
+      s+=Math.ceil(num/22);
+      if(s>=num){
+        s=num;clearInterval(t);
+        el.classList.add('glow');
+        setTimeout(()=>el.classList.remove('glow'),900);
+      }
+      el.innerHTML=pre+s+'<em>'+suf+'</em>';
+    },18);
+  });
+}
+const sObs=new IntersectionObserver(e=>{
+  if(e[0].isIntersecting){animateCounters();sObs.disconnect();}
+},{threshold:0.3});
+const sEl=document.getElementById('numbers');
+if(sEl)sObs.observe(sEl);
+
+/* ---------- sponsor logo fallback ---------- */
+(function(){
+  const img=document.getElementById('da-img');
+  if(!img)return;
+  img.addEventListener('error',function(){
+    const f=document.getElementById('da-frame');
+    f.innerHTML='<span class="sp-slot-text">DIGITAL_AFRICA<br>// LOGO_PENDING</span>';
+  });
+})();
+
+/* ---------- FAQ accordion ---------- */
+document.querySelectorAll('.faq-item').forEach(item=>{
+  const q=item.querySelector('.faq-q'),a=item.querySelector('.faq-a');
+  q.addEventListener('click',()=>{
+    const open=item.classList.toggle('open');
+    q.setAttribute('aria-expanded',open);
+    a.style.maxHeight=open?a.scrollHeight+'px':'0';
+  });
+});
+
+/* ---------- timeline: line grows + nodes light up in sequence ---------- */
+const road=document.getElementById('road-track');
+if(road){
+  const items=[...road.querySelectorAll('.road-item')];
+  const rObs=new IntersectionObserver(e=>{
+    if(e[0].isIntersecting){
+      road.classList.add('visible');
+      items.forEach((it,i)=>setTimeout(()=>it.classList.add('visible'),300+i*320));
+      rObs.disconnect();
+    }
+  },{threshold:0.2});
+  rObs.observe(road);
+}
+
+/* ---------- speakers: perpetual decrypt, exactly like the first version ---------- */
+const spNames=[...document.querySelectorAll('.sp-name')];
+if(spNames.length){
+  setInterval(()=>{
+    spNames.forEach(el=>{
+      const code=el.dataset.code;
+      const keep=Math.floor(Math.random()*Math.min(11,code.length));
+      el.textContent=code.split('').map((c,i)=>{
+        if(c==='_')return '_';
+        if(i<keep)return code[i];
+        return CH[Math.floor(Math.random()*CH.length)];
+      }).join('');
+    });
+  },90);
+}
+
+/* ---------- easter egg: type "jenga" anywhere ---------- */
+const egg=document.getElementById('egg');
+let keyBuf='';
+document.addEventListener('keydown',e=>{
+  if(e.key.length!==1)return;
+  keyBuf=(keyBuf+e.key.toLowerCase()).slice(-5);
+  if(keyBuf==='jenga'){
+    keyBuf='';
+    egg.classList.add('on');
+    egg.setAttribute('aria-hidden','false');
+    if(typeof glitchBurst==='function')glitchBurst();
+  }
+});
+egg.addEventListener('click',()=>{
+  egg.classList.remove('on');
+  egg.setAttribute('aria-hidden','true');
+});
+
+</script>
+</body>
+</html>

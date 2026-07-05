@@ -1,0 +1,102 @@
+/* Sidebar — dark green rail with grouped mono nav sections. */
+.app-sidebar {
+  position: fixed;
+  top: var(--nav-height);
+  bottom: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  z-index: 800;
+  background: var(--dark-green);
+  border-right: 1px solid rgba(0, 200, 80, 0.15);
+  padding: 1.5rem 0 2rem;
+  overflow-y: auto;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-sidebar::after {
+  content: '';
+  position: fixed;
+  top: var(--nav-height);
+  bottom: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 200, 80, 0.02) 3px,
+    rgba(0, 200, 80, 0.02) 6px
+  );
+}
+
+.side-section {
+  margin-bottom: 1.5rem;
+}
+
+.side-heading {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(0, 200, 80, 0.45);
+  padding: 0 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.side-link {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: var(--text-inverse-dim);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.side-link:hover {
+  color: var(--text-inverse);
+  background: rgba(0, 200, 80, 0.06);
+}
+
+.side-link.active {
+  color: var(--primary-light);
+  border-left-color: var(--primary-light);
+  background: rgba(0, 200, 80, 0.08);
+  text-shadow: var(--glow-green);
+}
+
+.side-link .glyph {
+  font-size: 13px;
+  width: 16px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.side-foot {
+  padding: 1.25rem 1.25rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 1rem;
+}
+
+.side-foot .tlabel {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 8px;
+  letter-spacing: 0.2em;
+}
+
+/* Collapse behaviour on small screens */
+@media (max-width: 900px) {
+  .app-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .app-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+  }
+}

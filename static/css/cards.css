@@ -1,0 +1,112 @@
+/* Cards — white surface, green top rule, subtle diamond pattern corner. */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--primary);
+  border-radius: var(--radius-card);
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-2px);
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.card-flat:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+/* Stat card (dashboard KPIs) */
+.stat-card .stat-value {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 4vw, 3.2rem);
+  line-height: 1;
+  color: var(--primary);
+}
+
+.stat-card .stat-label {
+  font-size: 14px;
+  color: var(--text);
+  margin-top: 0.35rem;
+  font-weight: 500;
+}
+
+.stat-card .stat-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 0.5rem;
+  display: block;
+}
+
+/* Dark terminal-style panel (mirrors landing-site hero-term) */
+.panel-dark {
+  background: var(--dark-green);
+  border: 1px solid rgba(0, 200, 80, 0.22);
+  border-radius: var(--radius-card);
+  color: var(--text-inverse);
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.panel-dark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 200, 80, 0.03) 2px,
+    rgba(0, 200, 80, 0.03) 4px
+  );
+}
+
+/* Terminal window header: three dots + title */
+.term-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.9rem;
+  border-bottom: 1px solid rgba(0, 200, 80, 0.15);
+}
+
+.term-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.term-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: block;
+}
+
+.term-dots span:nth-child(1) { background: var(--danger); }
+.term-dots span:nth-child(2) { background: var(--gold); }
+.term-dots span:nth-child(3) { background: var(--primary-light); }
+
+.term-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}

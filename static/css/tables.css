@@ -1,0 +1,65 @@
+/* Data tables — mono headers, light rows, green hover. */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+table.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table thead th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--muted);
+  background: var(--surface-off);
+  padding: 0.8rem 1rem;
+  border-bottom: 2px solid var(--primary);
+  white-space: nowrap;
+}
+
+.table tbody td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr {
+  transition: background 0.15s;
+}
+
+.table tbody tr:hover {
+  background: rgba(0, 122, 61, 0.05);
+}
+
+.table .cell-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.table .cell-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}

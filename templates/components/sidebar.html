@@ -1,0 +1,67 @@
+{% comment %}
+Sidebar navigation. Included by base.html — no parameters required.
+Sections are role-gated via the `user_roles` context processor
+(accounts.context_processors.user_roles) and user.is_staff.
+Replace "#" with {% url %} tags as each module ships its views.
+{% endcomment %}
+<aside class="app-sidebar" id="app-sidebar" aria-label="Sidebar navigation">
+
+  <div class="side-section">
+    <div class="side-heading">// Home</div>
+    <a class="side-link" href="{% url 'dashboard:main_dashboard' %}"><span class="glyph">&#9670;</span> My Dashboard</a>
+  </div>
+
+  {% if user.is_staff %}
+  <div class="side-section">
+    <div class="side-heading">// Operations</div>
+    <a class="side-link" href="{% url 'dashboard:admin_dashboard' %}"><span class="glyph">&#9881;</span> Command Center</a>
+    <a class="side-link" href="#"><span class="glyph">&#9873;</span> Competitions</a>
+    <a class="side-link" href="#"><span class="glyph">&#9632;</span> Teams</a>
+  </div>
+  {% endif %}
+
+  {% if "blue_team" in user_roles %}
+  <div class="side-section">
+    <div class="side-heading">// Blue Team</div>
+    <a class="side-link" href="{% url 'dashboard:blue_dashboard' %}"><span class="glyph">&#9640;</span> Team Dashboard</a>
+    <a class="side-link" href="#"><span class="glyph">&#8679;</span> Upload Proposal</a>
+    <a class="side-link" href="#"><span class="glyph">&#9776;</span> Submission History</a>
+    <a class="side-link" href="#"><span class="glyph">&#9679;</span> Live Status</a>
+  </div>
+  {% endif %}
+
+  {% if "red_team" in user_roles %}
+  <div class="side-section">
+    <div class="side-heading">// Red Team</div>
+    <a class="side-link" href="{% url 'dashboard:red_dashboard' %}"><span class="glyph">&#9640;</span> Team Dashboard</a>
+    <a class="side-link" href="#"><span class="glyph">&#9678;</span> Target Access</a>
+    <a class="side-link" href="#"><span class="glyph">&#8679;</span> Submit Findings</a>
+  </div>
+  {% endif %}
+
+  {% if "judge" in user_roles or "partner" in user_roles or user.is_staff %}
+  <div class="side-section">
+    <div class="side-heading">// Insights</div>
+    <a class="side-link" href="{% url 'dashboard:insights_dashboard' %}"><span class="glyph">&#9998;</span> Insights Dashboard</a>
+    {% if "judge" in user_roles or user.is_staff %}
+    <a class="side-link" href="#"><span class="glyph">&#9878;</span> Review Queue</a>
+    <a class="side-link" href="#"><span class="glyph">&#9636;</span> Rubrics</a>
+    {% endif %}
+    <a class="side-link" href="#"><span class="glyph">&#9650;</span> Analytics</a>
+    <a class="side-link" href="#"><span class="glyph">&#9636;</span> Reports</a>
+  </div>
+  {% endif %}
+
+  <div class="side-section">
+    <div class="side-heading">// Account</div>
+    <a class="side-link" href="#"><span class="glyph">&#9993;</span> Notifications</a>
+    {% if user.is_staff %}
+    <a class="side-link" href="/admin/"><span class="glyph">&#9919;</span> Django Admin</a>
+    <a class="side-link" href="#"><span class="glyph">&#9783;</span> Audit Logs</a>
+    {% endif %}
+  </div>
+
+  <div class="side-foot">
+    <span class="tlabel">JENGASEC :: NAIROBI_2026</span>
+  </div>
+</aside>

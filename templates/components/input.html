@@ -1,0 +1,29 @@
+{% comment %}
+Labelled text input.
+Usage:
+  {% include "components/input.html" with name="team_name" label="Team Name" required=True %}
+Params:
+  name         (required) input name + id
+  label        (required) visible label
+  type         text | email | password | number | date | file  (default: text)
+  value        (optional) prefilled value
+  placeholder  (optional)
+  required     (optional) True adds required attr + marker
+  help         (optional) helper text
+  error        (optional) error message (adds invalid styling)
+{% endcomment %}
+<div class="form-group">
+  <label class="form-label" for="id_{{ name }}">
+    {{ label }}{% if required %} <span class="req">*</span>{% endif %}
+  </label>
+  <input
+    class="input{% if error %} is-invalid{% endif %}"
+    type="{{ type|default:'text' }}"
+    id="id_{{ name }}"
+    name="{{ name }}"
+    {% if value %}value="{{ value }}"{% endif %}
+    {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+    {% if required %}required{% endif %}>
+  {% if help %}<div class="form-help">{{ help }}</div>{% endif %}
+  {% if error %}<div class="form-error">// {{ error }}</div>{% endif %}
+</div>

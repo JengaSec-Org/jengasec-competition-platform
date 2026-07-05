@@ -1,0 +1,51 @@
+/* Analytics dashboard: filter bar, chart walls, leaderboard.
+   Owned by Ahmed (UI/UX + Analytics) — extend freely. */
+.filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  margin-bottom: 1.5rem;
+}
+
+.filter-bar .form-group {
+  margin-bottom: 0;
+  min-width: 160px;
+}
+
+/* Leaderboard */
+.leaderboard .rank {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  width: 2.5rem;
+  color: var(--muted);
+}
+
+.leaderboard tr:nth-child(1) .rank { color: var(--gold); }
+.leaderboard tr:nth-child(2) .rank { color: var(--primary); }
+.leaderboard tr:nth-child(3) .rank { color: var(--primary-light); }
+
+.score-pill {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Progress bars for judge consistency / completion metrics */
+.meter {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-off);
+  overflow: hidden;
+}
+
+.meter i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  border-radius: 3px;
+}

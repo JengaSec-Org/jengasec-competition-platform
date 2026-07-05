@@ -1,0 +1,68 @@
+/* Reports pages: export lists, report preview blocks.
+   Owned by Dev 5 — extend as the reports module develops. */
+.report-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.report-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.report-row:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+.report-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.report-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Print-friendly report preview */
+.report-sheet {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 2.5rem;
+  max-width: 860px;
+}
+
+.report-sheet .sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--primary);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media print {
+  .app-nav,
+  .app-sidebar,
+  .app-footer,
+  .report-actions {
+    display: none !important;
+  }
+
+  .app-main {
+    margin: 0;
+  }
+}

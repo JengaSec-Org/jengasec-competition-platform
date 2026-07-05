@@ -1,0 +1,17 @@
+{% comment %}
+Reusable button.
+Usage:
+  {% include "components/button.html" with label="Submit" variant="primary" %}
+  {% include "components/button.html" with label="View" href="/reports/" variant="ghost" size="sm" %}
+Params:
+  label    (required) button text
+  href     (optional) renders an <a> instead of <button>
+  variant  primary | danger | gold | ghost | ghost-dark   (default: primary)
+  size     sm | block                                     (optional)
+  type     submit | button                                (default: button, <button> only)
+{% endcomment %}
+{% if href %}
+<a href="{{ href }}" class="btn btn-{{ variant|default:'primary' }}{% if size %} btn-{{ size }}{% endif %}">{{ label }}</a>
+{% else %}
+<button type="{{ type|default:'button' }}" class="btn btn-{{ variant|default:'primary' }}{% if size %} btn-{{ size }}{% endif %}">{{ label }}</button>
+{% endif %}

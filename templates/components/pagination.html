@@ -1,0 +1,26 @@
+{% comment %}
+Pagination controls for Django Paginator page objects.
+Usage:
+  {% include "components/pagination.html" with page_obj=page_obj %}
+Params:
+  page_obj  (required) a Django Page object from Paginator
+{% endcomment %}
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="pagination" aria-label="Pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" aria-label="Previous page">&lsaquo;</a>
+  {% endif %}
+  {% for num in page_obj.paginator.get_elided_page_range %}
+    {% if num == page_obj.number %}
+      <span class="page-current">{{ num }}</span>
+    {% elif num == page_obj.paginator.ELLIPSIS %}
+      <span class="page-gap">&hellip;</span>
+    {% else %}
+      <a href="?page={{ num }}">{{ num }}</a>
+    {% endif %}
+  {% endfor %}
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" aria-label="Next page">&rsaquo;</a>
+  {% endif %}
+</nav>
+{% endif %}

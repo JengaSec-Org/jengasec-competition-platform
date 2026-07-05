@@ -1,0 +1,33 @@
+{% load static %}
+{% comment %}
+Top app bar. Included by base.html — no parameters required.
+{% endcomment %}
+<nav class="app-nav" aria-label="Main navigation">
+  <a class="nav-brand" href="{% url 'dashboard:main_dashboard' %}">
+    <img src="{% static 'images/logo.png' %}" alt="JengaSec spear logo">
+    Jenga<span class="wm-sec">Sec</span>
+  </a>
+
+  <div class="nav-context">
+    <span class="live-dot" aria-hidden="true"></span>
+    EVALUATION_PLATFORM :: {% now "Y" %}
+  </div>
+
+  <div class="nav-actions">
+    {% if user.is_authenticated %}
+      <div class="nav-user">
+        <span class="avatar">{{ user.username|first }}</span>
+        <span>{{ user.username }}</span>
+      </div>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-ghost-dark btn-sm">Logout</button>
+      </form>
+    {% else %}
+      <a href="{% url 'login' %}" class="btn btn-ghost-dark btn-sm">Login</a>
+    {% endif %}
+    <button class="nav-toggle" id="nav-toggle" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>

@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}JengaSec Evaluation Platform{% endblock %}</title>
+<meta name="description" content="JengaSec competition evaluation platform — submissions, judging, and results.">
+<meta name="theme-color" content="#007A3D">
+<link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/variables.css' %}">
+<link rel="stylesheet" href="{% static 'css/reset.css' %}">
+<link rel="stylesheet" href="{% static 'css/typography.css' %}">
+<link rel="stylesheet" href="{% static 'css/buttons.css' %}">
+<link rel="stylesheet" href="{% static 'css/cards.css' %}">
+<link rel="stylesheet" href="{% static 'css/tables.css' %}">
+<link rel="stylesheet" href="{% static 'css/forms.css' %}">
+<link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+<link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+<link rel="stylesheet" href="{% static 'css/components.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% include "components/navbar.html" %}
+{% include "components/sidebar.html" %}
+
+<div class="app-main">
+  <main class="app-content" id="main">
+
+    {% if messages %}
+      {% for message in messages %}
+        {% include "components/alert.html" with level=message.tags text=message %}
+      {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="app-footer">
+    <div>
+      <div class="ft-brand">Jenga<em>Sec</em> 2026</div>
+      <div class="ft-sub">// Strathmore Cybersecurity Club &middot; Nairobi, Kenya &middot; @sucybersec</div>
+    </div>
+    <div class="ft-right">
+      <a href="mailto:sucybersec@strathmore.edu">sucybersec@strathmore.edu</a>
+      <p>// Kenya's proving ground for enterprise-ready technologists</p>
+    </div>
+  </footer>
+</div>
+
+<script src="{% static 'js/main.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

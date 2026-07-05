@@ -1,0 +1,20 @@
+{% comment %}
+Dropdown menu.
+Usage:
+  {% include "components/dropdown.html" with label="Actions" items=items %}
+Params:
+  label  (required) trigger button text
+  items  list of {"label": "...", "href": "..."} dicts
+For custom triggers/content, build directly with .dropdown / .dropdown-menu
+classes and a [data-dropdown-toggle] trigger (behaviour wired in main.js).
+{% endcomment %}
+<div class="dropdown">
+  <button type="button" class="btn btn-ghost btn-sm" data-dropdown-toggle>
+    {{ label }} &#9662;
+  </button>
+  <div class="dropdown-menu">
+    {% for item in items %}
+      <a class="dropdown-item" href="{{ item.href|default:'#' }}">{{ item.label }}</a>
+    {% endfor %}
+  </div>
+</div>

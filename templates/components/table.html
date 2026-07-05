@@ -1,0 +1,35 @@
+{% comment %}
+Simple data table for uniform rows.
+Usage:
+  {% include "components/table.html" with headers=headers rows=rows empty="No data yet" %}
+Params:
+  headers  list of column header strings
+  rows     list of lists (cell values, rendered in order)
+  empty    message shown when rows is empty
+For custom cells (badges, buttons, links) build the table directly with
+the .table classes from tables.css.
+{% endcomment %}
+<div class="table-wrap">
+  <table class="table">
+    {% if headers %}
+    <thead>
+      <tr>
+        {% for h in headers %}<th>{{ h }}</th>{% endfor %}
+      </tr>
+    </thead>
+    {% endif %}
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        {% for cell in row %}<td>{{ cell }}</td>{% endfor %}
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="{{ headers|length|default:1 }}">
+          <div class="table-empty">// {{ empty|default:"No records found" }}</div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

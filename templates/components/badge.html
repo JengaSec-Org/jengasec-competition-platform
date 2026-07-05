@@ -1,0 +1,9 @@
+{% comment %}
+Status badge.
+Usage:
+  {% include "components/badge.html" with label="Pending" color="gold" %}
+Params:
+  label  (required) badge text
+  color  green | gold | red | muted   (default: muted)
+{% endcomment %}
+<span class="badge badge-{{ color|default:'muted' }}">{{ label }}</span>

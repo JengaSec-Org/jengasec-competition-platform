@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Insights | JengaSec Evaluation Platform{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// JUDGE_PARTNER_INSIGHTS</span></div>
+  <h1>Evaluation <span class="text-gold">Insights</span></h1>
+</div>
+
+<div class="stat-grid">
+  <div class="card stat-card">
+    <div class="stat-value">0</div>
+    <div class="stat-label">Assigned Reviews</div>
+    <span class="stat-tag">// AWAITING_YOUR_SCORE</span>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-value">0</div>
+    <div class="stat-label">Completed Reviews</div>
+    <span class="stat-tag">// APPROVED_BY_YOU</span>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-value">--</div>
+    <div class="stat-label">Avg. Score Given</div>
+    <span class="stat-tag">// CONSISTENCY_METRIC</span>
+  </div>
+</div>
+
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// REVIEW_QUEUE</span>
+  <h3 class="card-title">Your Assigned Reviews</h3>
+  <p class="text-muted" style="margin-bottom:1rem;">
+    Each review shows the document, the AI-suggested scores with evidence and confidence,
+    and your override controls. AI suggests — you decide.
+  </p>
+  {% include "components/table.html" with headers=review_headers rows=review_rows empty="No reviews assigned yet" %}
+</div>
+
+<div class="card card-flat">
+  <span class="tlabel">// COMPETITION_PULSE</span>
+  <h3 class="card-title">Competition Overview</h3>
+  <p class="text-muted">Aggregate statistics (score distributions, submission trends, judge consistency) will appear here as evaluations progress.</p>
+</div>
+{% endblock %}

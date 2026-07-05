@@ -1,0 +1,87 @@
+/* Dashboard layout: app shell, stat grid, chart panels. */
+.app-main {
+  margin-left: var(--sidebar-width);
+  margin-top: var(--nav-height);
+  min-height: calc(100vh - var(--nav-height));
+  display: flex;
+  flex-direction: column;
+}
+
+.app-content {
+  flex: 1;
+  padding: 2rem clamp(1.25rem, 3vw, 2.5rem);
+  max-width: 1400px;
+  width: 100%;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.chart-card {
+  min-height: 320px;
+}
+
+.chart-card canvas {
+  max-height: 260px;
+}
+
+/* App footer (mirrors landing-site footer) */
+.app-footer {
+  margin-top: auto;
+  padding: 1.5rem clamp(1.25rem, 3vw, 2.5rem);
+  background: var(--background);
+  color: var(--text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ft-brand {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+}
+
+.ft-brand em {
+  color: var(--gold);
+  font-style: normal;
+}
+
+.ft-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 0.25rem;
+}
+
+.ft-right {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  text-align: right;
+}
+
+.ft-right a {
+  color: var(--primary-light);
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .app-main {
+    margin-left: 0;
+  }
+}

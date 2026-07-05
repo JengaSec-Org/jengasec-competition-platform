@@ -1,0 +1,48 @@
+/* JengaSec design tokens — single source of truth.
+   Pulled from the jengasec.com landing site. Use these variables only;
+   never hard-code colours in module stylesheets. */
+:root {
+  /* Brand palette */
+  --primary: #007A3D;        /* Primary Green */
+  --primary-dark: #004D26;
+  --primary-light: #00C853;  /* Accent Green */
+  --gold: #C9960A;
+  --gold-light: #E8B020;
+  --danger: #B3000C;
+
+  /* Surfaces */
+  --background: #080C08;     /* near-black green */
+  --surface: #FFFFFF;
+  --surface-off: #EEF1EE;
+  --page: #F8FAF8;
+  --dark-green: #0A2416;     /* dark panel */
+  --mid-green: #0D3020;
+
+  /* Text & lines */
+  --text: #111111;
+  --muted: #5A6A5A;
+  --border: #CDD8CD;
+  --text-inverse: #F8FAF8;
+  --text-inverse-dim: rgba(255, 255, 255, 0.55);
+
+  /* Typography */
+  --font-display: 'Bebas Neue', sans-serif;   /* headings */
+  --font-body: 'DM Sans', sans-serif;         /* body copy */
+  --font-mono: 'Space Mono', monospace;       /* technical labels */
+
+  /* Shape */
+  --radius: 10px;
+  --radius-card: 12px;
+  --radius-btn: 8px;
+  --radius-input: 8px;
+  --shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+  --shadow-lift: 0 24px 56px rgba(0, 80, 40, 0.14);
+
+  /* Glow accents (terminal aesthetic) */
+  --glow-green: 0 0 10px rgba(0, 200, 80, 0.5);
+  --glow-gold: 0 0 8px rgba(232, 176, 32, 0.3);
+
+  /* Layout */
+  --nav-height: 60px;
+  --sidebar-width: 240px;
+}
