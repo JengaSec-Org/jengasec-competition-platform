@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Submission | JengaSec Evaluation Platform{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="SUBMISSION" title=submission.submission_type.name %}
+
+<div class="chart-grid">
+  <div class="card card-flat">
+    <span class="tlabel">// DETAILS</span>
+    <h3 class="card-title">{{ submission.team.team_name }}</h3>
+    <table class="table">
+      <tbody>
+        <tr><td class="cell-mono">COMPETITION</td><td>{{ submission.competition.name }}</td></tr>
+        <tr><td class="cell-mono">TYPE</td><td>{{ submission.submission_type.name }}</td></tr>
+        <tr><td class="cell-mono">VERSION</td><td>v{{ submission.current_version }}</td></tr>
+        <tr><td class="cell-mono">STATUS</td><td>{{ submission.get_status_display }}</td></tr>
+        <tr><td class="cell-mono">SUBMITTED</td><td>{{ submission.submitted_at|date:"Y-m-d H:i"|default:"Not yet submitted" }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card card-flat">
+    <span class="tlabel">// VERSION_HISTORY</span>
+    <h3 class="card-title">Files</h3>
+    <table class="table">
+      <thead><tr><th>Version</th><th>File</th><th>Uploaded</th></tr></thead>
+      <tbody>
+        {% for f in submission.files.all %}
+        <tr>
+          <td class="cell-mono">v{{ f.version }}</td>
+          <td>{{ f.filename }}</td>
+          <td class="cell-mono">{{ f.uploaded_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3"><div class="table-empty">// No files uploaded — upload portal coming with the submissions module</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

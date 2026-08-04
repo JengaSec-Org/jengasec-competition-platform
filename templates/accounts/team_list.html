@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Teams | JengaSec Evaluation Platform{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="TEAM_ROSTER" title="Teams" %}
+
+{% if user.is_staff %}
+<div style="margin-bottom:1.5rem;">
+  {% include "components/button.html" with label="+ Register Team" href="/accounts/teams/new/" variant="primary" size="sm" %}
+</div>
+{% endif %}
+
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr><th>Team</th><th>Type</th><th>Competition</th><th>Institution</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      {% for team in teams %}
+      <tr>
+        <td><a href="{% url 'accounts:team_detail' team.pk %}">{{ team.team_name }}</a></td>
+        <td>
+          {% if team.team_type == "blue" %}
+            {% include "components/badge.html" with label="Blue" color="green" %}
+          {% else %}
+            {% include "components/badge.html" with label="Red" color="red" %}
+          {% endif %}
+        </td>
+        <td>{{ team.competition.name }}</td>
+        <td>{{ team.institution|default:"—" }}</td>
+        <td class="cell-mono">{{ team.get_status_display }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5"><div class="table-empty">// No teams registered yet</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% include "components/pagination.html" with page_obj=page_obj %}
+{% endblock %}

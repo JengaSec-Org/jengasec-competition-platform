@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Submissions | JengaSec Evaluation Platform{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="SUBMISSION_LOG" title="Submissions" %}
+
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr><th>Team</th><th>Type</th><th>Competition</th><th>Version</th><th>Status</th><th>Submitted</th></tr>
+    </thead>
+    <tbody>
+      {% for sub in submissions %}
+      <tr>
+        <td><a href="{% url 'submissions:detail' sub.pk %}">{{ sub.team.team_name }}</a></td>
+        <td>{{ sub.submission_type.name }}</td>
+        <td>{{ sub.competition.name }}</td>
+        <td class="cell-mono">v{{ sub.current_version }}</td>
+        <td>
+          {% if sub.status == "completed" %}
+            {% include "components/badge.html" with label=sub.get_status_display color="green" %}
+          {% elif sub.status == "under_review" %}
+            {% include "components/badge.html" with label=sub.get_status_display color="gold" %}
+          {% else %}
+            {% include "components/badge.html" with label=sub.get_status_display color="muted" %}
+          {% endif %}
+        </td>
+        <td class="cell-mono">{{ sub.submitted_at|date:"Y-m-d H:i"|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6"><div class="table-empty">// No submissions yet — the upload portal ships with the submissions module</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% include "components/pagination.html" with page_obj=page_obj %}
+{% endblock %}

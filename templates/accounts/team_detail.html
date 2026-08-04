@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team.team_name }} | JengaSec Evaluation Platform{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="TEAM_PROFILE" title=team.team_name %}
+
+<div class="chart-grid">
+  <div class="card card-flat">
+    <span class="tlabel">// DETAILS</span>
+    <h3 class="card-title">Team Info</h3>
+    <table class="table">
+      <tbody>
+        <tr><td class="cell-mono">TYPE</td><td>{{ team.get_team_type_display }}</td></tr>
+        <tr><td class="cell-mono">COMPETITION</td><td><a href="{% url 'competitions:detail' team.competition.pk %}">{{ team.competition.name }}</a></td></tr>
+        <tr><td class="cell-mono">CAPTAIN</td><td>{% if team.captain %}{{ team.captain.get_full_name|default:team.captain.username }}{% else %}—{% endif %}</td></tr>
+        <tr><td class="cell-mono">INSTITUTION</td><td>{{ team.institution|default:"—" }}</td></tr>
+        <tr><td class="cell-mono">STATUS</td><td>{{ team.get_status_display }}</td></tr>
+        <tr><td class="cell-mono">REGISTERED</td><td>{{ team.created_at|date:"Y-m-d" }}</td></tr>
+      </tbody>
+    </table>
+    {% if user.is_staff %}
+    <div style="margin-top:1rem; display:flex; gap:0.6rem;">
+      <a href="{% url 'accounts:team_update' team.pk %}" class="btn btn-ghost btn-sm">Edit Team</a>
+      <a href="{% url 'accounts:team_delete' team.pk %}" class="btn btn-danger btn-sm">Delete</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card card-flat">
+    <span class="tlabel">// ROSTER</span>
+    <h3 class="card-title">Members ({{ team.members.count }})</h3>
+    <table class="table">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
+      <tbody>
+        {% for member in team.members.all %}
+        <tr>
+          <td>{{ member.student_name }}</td>
+          <td class="cell-mono">{{ member.email }}</td>
+          <td>{{ member.get_role_display }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3"><div class="table-empty">// No members added — add via Django admin for now</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card card-flat">
+  <span class="tlabel">// SUBMISSIONS</span>
+  <h3 class="card-title">Team Submissions</h3>
+  <table class="table">
+    <thead><tr><th>Type</th><th>Version</th><th>Status</th><th>Submitted</th></tr></thead>
+    <tbody>
+      {% for sub in team.submissions.all %}
+      <tr>
+        <td><a href="{% url 'submissions:detail' sub.pk %}">{{ sub.submission_type.name }}</a></td>
+        <td class="cell-mono">v{{ sub.current_version }}</td>
+        <td>{{ sub.get_status_display }}</td>
+        <td class="cell-mono">{{ sub.submitted_at|date:"Y-m-d H:i"|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4"><div class="table-empty">// Nothing submitted yet</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

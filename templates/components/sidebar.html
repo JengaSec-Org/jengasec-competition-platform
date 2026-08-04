@@ -15,8 +15,9 @@ Replace "#" with {% url %} tags as each module ships its views.
   <div class="side-section">
     <div class="side-heading">// Operations</div>
     <a class="side-link" href="{% url 'dashboard:admin_dashboard' %}"><span class="glyph">&#9881;</span> Command Center</a>
-    <a class="side-link" href="#"><span class="glyph">&#9873;</span> Competitions</a>
-    <a class="side-link" href="#"><span class="glyph">&#9632;</span> Teams</a>
+    <a class="side-link" href="{% url 'competitions:list' %}"><span class="glyph">&#9873;</span> Competitions</a>
+    <a class="side-link" href="{% url 'accounts:team_list' %}"><span class="glyph">&#9632;</span> Teams</a>
+    <a class="side-link" href="{% url 'submissions:list' %}"><span class="glyph">&#9776;</span> Submissions</a>
   </div>
   {% endif %}
 
@@ -25,7 +26,7 @@ Replace "#" with {% url %} tags as each module ships its views.
     <div class="side-heading">// Blue Team</div>
     <a class="side-link" href="{% url 'dashboard:blue_dashboard' %}"><span class="glyph">&#9640;</span> Team Dashboard</a>
     <a class="side-link" href="#"><span class="glyph">&#8679;</span> Upload Proposal</a>
-    <a class="side-link" href="#"><span class="glyph">&#9776;</span> Submission History</a>
+    <a class="side-link" href="{% url 'submissions:list' %}"><span class="glyph">&#9776;</span> Submission History</a>
     <a class="side-link" href="#"><span class="glyph">&#9679;</span> Live Status</a>
   </div>
   {% endif %}

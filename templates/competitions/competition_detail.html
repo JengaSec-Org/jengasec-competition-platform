@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}{{ competition.name }} | JengaSec Evaluation Platform{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="COMPETITION" title=competition.name %}
+
+<div class="stat-grid">
+  <div class="card stat-card">
+    <div class="stat-value">{{ competition.teams.count }}</div>
+    <div class="stat-label">Registered Teams</div>
+    <span class="stat-tag">// TEAMS</span>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-value">{{ competition.submissions.count }}</div>
+    <div class="stat-label">Submissions</div>
+    <span class="stat-tag">// DOCS_RECEIVED</span>
+  </div>
+  <div class="card card-flat">
+    <span class="tlabel">// TIMELINE</span>
+    <h3 class="card-title">{{ competition.get_status_display }}</h3>
+    <p class="mono" style="font-size:12px; color:var(--muted);">
+      {{ competition.start_date|date:"M d, Y" }} &rarr; {{ competition.end_date|date:"M d, Y" }}
+    </p>
+    {% if competition.theme %}<p class="text-muted" style="margin-top:0.5rem; font-size:13px;">{{ competition.theme }}</p>{% endif %}
+  </div>
+</div>
+
+{% if competition.description %}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// BRIEF</span>
+  <p style="margin-top:0.5rem;">{{ competition.description|linebreaks }}</p>
+</div>
+{% endif %}
+
+<div class="chart-grid">
+  <div class="card card-flat">
+    <span class="tlabel">// PHASES</span>
+    <h3 class="card-title">Competition Phases</h3>
+    <table class="table">
+      <thead><tr><th>#</th><th>Phase</th><th>Window</th></tr></thead>
+      <tbody>
+        {% for phase in competition.phases.all %}
+        <tr>
+          <td class="cell-mono">{{ phase.order }}</td>
+          <td>{{ phase.name }}</td>
+          <td class="cell-mono">{{ phase.start_date|date:"M d"|default:"—" }} &rarr; {{ phase.end_date|date:"M d"|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3"><div class="table-empty">// No phases defined — add via Django admin</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card card-flat">
+    <span class="tlabel">// CATEGORIES</span>
+    <h3 class="card-title">Categories</h3>
+    <table class="table">
+      <tbody>
+        {% for category in competition.categories.all %}
+        <tr><td>{{ category.name }}</td><td class="text-muted">{{ category.description|truncatechars:60 }}</td></tr>
+        {% empty %}
+        <tr><td><div class="table-empty">// No categories defined</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card card-flat">
+  <span class="tlabel">// PARTICIPANTS</span>
+  <h3 class="card-title">Teams</h3>
+  <table class="table">
+    <thead><tr><th>Team</th><th>Type</th><th>Institution</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for team in competition.teams.all %}
+      <tr>
+        <td><a href="{% url 'accounts:team_detail' team.pk %}">{{ team.team_name }}</a></td>
+        <td>
+          {% if team.team_type == "blue" %}
+            {% include "components/badge.html" with label="Blue" color="green" %}
+          {% else %}
+            {% include "components/badge.html" with label="Red" color="red" %}
+          {% endif %}
+        </td>
+        <td>{{ team.institution|default:"—" }}</td>
+        <td class="cell-mono">{{ team.get_status_display }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4"><div class="table-empty">// No teams registered for this competition</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Team | JengaSec{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="CONFIRM_DELETE" title="Delete Team" %}
+
+<div class="card" style="max-width:560px; border-top-color:var(--danger);">
+  <span class="tlabel" style="color:var(--danger);">// IRREVERSIBLE</span>
+  <h3 class="card-title">Delete "{{ object.team_name }}"?</h3>
+  <p class="text-muted">
+    This removes the team, its members, and all its submissions. This cannot be undone.
+  </p>
+  <form method="post" style="margin-top:1.25rem; display:flex; gap:0.75rem;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Yes, Delete Team</button>
+    <a href="{% url 'accounts:team_detail' object.pk %}" class="btn btn-ghost">Cancel</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Competitions | JengaSec Evaluation Platform{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="COMPETITION_INDEX" title="Competitions" %}
+
+{% if user.is_staff %}
+<div style="margin-bottom:1.5rem;">
+  <a href="{% url 'competitions:create' %}" class="btn btn-primary btn-sm">+ Create Competition</a>
+</div>
+{% endif %}
+
+<div class="stat-grid">
+  {% for competition in competitions %}
+  <div class="card">
+    <span class="tlabel">// {{ competition.get_status_display|upper }}</span>
+    <h3 class="card-title"><a href="{% url 'competitions:detail' competition.pk %}" style="text-decoration:none; color:inherit;">{{ competition.name }}</a></h3>
+    {% if competition.theme %}<p class="text-muted" style="font-size:13px;">{{ competition.theme }}</p>{% endif %}
+    <p class="mono" style="font-size:11px; color:var(--muted); margin-top:0.75rem;">
+      {{ competition.start_date|date:"M d, Y" }} &rarr; {{ competition.end_date|date:"M d, Y" }}
+    </p>
+    <p class="mono" style="font-size:11px; color:var(--muted); margin-top:0.25rem;">
+      {{ competition.teams.count }} team{{ competition.teams.count|pluralize }}
+    </p>
+    <div style="margin-top:1rem;">
+      <a href="{% url 'competitions:detail' competition.pk %}" class="btn btn-ghost btn-sm">View</a>
+      {% if user.is_staff %}<a href="{% url 'competitions:update' competition.pk %}" class="btn btn-ghost btn-sm">Edit</a>{% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="card card-flat">
+    <div class="table-empty">// No competitions yet{% if user.is_staff %} — create the first one{% endif %}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
