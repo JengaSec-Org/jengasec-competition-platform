@@ -1,0 +1,12 @@
+{% comment %}
+Standard page heading with technical eyebrow label.
+Usage:
+  {% include "components/page_header.html" with tag="TEAM_ROSTER" title="Teams" %}
+Params:
+  tag    (required) Space Mono eyebrow text (uppercase, no slashes)
+  title  (required) page heading
+{% endcomment %}
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// {{ tag }}</span></div>
+  <h1>{{ title }}</h1>
+</div>
