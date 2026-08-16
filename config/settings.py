@@ -115,6 +115,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+X_FRAME_OPTIONS = "SAMEORIGIN"
+
 # Authentication flow
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard:main_dashboard"
@@ -129,4 +131,5 @@ DEFAULT_FROM_EMAIL = "JengaSec <sucybersec@strathmore.edu>"
 
 # AI evaluation layer (Ollama)
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3")
+# OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "phi4-mini:latest")

@@ -44,9 +44,10 @@ Replace "#" with {% url %} tags as each module ships its views.
     <div class="side-heading">// Insights</div>
     <a class="side-link" href="{% url 'dashboard:insights_dashboard' %}"><span class="glyph">&#9998;</span> Insights Dashboard</a>
     {% if "judge" in user_roles or user.is_staff %}
-    <a class="side-link" href="#"><span class="glyph">&#9878;</span> Review Queue</a>
-    <a class="side-link" href="#"><span class="glyph">&#9636;</span> Rubrics</a>
+    <a class="side-link" href="{% url 'judging:ai_results' %}"><span class="glyph">&#9878;</span> Review Queue</a>
+    <a class="side-link" href="{% url 'judging:rubric_builder' %}"><span class="glyph">&#9636;</span> Rubrics</a>
     {% endif %}
+    <a class="side-link" href="{% url 'judging:scoring_config' %}"><span class="glyph">&#9881;</span> Scoring Configuration</a>
     <a class="side-link" href="#"><span class="glyph">&#9650;</span> Analytics</a>
     <a class="side-link" href="#"><span class="glyph">&#9636;</span> Reports</a>
   </div>
