@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Rubric Builder{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// RUBRICS</span></div>
+  <h1>Rubric <span class="text-gold">Builder</span></h1>
+  <p class="text-muted" style="margin-bottom:1rem;">
+    Define the criteria the AI and judges will score submissions against.
+  </p>
+</div>
+
+<details style="margin-bottom:1.5rem;">
+  <summary class="btn btn-primary" style="display:inline-block; cursor:pointer; list-style:none;">+ New Rubric</summary>
+  <div class="card" style="margin-top:1rem;">
+    <form method="post" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="new_rubric">
+      <div style="grid-column:span 2;">
+        {% include "components/input.html" with label="Rubric name" name="rubric_name" placeholder="e.g. Business Pitch — Finals" %}
+      </div>
+<!--      <div>
+        {% include "components/dropdown.html" with name="competition_id" label="Competition" options=competition_options %}
+      </div>
+      <div>
+        {% include "components/dropdown.html" with name="submission_type_id" label="Submission Type" options=submission_type_options %}
+      </div>  --> 
+      
+
+      <div class="form-group">
+        <label class="form-label" for="id_competition_id">Competition</label>
+        <select class="input" id="id_competition_id" name="competition_id">
+          <option value="">Select a competition…</option>
+          {% for c in competition_options %}
+            <option value="{{ c.value }}">{{ c.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_submission_type_id">Submission Type</label>
+        <select class="input" id="id_submission_type_id" name="submission_type_id">
+          <option value="">Select a submission type…</option>
+          {% for st in submission_type_options %}
+            <option value="{{ st.value }}">{{ st.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+
+      <div style="grid-column:span 2;">
+        {% include "components/button.html" with label="Create Rubric" variant="primary" size="block" type="submit" %}
+      </div>
+    </form>
+  </div>
+</details>
+
+{% for rubric in rubrics %}
+  <div class="card" style="margin-bottom:1.5rem;">
+
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:0.75rem;">
+      <div>
+        <span class="tlabel">{{ rubric.competition }}</span>
+        <h3 class="card-title" style="margin:0.35rem 0 0.6rem;">{{ rubric.title }}</h3>
+        {% if rubric.is_active %}
+          {% include "components/badge.html" with label="Active" color="green" %}
+        {% else %}
+          {% include "components/badge.html" with label="Inactive" color="gold" %}
+        {% endif %}
+        <p class="text-muted" style="margin-top:0.6rem;">
+          {{ rubric.criteria.all|length }} criteria
+        </p>
+      </div>
+      <div style="display:flex; gap:0.6rem;">
+        {% include "components/button.html" with label="Edit" variant="ghost" size="sm" %}
+        {% include "components/button.html" with label="Duplicate" variant="ghost" size="sm" %}
+      </div>
+    </div>
+
+    <table style="width:100%; border-collapse:collapse; margin-top:1rem;">
+      <thead>
+        <tr style="text-align:left;">
+          <th class="tlabel" style="padding-bottom:0.5rem;">Criterion</th>
+          <th class="tlabel" style="padding-bottom:0.5rem;">Description</th>
+          <th class="tlabel" style="padding-bottom:0.5rem; text-align:right;">Max Points</th>
+          <th class="tlabel" style="padding-bottom:0.5rem; text-align:right;">Weight</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in rubric.criteria.all %}
+          <tr class="criterion-row">
+            <td style="padding:0.6rem 0.75rem 0.6rem 0; font-weight:500;">{{ c.criterion }}</td>
+            <td class="text-muted" style="padding:0.6rem 0.75rem;">{{ c.description }}</td>
+            <td style="padding:0.6rem 0; text-align:right;">{{ c.max_score }}</td>
+            <td style="padding:0.6rem 0; text-align:right;">{{ c.weight|floatformat:2 }}%</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <details style="margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--border);">
+      <summary class="text-muted" style="cursor:pointer; font-weight:500;">+ Add criterion</summary>
+      <form method="post" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:0.9rem;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_criterion">
+        <input type="hidden" name="rubric_id" value="{{ rubric.id }}">
+        <div style="grid-column:span 2;">
+          {% include "components/input.html" with label="Criterion name" name="criterion_name" placeholder="e.g. Technical Correctness" %}
+        </div>
+        <div style="grid-column:span 2;">
+          {% include "components/input.html" with label="Description" name="description" %}
+        </div>
+        {% include "components/input.html" with label="Max points" name="max_points" type="number" %}
+        {% include "components/input.html" with label="Weight (0-100, must total 100 across all criteria)" name="weight" type="number" %}
+        <div style="grid-column:span 2;">
+          {% include "components/button.html" with label="Save criterion" variant="ghost" size="block" type="submit" %}
+        </div>
+      </form>
+    </details>
+
+  </div>
+{% empty %}
+  <p class="text-muted">No rubrics in the database yet.</p>
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Scoring Configuration{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// SCORING_CONFIG</span></div>
+  <h1>Scoring <span class="text-gold">Configuration</span></h1>
+</div>
+
+<p class="text-muted" style="margin-bottom:1.5rem;">
+  Control how AI and human scores combine for each competition.
+</p>
+
+<div style="display:flex; justify-content:flex-end; margin-bottom:1.5rem;">
+  {% include "components/button.html" with label="+ New Configuration" variant="primary" %}
+</div>
+
+{% for cfg in configs %}
+  <div class="card" style="margin-bottom:1.5rem;">
+
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1rem;">
+      <div>
+        <span class="tlabel">{{ cfg.competition }}</span>
+        <h3 class="card-title" style="margin:0.35rem 0 0;">{{ cfg.name }}</h3>
+      </div>
+      {% if cfg.is_active %}
+        {% include "components/badge.html" with label="Active" color="green" %}
+      {% endif %}
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:1.25rem;">
+      <div>
+        <p class="tlabel" style="margin-bottom:0.25rem;">Aggregation Method</p>
+        <p style="font-weight:500;">{{ cfg.aggregation_method|title }}</p>
+      </div>
+      <div>
+        <p class="tlabel" style="margin-bottom:0.25rem;">AI / Human Weight</p>
+        <p style="font-weight:500;">{{ cfg.ai_weight }} / {{ cfg.human_weight }}</p>
+      </div>
+      <div>
+        <p class="tlabel" style="margin-bottom:0.25rem;">Min. Judges Required</p>
+        <p style="font-weight:500;">{{ cfg.min_human_judges_required }}</p>
+      </div>
+      <div>
+        <p class="tlabel" style="margin-bottom:0.25rem;">Tie Breaker</p>
+        <p style="font-weight:500;">{{ cfg.tie_breaker|title }}</p>
+      </div>
+    </div>
+
+    {% if cfg.ai_confidence_threshold != "n/a" %}
+      <div style="display:flex; align-items:center; gap:0.6rem; margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--border);">
+        {% include "components/badge.html" with label="Rule" color="gold" %}
+        <p class="text-muted">
+          If AI confidence drops below <strong>{{ cfg.ai_confidence_threshold }}</strong>,
+          this submission is routed to human-only scoring regardless of the weights above.
+        </p>
+      </div>
+    {% endif %}
+
+    <div style="margin-top:1.25rem;">
+      {% include "components/button.html" with label="Edit" variant="ghost" size="sm" %}
+    </div>
+
+  </div>
+{% endfor %}
+
+{% endblock %}
