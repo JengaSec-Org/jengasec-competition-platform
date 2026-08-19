@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Proposal Review | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="PROPOSAL_REVIEW" title="Choose Who Builds What" %}
+
+<p class="text-muted" style="max-width:70ch; margin-bottom:1.25rem;">
+  Several teams may propose for the same application, so they are grouped here
+  to be compared side by side. Marking a team <em>Selected</em> records the
+  registration outcome — the detailed scoring lives with the judges.
+</p>
+
+<form method="get" class="audit-filters" style="margin-bottom:1.25rem;">
+  <div class="form-group">
+    <label class="form-label" for="id_competition">Competition</label>
+    <select class="select" name="competition" id="id_competition">
+      <option value="">All competitions</option>
+      {% for competition in competitions %}
+        <option value="{{ competition.pk }}" {% if selected_competition == competition.pk %}selected{% endif %}>
+          {{ competition.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="audit-filter-actions">
+    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+  </div>
+</form>
+
+{% for code, group in groups %}
+  <div class="card card-flat" style="margin-bottom:1.25rem;">
+    <span class="tlabel">// {{ code }}</span>
+    <h3 class="card-title">
+      {% if group.brief %}{{ group.brief.name }}{% else %}No application selected{% endif %}
+      <span class="brief-slots">{{ group.proposals|length }} proposal{{ group.proposals|length|pluralize }}</span>
+    </h3>
+    {% if group.brief.summary %}<p class="text-muted">{{ group.brief.summary }}</p>{% endif %}
+
+    <div class="table-wrap" style="margin-top:0.75rem;">
+      <table class="table">
+        <thead>
+          <tr><th>Team</th><th>Version</th><th>Submitted</th><th>Outcome</th><th>Decide</th></tr>
+        </thead>
+        <tbody>
+          {% for proposal in group.proposals %}
+            <tr>
+              <td>
+                <a href="{% url 'submissions:detail' proposal.pk %}">{{ proposal.team.team_name }}</a>
+                {% if proposal.is_late %}
+                  {% include "components/badge.html" with label="Late" color="gold" %}
+                {% endif %}
+                {% if proposal.marking_excluded %}
+                  {% include "components/badge.html" with label="Not marked" color="red" %}
+                {% endif %}
+              </td>
+              <td class="cell-mono">v{{ proposal.current_version }}</td>
+              <td class="cell-mono">{{ proposal.submitted_at|date:"Y-m-d H:i"|default:"—" }}</td>
+              <td>
+                {% if proposal.selection_status == "selected" %}
+                  {% include "components/badge.html" with label=proposal.get_selection_status_display color="green" %}
+                {% elif proposal.selection_status == "shortlisted" %}
+                  {% include "components/badge.html" with label=proposal.get_selection_status_display color="gold" %}
+                {% elif proposal.selection_status == "rejected" %}
+                  {% include "components/badge.html" with label=proposal.get_selection_status_display color="red" %}
+                {% else %}
+                  {% include "components/badge.html" with label=proposal.get_selection_status_display color="muted" %}
+                {% endif %}
+              </td>
+              <td>
+                <form method="post" class="lifecycle-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="proposal" value="{{ proposal.pk }}">
+                  <button type="submit" name="action" value="shortlist" class="btn btn-ghost btn-sm">Shortlist</button>
+                  <button type="submit" name="action" value="select" class="btn btn-primary btn-sm">Select</button>
+                  <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Reject</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% empty %}
+  <div class="card card-flat">
+    <div class="table-empty">// No proposals submitted yet</div>
+  </div>
+{% endfor %}
+{% endblock %}

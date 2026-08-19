@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ submission.submission_type.name }} | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/submissions.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="SUBMISSION" title=submission.submission_type.name %}
+
+<div class="chart-grid">
+  <div class="card card-flat">
+    <span class="tlabel">// DETAILS</span>
+    <h3 class="card-title">{{ submission.team.team_name }}</h3>
+    <table class="table">
+      <tbody>
+        <tr><td class="cell-mono">COMPETITION</td><td>{{ submission.competition.name }}</td></tr>
+        <tr><td class="cell-mono">TYPE</td><td>{{ submission.submission_type.name }}</td></tr>
+        <tr><td class="cell-mono">CURRENT</td><td><span class="version-pill">v{{ submission.current_version }}</span></td></tr>
+        <tr><td class="cell-mono">STATUS</td><td>{{ submission.get_status_display }}</td></tr>
+        <tr>
+          <td class="cell-mono">SUBMITTED</td>
+          <td>
+            {{ submission.submitted_at|date:"Y-m-d H:i"|default:"Not yet submitted" }}
+            {% if submission.is_late %}
+              {% include "components/badge.html" with label="Late" color="gold" %}
+            {% endif %}
+          </td>
+        </tr>
+        {% if submission.is_late %}
+        <tr>
+          <td class="cell-mono">MARKING</td>
+          <td>
+            {% if submission.marking_excluded %}
+              {% include "components/badge.html" with label="Excluded" color="red" %}
+            {% else %}
+              {% include "components/badge.html" with label="Will be marked" color="green" %}
+            {% endif %}
+            {% if submission.marking_note %}
+              <span class="text-muted">{{ submission.marking_note }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+    {% if can_upload %}
+    <div style="margin-top:1rem;">
+      <a href="{% url 'submissions:new_version' submission.pk %}" class="btn btn-primary btn-sm">Upload New Version</a>
+    </div>
+    {% endif %}
+    {% if can_change_marking and submission.is_late %}
+    <form method="post" action="{% url 'submissions:toggle_marking' submission.pk %}"
+          class="lifecycle-form" style="margin-top:1rem;">
+      {% csrf_token %}
+      <input class="input" type="text" name="note" maxlength="300"
+             placeholder="Reason (optional)" value="{{ submission.marking_note }}">
+      {% if submission.marking_excluded %}
+        <button type="submit" class="btn btn-primary btn-sm">Restore for marking</button>
+      {% else %}
+        <button type="submit" class="btn btn-danger btn-sm">Exclude from marking</button>
+      {% endif %}
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="card card-flat">
+    <span class="tlabel">// PROCESSING</span>
+    <h3 class="card-title">Latest Document</h3>
+    {% with latest=submission.latest_file %}
+      {% if latest %}
+        <p><strong>{{ latest.filename }}</strong></p>
+        <p class="checksum" style="margin-top:0.35rem;">{{ latest.checksum }}</p>
+        {% if latest.parsed and latest.parsed.status == "succeeded" %}
+          <div class="parse-summary">
+            {% if latest.parsed.metadata.page_count %}<span><b>{{ latest.parsed.metadata.page_count }}</b> pages</span>{% endif %}
+            <span><b>{{ latest.parsed.metadata.word_count }}</b> words</span>
+            <span><b>{{ latest.parsed.sections|length }}</b> sections</span>
+            <span><b>{{ latest.parsed.metadata.table_count }}</b> tables</span>
+          </div>
+          {% if latest.parsed.sections %}
+          <ul class="section-list">
+            {% for section in latest.parsed.sections %}
+              <li data-level="{{ section.level }}">{{ section.heading }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        {% elif latest.parsed %}
+          <p class="form-help" style="margin-top:0.5rem;">// Text extraction: {{ latest.parsed.get_status_display }}</p>
+        {% endif %}
+      {% else %}
+        <div class="table-empty">// No file uploaded yet</div>
+      {% endif %}
+    {% endwith %}
+  </div>
+</div>
+
+{% if figures %}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// FIGURES</span>
+  <h3 class="card-title">Diagrams &amp; Images ({{ figures|length }})</h3>
+  <p class="text-muted" style="margin-bottom:0.75rem;">
+    Pulled out of the latest document so architecture diagrams can be read
+    here rather than only in the original file.
+  </p>
+  <div class="figure-grid">
+    {% for figure in figures %}
+      <figure class="figure">
+        <a href="{% url 'submissions:figure' figure.pk %}" target="_blank" rel="noopener">
+          <img src="{% url 'submissions:figure' figure.pk %}" alt="{{ figure.caption|default:'Extracted figure' }}" loading="lazy">
+        </a>
+        <figcaption>
+          {% if figure.page %}p{{ figure.page }} &middot; {% endif %}
+          {{ figure.image_format|upper }}
+          {% if figure.width %} &middot; {{ figure.width }}&times;{{ figure.height }}{% endif %}
+        </figcaption>
+      </figure>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if tables %}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// EXTRACTED_TABLES</span>
+  <h3 class="card-title">Tables ({{ tables|length }})</h3>
+  {% for table in tables %}
+    <div class="table-wrap" style="margin-bottom:1rem;">
+      <table class="table">
+        <tbody>
+          {% for row in table.rows %}
+            <tr>
+              {% for cell in row %}
+                {% if forloop.parentloop.first %}<th>{{ cell }}</th>{% else %}<td>{{ cell }}</td>{% endif %}
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if table.page %}<p class="form-help">// page {{ table.page }}</p>{% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card card-flat">
+  <span class="tlabel">// VERSION_HISTORY</span>
+  <h3 class="card-title">All Versions</h3>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Version</th><th>File</th><th>Size</th><th>Uploaded By</th><th>Uploaded</th><th>Processing</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for f in files %}
+        <tr>
+          <td><span class="version-pill">v{{ f.version }}</span></td>
+          <td>{{ f.filename }}</td>
+          <td class="cell-mono">{{ f.file_size|filesizeformat }}</td>
+          <td>{{ f.uploaded_by.username|default:"—" }}</td>
+          <td class="cell-mono">{{ f.uploaded_at|date:"Y-m-d H:i" }}</td>
+          <td>
+            {% if f.parsed.status == "succeeded" %}
+              {% include "components/badge.html" with label="Processed" color="green" %}
+            {% elif f.parsed.status == "failed" %}
+              {% include "components/badge.html" with label="Failed" color="red" %}
+            {% elif f.parsed.status == "skipped" %}
+              {% include "components/badge.html" with label="Stored" color="muted" %}
+            {% else %}
+              {% include "components/badge.html" with label="Pending" color="muted" %}
+            {% endif %}
+          </td>
+          <td><a href="{% url 'submissions:download' f.pk %}" class="btn btn-ghost btn-sm">Download</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="table-empty">// No versions uploaded yet</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

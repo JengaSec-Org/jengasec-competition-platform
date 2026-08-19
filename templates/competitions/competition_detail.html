@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ competition.name }} | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="COMPETITION_MANAGEMENT" title=competition.name %}
+
+<div class="team-ident">
+  {% include "components/badge.html" with label=competition.get_phase_display color="green" %}
+  <span class="ident-sep">/</span>
+  <span class="ident-meta">{{ competition.get_status_display }}</span>
+  <span class="ident-sep">/</span>
+  <span class="ident-meta">{{ competition.start_date|date:"M j, Y" }} &rarr; {{ competition.end_date|date:"M j, Y" }}</span>
+  <a href="{% url 'competitions:update' competition.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+</div>
+
+{# ---- Lifecycle control panel ---- #}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// LIFECYCLE</span>
+  <h3 class="card-title">Run the Competition</h3>
+
+  <div class="lifecycle-grid">
+    <div class="lifecycle-item">
+      <h4>Phase</h4>
+      <p class="text-muted">Which dashboard teams land on.</p>
+      <form method="post" action="{% url 'competitions:lifecycle' competition.pk %}" class="lifecycle-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="set_phase">
+        <select class="select" name="phase">
+          {% for value, label in phases %}
+            <option value="{{ value }}" {% if value == competition.phase %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">Set Phase</button>
+      </form>
+    </div>
+
+    <div class="lifecycle-item">
+      <h4>
+        Submissions
+        {% if settings.submissions_open %}
+          {% include "components/badge.html" with label="Open" color="green" %}
+        {% else %}
+          {% include "components/badge.html" with label="Closed" color="red" %}
+        {% endif %}
+      </h4>
+      <p class="text-muted">Closing this stops every team upload immediately.</p>
+      <form method="post" action="{% url 'competitions:lifecycle' competition.pk %}" class="lifecycle-form">
+        {% csrf_token %}
+        {% if settings.submissions_open %}
+          <input type="hidden" name="action" value="close_submissions">
+          <button type="submit" class="btn btn-danger btn-sm">Close Submissions</button>
+        {% else %}
+          <input type="hidden" name="action" value="open_submissions">
+          <button type="submit" class="btn btn-primary btn-sm">Open Submissions</button>
+        {% endif %}
+      </form>
+    </div>
+
+    <div class="lifecycle-item">
+      <h4>
+        Judging
+        {% if settings.judging_open %}
+          {% include "components/badge.html" with label="Open" color="green" %}
+        {% else %}
+          {% include "components/badge.html" with label="Closed" color="muted" %}
+        {% endif %}
+      </h4>
+      <p class="text-muted">Lets judges score and override submissions.</p>
+      <form method="post" action="{% url 'competitions:lifecycle' competition.pk %}" class="lifecycle-form">
+        {% csrf_token %}
+        {% if settings.judging_open %}
+          <input type="hidden" name="action" value="close_judging">
+          <button type="submit" class="btn btn-danger btn-sm">Close Judging</button>
+        {% else %}
+          <input type="hidden" name="action" value="open_judging">
+          <button type="submit" class="btn btn-primary btn-sm">Open Judging</button>
+        {% endif %}
+      </form>
+    </div>
+
+    <div class="lifecycle-item">
+      <h4>
+        Results
+        {% if settings.results_published %}
+          {% include "components/badge.html" with label="Published" color="green" %}
+        {% else %}
+          {% include "components/badge.html" with label="Withheld" color="muted" %}
+        {% endif %}
+      </h4>
+      <p class="text-muted">Releases final scores and feedback to teams.</p>
+      <form method="post" action="{% url 'competitions:lifecycle' competition.pk %}" class="lifecycle-form">
+        {% csrf_token %}
+        {% if settings.results_published %}
+          <input type="hidden" name="action" value="unpublish_results">
+          <button type="submit" class="btn btn-ghost btn-sm">Withhold Results</button>
+        {% else %}
+          <input type="hidden" name="action" value="publish_results">
+          <button type="submit" class="btn btn-primary btn-sm">Publish Results</button>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="chart-grid">
+  {# ---- Timelines ---- #}
+  <div class="card card-flat">
+    <span class="tlabel">// TIMELINES</span>
+    <h3 class="card-title">Deadlines</h3>
+    <table class="table">
+      <tbody>
+        <tr><td class="cell-mono">REGISTRATION</td><td>{{ settings.registration_deadline|date:"Y-m-d H:i"|default:"— not set" }}</td></tr>
+        <tr><td class="cell-mono">BUILD</td><td>{{ settings.build_deadline|date:"Y-m-d H:i"|default:"— not set" }}</td></tr>
+        <tr><td class="cell-mono">SUBMISSION</td><td>{{ settings.submission_deadline|date:"Y-m-d H:i"|default:"— not set" }}</td></tr>
+        <tr><td class="cell-mono">PROPOSALS / TEAM</td><td>{{ settings.max_proposals_per_team }}</td></tr>
+        <tr><td class="cell-mono">DEFAULT CAP</td><td>{{ settings.default_proposal_cap }}</td></tr>
+        <tr><td class="cell-mono">APPEAL WINDOW</td><td>{{ settings.appeal_window_days }} day{{ settings.appeal_window_days|pluralize }}</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:1rem;">
+      <a href="{% url 'competitions:settings' competition.pk %}" class="btn btn-ghost btn-sm">Edit Timelines</a>
+    </div>
+  </div>
+
+  {# ---- Applications ---- #}
+  <div class="card card-flat">
+    <span class="tlabel">// APPLICATION_CATALOGUE</span>
+    <h3 class="card-title">Briefs ({{ briefs|length }})</h3>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Code</th><th>Application</th><th class="cell-num">Proposals</th></tr></thead>
+        <tbody>
+          {% for brief in briefs %}
+            <tr>
+              <td class="cell-mono">{{ brief.code }}</td>
+              <td>{{ brief.name }}</td>
+              <td class="cell-num">{{ brief.proposal_count }}/{{ brief.proposal_cap }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3"><div class="table-empty">// None yet — run seed_application_briefs</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# ---- Teams ---- #}
+<div class="card card-flat">
+  <span class="tlabel">// TEAMS</span>
+  <h3 class="card-title">Registered Teams ({{ teams|length }})</h3>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Cell</th><th>Team</th><th>Side</th><th>Track</th><th>Enterprise</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for team in teams %}
+          <tr>
+            <td class="cell-mono">{{ team.cell_id|default:"—" }}</td>
+            <td>{{ team.team_name }}</td>
+            <td>{{ team.get_team_type_display }}</td>
+            <td>{{ team.get_track_display|default:"—" }}</td>
+            <td>{{ team.get_enterprise_display|default:"—" }}</td>
+            <td class="cell-mono">{{ team.get_status_display }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6"><div class="table-empty">// No teams registered yet</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

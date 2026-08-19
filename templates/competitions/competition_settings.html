@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Timelines | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="COMPETITION_TIMELINES" title=competition.name %}
+
+<div class="card card-flat" style="max-width:640px;">
+  <span class="tlabel">// TIMELINES_AND_CAPS</span>
+  <h3 class="card-title">Deadlines</h3>
+  <p class="text-muted" style="margin-bottom:1rem;">
+    Deadlines are shown to teams on their dashboards. Caps limit how many
+    proposals a team may file and how many any one application accepts.
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      {% include "components/form_field.html" with field=field %}
+    {% endfor %}
+    {% for error in form.non_field_errors %}<div class="form-error">// {{ error }}</div>{% endfor %}
+    <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
+      <button type="submit" class="btn btn-primary">Save Timelines</button>
+      <a href="{% url 'competitions:detail' competition.pk %}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

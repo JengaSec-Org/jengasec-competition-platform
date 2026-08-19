@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Red Team — Preparation | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="RED_TEAM :: PREPARATION" title="Sharpen the Tools." %}
+{% include "dashboard/_phase_rail.html" %}
+{% include "dashboard/_team_ident.html" %}
+
+<div class="chart-grid">
+  <div class="card card-flat" style="border-top-color: var(--danger);">
+    <span class="tlabel" style="color: var(--danger);">// YOUR_ATTACK_SURFACE</span>
+    <h3 class="card-title">{{ team.get_track_display|default:"Track" }} Red</h3>
+    {% if spec %}
+      <p class="text-muted">
+        Blue teams are building right now. When the competition goes live you
+        attack the {{ team.get_track_display|lower }} layer of your assigned
+        targets — nothing else is in scope.
+      </p>
+      <ul class="spec-list red" style="margin-top:0.75rem;">
+        {% for item in spec.attack_surface %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted">Your specialisation has not been set yet.</p>
+    {% endif %}
+    <p class="form-help" style="margin-top:1rem;">
+      // Scenario briefs and point values are in
+      <a href="{% url 'dashboard:info' %}">Info</a>
+    </p>
+  </div>
+
+  <div class="card card-flat">
+    <span class="tlabel">// TARGETS</span>
+    <h3 class="card-title">Assignment Status</h3>
+    {% if targets %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Cell</th><th>Team</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for assignment in targets %}
+              <tr>
+                <td class="cell-mono">{{ assignment.target_team.cell_id|default:"—" }}</td>
+                <td>{{ assignment.target_team.team_name }}</td>
+                <td>
+                  {% if assignment.is_active %}
+                    {% include "components/badge.html" with label="Open" color="red" %}
+                  {% else %}
+                    {% include "components/badge.html" with label="Not yet provisioned" color="muted" %}
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="form-help" style="margin-top:0.75rem;">
+        // Endpoints and access details are released when the engagement window opens
+      </p>
+    {% else %}
+      <p class="text-muted">
+        Targets are allocated once blue teams have shipped. Your assignment,
+        endpoints and VPN access appear here before the engagement window opens.
+      </p>
+      <div style="margin-top:1rem;">
+        {% include "components/badge.html" with label="Awaiting allocation" color="muted" %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="panel-dark">
+  <div class="term-head">
+    <div class="term-dots"><span></span><span></span><span></span></div>
+    <span class="term-title">preparation.log</span>
+  </div>
+  <p class="mono" style="font-size:12px; color:rgba(255,255,255,0.55); position:relative; z-index:1;">
+    &gt; ENGAGEMENT_WINDOW :: NOT_OPEN<br>
+    &gt; Attacks are scored against predefined scenarios — read the briefs now,
+    not on the day<br>
+    &gt; Every action is observed as telemetry and converted into a competition
+    event<span class="badge-cursor"></span>
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,604 @@
+/* Competition dashboards: team identity, scorecards, scenarios.
+   Model reference: Final Competition Overview (Aug 2026). */
+
+/* ---- Team identity strip under the page header ---- */
+.team-ident {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.cell-tag {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-btn);
+  background: var(--background);
+  color: var(--primary-light);
+  border: 1px solid rgba(0, 200, 80, 0.35);
+}
+
+.cell-tag.red {
+  color: #ff6b73;
+  border-color: rgba(179, 0, 12, 0.45);
+}
+
+.ident-sep {
+  color: var(--border);
+}
+
+.ident-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---- Specification lists ---- */
+.spec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.spec-col h4 {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+
+.spec-list {
+  list-style: none;
+  font-size: 13.5px;
+  line-height: 1.85;
+}
+
+.spec-list li {
+  position: relative;
+  padding-left: 1.1rem;
+}
+
+.spec-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  background: var(--primary);
+}
+
+.spec-list.red li::before {
+  background: var(--danger);
+}
+
+/* ---- Scorecard (§18) ---- */
+.score-section + .score-section {
+  margin-top: 1.25rem;
+}
+
+.score-section h4 {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--primary);
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+}
+
+.score-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  font-size: 14px;
+}
+
+.score-row .val {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.score-row .val.pending {
+  color: var(--muted);
+}
+
+.score-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+  padding-top: 0.9rem;
+  border-top: 2px solid var(--primary);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.05em;
+}
+
+.score-total .val {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Delayed-score notice (§20) */
+.delay-note {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border);
+}
+
+/* ---- Weight bars (§22) ---- */
+.weight-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  font-size: 13.5px;
+}
+
+.weight-row .bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-off);
+  overflow: hidden;
+}
+
+.weight-row .bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+}
+
+.weight-row .pct {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  width: 3rem;
+  text-align: right;
+}
+
+/* ---- Attack scenario cards (§8) ---- */
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+.scenario {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-card);
+  padding: 1.25rem;
+}
+
+.scenario.defensive {
+  border-left-color: var(--primary);
+}
+
+.scenario-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--danger);
+}
+
+.scenario.defensive .scenario-code {
+  color: var(--primary);
+}
+
+.scenario h4 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  margin: 0.25rem 0 0.6rem;
+}
+
+.scenario dl {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.scenario dt {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 0.6rem;
+}
+
+.scenario-points {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pts-red,
+.pts-blue {
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-btn);
+}
+
+.pts-red {
+  color: var(--danger);
+  background: rgba(179, 0, 12, 0.08);
+  border: 1px solid rgba(179, 0, 12, 0.25);
+}
+
+.pts-blue {
+  color: var(--primary);
+  background: rgba(0, 122, 61, 0.08);
+  border: 1px solid rgba(0, 122, 61, 0.25);
+}
+
+/* ---- Phase rail (Registration · Build · Live) ---- */
+.phase-rail {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.phase-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
+.phase-step.done {
+  opacity: 1;
+  color: var(--primary);
+}
+
+.phase-step.current {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.phase-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+}
+
+.phase-step.done .phase-dot {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.phase-step.current .phase-dot {
+  box-shadow: var(--glow-green);
+}
+
+.phase-line {
+  flex: 1;
+  min-width: 16px;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ---- Application catalogue ---- */
+.brief-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+.brief {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--primary);
+  border-radius: var(--radius-card);
+  padding: 1.25rem;
+  transition: box-shadow 0.25s, transform 0.25s;
+}
+
+.brief:hover {
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-2px);
+}
+
+.brief.full {
+  border-top-color: var(--border);
+  opacity: 0.7;
+}
+
+.brief-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.brief-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--primary);
+}
+
+.brief-slots {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.brief h4 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+}
+
+.brief h5,
+.spec-col h5 {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0.85rem 0 0.4rem;
+}
+
+/* ---- Locked surface (red qualifier, TBA) ---- */
+.locked-card {
+  border-top-color: var(--gold);
+  position: relative;
+  overflow: hidden;
+}
+
+.locked-strip {
+  margin-top: 1.25rem;
+  height: 8px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(201, 150, 10, 0.25),
+    rgba(201, 150, 10, 0.25) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
+/* ---- Build checklist ---- */
+.check {
+  color: var(--border);
+  font-size: 15px;
+}
+
+.check.done {
+  color: var(--primary);
+}
+
+/* ---- Target access cards ---- */
+.target-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.target {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-card);
+  padding: 1.25rem;
+}
+
+.target.locked {
+  border-left-color: var(--border);
+  opacity: 0.75;
+}
+
+.target-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.target h4 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+}
+
+/* Connection details — laid out to be read off and typed */
+.conn-block {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-btn);
+  background: var(--background);
+  border: 1px solid rgba(0, 200, 80, 0.18);
+}
+
+.conn-block.locked-block {
+  background: var(--surface-off);
+  border-color: var(--border);
+}
+
+.conn-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.9;
+  word-break: break-all;
+}
+
+.conn-key {
+  color: rgba(0, 200, 80, 0.7);
+  min-width: 4.5rem;
+  flex-shrink: 0;
+}
+
+.conn-key::after {
+  content: ':';
+}
+
+.conn-val {
+  color: var(--text-inverse);
+}
+
+.conn-val.muted {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+/* ---- Info page section nav ---- */
+.info-nav {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-nav a {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.info-nav a:hover {
+  color: var(--primary);
+}
+
+/* ---- Point reference tables ---- */
+.points-table td:last-child {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pos {
+  color: var(--primary);
+}
+
+.neg {
+  color: var(--danger);
+}
+
+/* ---- Competition lifecycle control panel (Module 2) ---- */
+.lifecycle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.lifecycle-item {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface-off);
+}
+
+.lifecycle-item h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+.lifecycle-item p {
+  font-size: 12.5px;
+  margin-bottom: 0.75rem;
+}
+
+.lifecycle-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.lifecycle-form .select {
+  flex: 1;
+  min-width: 8rem;
+}
+
+/* ---- Audit / review filter bars ---- */
+.audit-filters {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-top: 0.75rem;
+}
+
+.audit-filters .form-group {
+  margin-bottom: 0;
+  min-width: 10rem;
+  flex: 1 1 10rem;
+}
+
+.audit-filter-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding-bottom: 0.15rem;
+}

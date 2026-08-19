@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Submissions | JengaSec Evaluation Platform{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/submissions.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="SUBMISSION_LOG" title="Submissions" %}
+
+{% if can_start %}
+<div style="margin-bottom:1.5rem;">
+  <a href="{% url 'submissions:wizard_step1' %}" class="btn btn-primary btn-sm">+ Submit a Document</a>
+</div>
+{% endif %}
+
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr><th>Team</th><th>Type</th><th>Competition</th><th>Version</th><th>Status</th><th>Submitted</th></tr>
+    </thead>
+    <tbody>
+      {% for sub in submissions %}
+      <tr>
+        <td><a href="{% url 'submissions:detail' sub.pk %}">{{ sub.team.team_name }}</a></td>
+        <td>{{ sub.submission_type.name }}</td>
+        <td>{{ sub.competition.name }}</td>
+        <td><span class="version-pill">v{{ sub.current_version }}</span></td>
+        <td>
+          {% if sub.status == "completed" %}
+            {% include "components/badge.html" with label=sub.get_status_display color="green" %}
+          {% elif sub.status == "under_review" %}
+            {% include "components/badge.html" with label=sub.get_status_display color="gold" %}
+          {% elif sub.status == "submitted" %}
+            {% include "components/badge.html" with label=sub.get_status_display color="green" %}
+          {% else %}
+            {% include "components/badge.html" with label=sub.get_status_display color="muted" %}
+          {% endif %}
+        </td>
+        <td class="cell-mono">{{ sub.submitted_at|date:"Y-m-d H:i"|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6"><div class="table-empty">// No submissions yet</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% include "components/pagination.html" with page_obj=page_obj %}
+{% endblock %}

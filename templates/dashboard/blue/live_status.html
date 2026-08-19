@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Live Status | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="BLUE_TEAM :: LIVE_STATUS" title="Your Service, Right Now" %}
+{% include "dashboard/_team_ident.html" %}
+
+<div class="chart-grid">
+  {# ---- Service ---- #}
+  <div class="card card-flat">
+    <span class="tlabel">// SERVICE</span>
+    <h3 class="card-title">{{ team.responsibility|default:"Your application" }}</h3>
+    <table class="table">
+      <tbody>
+        <tr>
+          <td class="cell-mono">ENDPOINT</td>
+          <td class="cell-mono">{{ endpoint|default:"— not provisioned" }}</td>
+        </tr>
+        <tr>
+          <td class="cell-mono">UNDER ATTACK BY</td>
+          <td>
+            {{ active_attackers }} of {{ attacker_count }} assigned red team{{ attacker_count|pluralize }}
+            {% if active_attackers %}
+              {% include "components/badge.html" with label="Engaged" color="red" %}
+            {% else %}
+              {% include "components/badge.html" with label="Quiet" color="muted" %}
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td class="cell-mono">HEALTH CHECK</td>
+          <td>GET /health &middot; polled continuously</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {# ---- Availability ---- #}
+  <div class="card card-flat">
+    <span class="tlabel">// AVAILABILITY</span>
+    <h3 class="card-title">
+      Uptime
+      {% include "components/badge.html" with label=availability_band color=availability_colour %}
+    </h3>
+    <div class="stat-value" style="margin:0.5rem 0;">
+      {% if availability is None %}—{% else %}{{ availability }}%{% endif %}
+    </div>
+    <p class="text-muted">
+      Successful health checks divided by total checks. Availability is scored —
+      taking the service down to dodge an attack counts as downtime.
+    </p>
+    <div class="delay-note">
+      // Monitoring layer not connected yet ·
+      <a href="{% url 'dashboard:info' %}">how availability scores</a>
+    </div>
+  </div>
+</div>
+
+{# ---- Attack activity ---- #}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// ATTACK_ACTIVITY</span>
+  <h3 class="card-title">What's Been Thrown At You</h3>
+  <div class="stat-grid" style="margin-bottom:0;">
+    <div class="card stat-card">
+      <div class="stat-value">—</div>
+      <div class="stat-label">Attacks Detected</div>
+      <span class="stat-tag">// +15 EACH</span>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-value">—</div>
+      <div class="stat-label">Attacks Blocked</div>
+      <span class="stat-tag">// +20 EACH</span>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-value">—</div>
+      <div class="stat-label">Compromises</div>
+      <span class="stat-tag">// SCORED AGAINST YOU</span>
+    </div>
+  </div>
+  <div class="delay-note">
+    // Counters populate from the competition event stream. Scores update every
+    {{ delay_minutes }} minutes — live attack outcomes are deliberately withheld
+    during the event.
+  </div>
+</div>
+
+{# ---- Security controls ---- #}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// SECURITY_CONTROLS</span>
+  <h3 class="card-title">Controls Being Watched</h3>
+  <p class="text-muted" style="margin-bottom:0.75rem;">
+    Each control that stays active through the event earns points.
+  </p>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th></th><th>Control</th><th>State</th></tr></thead>
+      <tbody>
+        {% for control in controls %}
+          <tr>
+            <td class="cell-mono"><span class="check">&#9675;</span></td>
+            <td>{{ control }}</td>
+            <td class="text-muted">Awaiting telemetry</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel-dark">
+  <div class="term-head">
+    <div class="term-dots"><span></span><span></span><span></span></div>
+    <span class="term-title">live_status.log</span>
+  </div>
+  <p class="mono" style="font-size:12px; color:rgba(255,255,255,0.55); position:relative; z-index:1;">
+    &gt; TELEMETRY_STREAM :: NOT_CONNECTED<br>
+    &gt; Uptime, requests and detected attacks will stream here once the
+    observability layer is wired to the competition event processor<br>
+    &gt; Until then this page shows structure, not live data<span class="badge-cursor"></span>
+  </p>
+</div>
+{% endblock %}

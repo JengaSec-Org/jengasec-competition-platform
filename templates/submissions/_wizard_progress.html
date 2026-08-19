@@ -1,0 +1,21 @@
+{% comment %}
+Wizard progress rail.
+Usage: {% include "submissions/_wizard_progress.html" with step=2 %}
+Params: step  1 | 2 | 3
+{% endcomment %}
+<div class="wizard-rail">
+  <div class="wizard-step {% if step >= 1 %}done{% endif %} {% if step == 1 %}current{% endif %}">
+    <span class="wizard-num">01</span>
+    <span class="wizard-label">Select Competition</span>
+  </div>
+  <span class="wizard-sep" aria-hidden="true"></span>
+  <div class="wizard-step {% if step >= 2 %}done{% endif %} {% if step == 2 %}current{% endif %}">
+    <span class="wizard-num">02</span>
+    <span class="wizard-label">Upload Document</span>
+  </div>
+  <span class="wizard-sep" aria-hidden="true"></span>
+  <div class="wizard-step {% if step >= 3 %}done{% endif %} {% if step == 3 %}current{% endif %}">
+    <span class="wizard-num">03</span>
+    <span class="wizard-label">Review &amp; Submit</span>
+  </div>
+</div>

@@ -1,0 +1,18 @@
+{% comment %}
+Team identity strip: cell · name · track · enterprise.
+Params: team, is_blue, plus any extra badge passed as `status_badge`.
+{% endcomment %}
+<div class="team-ident">
+  {% if team.cell_id %}
+    <span class="cell-tag {% if not is_blue %}red{% endif %}">{{ team.cell_id }}</span>
+  {% endif %}
+  <strong>{{ team.team_name }}</strong>
+  {% if team.track %}
+    <span class="ident-sep">/</span>
+    <span class="ident-meta">{{ team.get_track_display }} {% if is_blue %}Blue{% else %}Red{% endif %}</span>
+  {% endif %}
+  {% if team.enterprise %}
+    <span class="ident-sep">/</span>
+    <span class="ident-meta">{{ team.get_enterprise_display }}</span>
+  {% endif %}
+</div>

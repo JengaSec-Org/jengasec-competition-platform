@@ -17,9 +17,18 @@ class TeamMemberInline(admin.TabularInline):
 
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ("team_name", "team_type", "competition", "captain", "status")
-    list_filter = ("team_type", "status", "competition")
-    search_fields = ("team_name", "institution")
+    list_display = (
+        "cell_id",
+        "team_name",
+        "team_type",
+        "track",
+        "enterprise",
+        "responsibility",
+        "competition",
+        "status",
+    )
+    list_filter = ("team_type", "track", "enterprise", "status", "competition")
+    search_fields = ("team_name", "cell_id", "institution", "responsibility")
     inlines = [TeamMemberInline]
 
 

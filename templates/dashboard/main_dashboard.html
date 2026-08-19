@@ -9,6 +9,13 @@
   <h1>Command <span class="text-green">Center</span></h1>
 </div>
 
+<div style="margin-bottom:1.5rem; display:flex; gap:0.75rem; flex-wrap:wrap;">
+  <a href="{% url 'competitions:list' %}" class="btn btn-primary btn-sm">Manage Competitions</a>
+  <a href="{% url 'submissions:list' %}" class="btn btn-ghost btn-sm">All Submissions</a>
+  <a href="{% url 'submissions:proposal_review' %}" class="btn btn-ghost btn-sm">Proposal Review</a>
+  <a href="{% url 'audit:log' %}" class="btn btn-ghost btn-sm">Audit Log</a>
+</div>
+
 {# ---- KPI stat cards ---- #}
 <div class="stat-grid">
   {% for stat in stats %}
@@ -31,6 +38,32 @@
     <span class="tlabel">// SUBMISSION_TRENDS</span>
     <h3 class="card-title">Submission Trends</h3>
     <canvas id="trendChart" aria-label="Submission trends chart" role="img"></canvas>
+  </div>
+</div>
+
+{# ---- Audit trail ---- #}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// AUDIT_TRAIL</span>
+  <h3 class="card-title">Recent Platform Activity</h3>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Detail</th></tr></thead>
+      <tbody>
+        {% for entry in recent_audit %}
+          <tr>
+            <td class="cell-mono">{{ entry.created_at|date:"m-d H:i" }}</td>
+            <td>{{ entry.actor_label|default:"system" }}</td>
+            <td>{{ entry.get_action_display }}</td>
+            <td class="text-muted">{{ entry.description|truncatechars:70 }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4"><div class="table-empty">// Nothing recorded yet</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div style="margin-top:1rem;">
+    <a href="{% url 'audit:log' %}" class="btn btn-ghost btn-sm">Open Full Audit Log</a>
   </div>
 </div>
 

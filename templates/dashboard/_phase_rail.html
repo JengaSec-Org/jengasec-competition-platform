@@ -1,0 +1,32 @@
+{% comment %}
+Competition phase indicator: Registration · Build · Live.
+Reached phases link back (read-only); future phases are inert.
+Params: phase_rail (from competition_service.phase_rail), is_blue
+{% endcomment %}
+<div class="phase-rail">
+  {% for step in phase_rail %}
+    {% if step.reached %}
+      <a class="phase-step {% if step.current %}current{% endif %} done"
+         href="{% if is_blue %}{% url 'dashboard:blue_phase' step.value %}{% else %}{% url 'dashboard:red_phase' step.value %}{% endif %}">
+        <span class="phase-dot"></span>{{ step.label }}
+      </a>
+    {% else %}
+      <span class="phase-step">
+        <span class="phase-dot"></span>{{ step.label }}
+      </span>
+    {% endif %}
+    {% if not forloop.last %}<span class="phase-line" aria-hidden="true"></span>{% endif %}
+  {% endfor %}
+</div>
+
+{% if read_only %}
+  <div class="alert alert-info" role="status" style="margin-bottom:1.5rem;">
+    <span class="alert-tag">[PAST]</span>
+    <span>
+      You're looking back at the {{ phase|title }} phase.
+      <a href="{% if is_blue %}{% url 'dashboard:blue_dashboard' %}{% else %}{% url 'dashboard:red_dashboard' %}{% endif %}">
+        Return to the current phase
+      </a>.
+    </span>
+  </div>
+{% endif %}

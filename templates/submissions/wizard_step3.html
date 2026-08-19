@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Upload — Step 3 | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/submissions.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="UPLOAD_WIZARD" title="Review & Submit" %}
+{% include "submissions/_wizard_progress.html" with step=3 %}
+
+<div class="card card-flat" style="max-width:720px;">
+  <span class="tlabel">// STEP_03</span>
+  <h3 class="card-title">Confirm Your Submission</h3>
+
+  <table class="table" style="margin-bottom:1rem;">
+    <tbody>
+      <tr><td class="cell-mono">TEAM</td><td>{{ submission.team.team_name }}</td></tr>
+      <tr><td class="cell-mono">COMPETITION</td><td>{{ submission.competition.name }}</td></tr>
+      <tr><td class="cell-mono">TYPE</td><td>{{ submission.submission_type.name }}</td></tr>
+      <tr><td class="cell-mono">FILE</td><td>{{ submission_file.filename }}</td></tr>
+      <tr><td class="cell-mono">SIZE</td><td>{{ submission_file.file_size|filesizeformat }}</td></tr>
+      <tr><td class="cell-mono">VERSION</td><td><span class="version-pill">v{{ submission_file.version }}</span></td></tr>
+      <tr>
+        <td class="cell-mono">SHA-256</td>
+        <td><span class="checksum">{{ submission_file.checksum }}</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  {% if parsed %}
+    {% if parsed.status == "succeeded" %}
+      <div class="ai-eval">
+        <div class="ai-tag">// DOCUMENT_PROCESSED</div>
+        <strong>{{ parsed.title }}</strong>
+        <div class="parse-summary">
+          {% if parsed.metadata.page_count %}<span><b>{{ parsed.metadata.page_count }}</b> pages</span>{% endif %}
+          <span><b>{{ parsed.metadata.word_count }}</b> words</span>
+          <span><b>{{ parsed.sections|length }}</b> sections</span>
+          <span><b>{{ parsed.metadata.table_count }}</b> tables</span>
+          <span><b>{{ parsed.metadata.image_count }}</b> images</span>
+        </div>
+        {% if parsed.sections %}
+        <ul class="section-list">
+          {% for section in parsed.sections %}
+            <li data-level="{{ section.level }}">{{ section.heading }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% for warning in parsed.warnings %}
+          <div class="form-error">// {{ warning }}</div>
+        {% endfor %}
+      </div>
+    {% elif parsed.status == "skipped" %}
+      {% include "components/alert.html" with level="info" text="Stored as-is — this format isn't text-extractable, so judges will read it directly." %}
+    {% else %}
+      {% include "components/alert.html" with level="warning" text="Your file was stored safely, but automatic text extraction failed. Judges can still read it; an admin can re-run processing." %}
+    {% endif %}
+  {% endif %}
+
+  <p class="text-muted" style="margin-top:1rem;">
+    Submitting locks this as version {{ submission_file.version }} and notifies your team.
+    You can still upload a newer version while the competition is open.
+  </p>
+
+  <form method="post" style="display:flex; gap:0.75rem; margin-top:1.25rem;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">Submit Document</button>
+    <a href="{% url 'submissions:wizard_step2' %}" class="btn btn-ghost">&larr; Replace File</a>
+  </form>
+</div>
+{% endblock %}

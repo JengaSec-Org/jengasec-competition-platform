@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Upload — Step 1 | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/submissions.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="UPLOAD_WIZARD" title="Submit a Document" %}
+{% include "submissions/_wizard_progress.html" with step=1 %}
+
+<div class="card card-flat" style="max-width:720px;">
+  <span class="tlabel">// STEP_01</span>
+  <h3 class="card-title">Select Competition &amp; Document Type</h3>
+  <p class="text-muted" style="margin-bottom:1.25rem;">
+    Only competitions currently open to your team are listed. Deadlines are enforced —
+    a competition disappears from this list once its submission window closes.
+  </p>
+
+  {% if brief %}
+    <div class="alert alert-info" role="status">
+      <span class="alert-tag">[APP]</span>
+      <span>Proposing for <strong>{{ brief.code }} — {{ brief.name }}</strong>.</span>
+    </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {% if brief %}<input type="hidden" name="brief" value="{{ brief.pk }}">{% endif %}
+
+    <div class="form-group">
+      <label class="form-label" for="id_competition">Competition <span class="req">*</span></label>
+      <select class="select" name="competition" id="id_competition" required
+              onchange="this.form.action.value='reload'; this.form.submit();">
+        <option value="">— Select a competition —</option>
+        {% for competition in competitions %}
+          <option value="{{ competition.pk }}" {% if competition.pk == selected_competition_id %}selected{% endif %}>
+            {{ competition.name }} ({{ competition.start_date|date:"M d" }} – {{ competition.end_date|date:"M d, Y" }})
+          </option>
+        {% endfor %}
+      </select>
+      <div class="form-help">Closes {{ competitions.0.end_date|date:"F j, Y" }} for the first listed competition.</div>
+    </div>
+
+    {% if types %}
+    <div class="form-group">
+      <label class="form-label" for="id_submission_type">Document Type <span class="req">*</span></label>
+      <select class="select" name="submission_type" id="id_submission_type" required>
+        <option value="">— Select a document type —</option>
+        {% for type in types %}
+          <option value="{{ type.pk }}">{{ type.name }}</option>
+        {% endfor %}
+      </select>
+      <div class="form-help">Only the document types your team may file are shown.</div>
+    </div>
+    {% elif selected_competition_id %}
+      {% include "components/alert.html" with level="warning" text="No document types are available to your team for that competition." %}
+    {% endif %}
+
+    <input type="hidden" name="action" value="next">
+    <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
+      <button type="submit" class="btn btn-primary" {% if not types %}disabled{% endif %}>Continue &rarr;</button>
+      <a href="{% url 'submissions:list' %}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

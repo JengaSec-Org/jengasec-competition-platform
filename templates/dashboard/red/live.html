@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Red Team — Live | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="RED_TEAM :: LIVE" title="Find It. Break It. Prove It." %}
+{% include "dashboard/_phase_rail.html" %}
+
+<div class="team-ident">
+  {% if team.cell_id %}<span class="cell-tag red">{{ team.cell_id }}</span>{% endif %}
+  <strong>{{ team.team_name }}</strong>
+  {% if team.track %}
+    <span class="ident-sep">/</span>
+    <span class="ident-meta">{{ team.get_track_display }} Red</span>
+  {% endif %}
+  {% if team.enterprise %}
+    <span class="ident-sep">/</span>
+    <span class="ident-meta">{{ team.get_enterprise_display }}</span>
+  {% endif %}
+  {% if engagement_open %}
+    {% include "components/badge.html" with label="Engagement Open" color="red" %}
+  {% else %}
+    {% include "components/badge.html" with label="Engagement Closed" color="muted" %}
+  {% endif %}
+</div>
+
+{# ---- Assigned targets ---- #}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// ASSIGNED_TARGETS</span>
+  <h3 class="card-title">In-Scope Targets</h3>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Cell</th><th>Team</th><th>Track</th><th>Enterprise</th><th>Endpoint</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for assignment in targets %}
+          <tr>
+            <td class="cell-mono">{{ assignment.target_team.cell_id|default:"—" }}</td>
+            <td>{{ assignment.target_team.team_name }}</td>
+            <td>{{ assignment.target_team.get_track_display|default:"—" }}</td>
+            <td>{{ assignment.target_team.get_enterprise_display|default:"—" }}</td>
+            <td class="cell-mono">{{ assignment.endpoint|default:"— pending provisioning" }}</td>
+            <td>
+              {% if assignment.is_active %}
+                {% include "components/badge.html" with label="Open" color="red" %}
+              {% else %}
+                {% include "components/badge.html" with label="Locked" color="muted" %}
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6"><div class="table-empty">// No targets assigned yet</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if not read_only %}
+    <div style="margin-top:1rem;">
+      <a href="{% url 'dashboard:red_target_access' %}" class="btn btn-danger btn-sm">Target Access &amp; Connection Details</a>
+    </div>
+  {% endif %}
+</div>
+
+<div class="chart-grid">
+  {# ---- Attack surface ---- #}
+  <div class="card card-flat" style="border-top-color: var(--danger);">
+    <span class="tlabel" style="color: var(--danger);">// ATTACK_SURFACE</span>
+    <h3 class="card-title">{{ team.get_track_display|default:"Track" }} Red</h3>
+    {% if spec %}
+      <p class="text-muted">
+        You attack the {{ team.get_track_display|lower }} layer of your assigned
+        targets — nothing else is in scope.
+      </p>
+      <ul class="spec-list red" style="margin-top:0.75rem;">
+        {% for item in spec.attack_surface %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    <p class="form-help" style="margin-top:1rem;">
+      // Scenario briefs, point values and graduated outcomes are in
+      <a href="{% url 'dashboard:info' %}">Info</a>
+    </p>
+  </div>
+
+  {# ---- Findings ---- #}
+  <div class="card card-flat">
+    <span class="tlabel">// FINDINGS</span>
+    <h3 class="card-title">Findings Report</h3>
+    <table class="table">
+      <thead><tr><th>Type</th><th>Version</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for submission in submissions %}
+          <tr>
+            <td><a href="{% url 'submissions:detail' submission.pk %}">{{ submission.submission_type.name }}</a></td>
+            <td class="cell-mono">v{{ submission.current_version }}</td>
+            <td>{{ submission.get_status_display }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3"><div class="table-empty">// Nothing submitted yet</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if not read_only %}
+      <div style="margin-top:1rem;">
+        <a href="{% url 'submissions:wizard_step1' %}" class="btn btn-danger btn-sm">Submit Findings</a>
+      </div>
+    {% endif %}
+    <p class="form-error" style="margin-top:1rem;">
+      // RULES_OF_ENGAGEMENT :: Only your assigned targets are in scope.
+      Out-of-scope activity is disqualifying.
+    </p>
+  </div>
+</div>
+
+<div class="panel-dark">
+  <div class="term-head">
+    <div class="term-dots"><span></span><span></span><span></span></div>
+    <span class="term-title">engagement.log</span>
+  </div>
+  <p class="mono" style="font-size:12px; color:rgba(255,255,255,0.55); position:relative; z-index:1;">
+    &gt; ENGAGEMENT_WINDOW :: {% if engagement_open %}OPEN{% else %}CLOSED{% endif %}<br>
+    &gt; TARGETS_ASSIGNED :: {{ targets|length }}<br>
+    &gt; Scores update every {{ delay_minutes }} minutes — a quiet board does not
+    mean an attack failed<span class="badge-cursor"></span>
+  </p>
+</div>
+{% endblock %}
