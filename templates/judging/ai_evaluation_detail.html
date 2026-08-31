@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ evaluation.submission.team.team_name }} — Review{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/judging.css' %}">
+{% endblock %}
+
+{% block content %}
+
+  <a href="{% url 'judging:ai_results' %}" class="ai-confidence">&larr; Back to results</a>
+
+  <div style="display:flex; align-items:flex-start; justify-content:space-between; margin: 0.75rem 0 1.25rem;">
+    <div>
+      <h2 class="card-title" style="margin-bottom:0.25rem;">{{ evaluation.submission.team.team_name }}</h2>
+      <span class="ai-confidence">SUB-{{ evaluation.submission.id }} · {{ evaluation.rubric.title }}</span>
+    </div>
+  </div>
+
+  <div class="review-layout">
+
+    <!-- Left: submission document viewer -->
+    <div class="doc-viewer">
+      <div class="term-head">
+        <div class="term-dots"><span></span><span></span><span></span></div>
+        <span class="term-title">Submission Document</span>
+      </div>
+      {% if submission_file %}
+        {% with storage_path_lower=submission_file.file.name|lower %}
+          {% if submission_file.mime_type == "application/pdf" or storage_path_lower|slice:"-4:" == ".pdf" %}
+            <iframe
+              src="{{ submission_file.file.url }}"
+              style="width:100%; height:500px; border:1px solid var(--border); border-radius:var(--radius-card); margin-top:0.75rem;">
+            </iframe>
+          {% else %}
+            <p class="ai-confidence">{{ submission_file.filename }} (v{{ submission_file.version }})</p>
+            <p class="ai-confidence" style="margin-top:0.5rem;">
+              <a href="{{ submission_file.file.url }}" target="_blank">Open file &rarr;</a>
+            </p>
+            <p class="ai-confidence" style="margin-top:1rem;">
+              Inline preview only available for PDFs right now — other file types need
+              the Document Processing module's viewer.
+            </p>
+          {% endif %}
+        {% endwith %}
+      {% else %}
+        <p class="ai-confidence">No file uploaded for this submission yet.</p>
+      {% endif %}
+    </div>
+
+    <!-- Right: AI evaluation panel + judge review, stacked -->
+    <div>
+
+      <div class="ai-eval">
+        <div class="ai-tag">
+          <span>●</span> AI EVALUATION
+          {% if latest_run %}— {{ latest_run.model_name }}{% endif %}
+        </div>
+
+        {% for cs in criterion_scores %}
+          <div class="criterion-row">
+            <div>
+              <div class="criterion-name">{{ cs.criterion.criterion }}</div>
+              <div class="criterion-weight">{{ cs.reasoning|default:"No AI reasoning recorded yet." }}</div>
+            </div>
+            <div class="score-ai">
+              {% if cs.ai_score is not None %}{{ cs.ai_score }}{% else %}—{% endif %}
+              / {{ cs.criterion.max_score }}
+            </div>
+          </div>
+        {% empty %}
+          <p class="ai-confidence">No criterion scores yet for this evaluation.</p>
+        {% endfor %}
+
+        {% if latest_run %}
+          <p class="ai-confidence" style="margin-top:0.75rem;">
+            Run status: {{ latest_run.get_status_display|upper }}
+          </p>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">Judge Review</h3>
+
+        {% if evaluation.status == "pending" %}
+          <p class="ai-confidence" style="margin-top:0.75rem;">
+            Waiting on the AI evaluation to run before judge review becomes available.
+          </p>
+         {% else %}
+           <form method="post">
+             {% csrf_token %}
+
+             {% for cs in criterion_scores %}
+               <div class="criterion-row">
+                 <div class="criterion-name">{{ cs.criterion.criterion }}</div>
+                 <input
+                   class="score-input"
+                   type="number"
+                   step="0.01"
+                   name="score_{{ cs.criterion.id }}"
+                   value="{% if cs.final_score is not None %}{{ cs.final_score }}{% elif cs.ai_score is not None %}{{ cs.ai_score }}{% endif %}">
+             </div>
+           {% endfor %}
+
+           <div style="margin-top:1rem;">
+             <label class="form-label" for="id_override_reason">Reason (required only if you change a score)</label>
+             <textarea class="input" id="id_override_reason" name="override_reason" rows="2"
+                       placeholder="Why are you adjusting the AI's score(s)?"></textarea>
+           </div>
+
+           <div style="display:flex; align-items:baseline; justify-content:space-between; margin-top:1rem;">
+             <span class="criterion-weight">Current Score</span>
+             <span class="score-final">
+               {% if evaluation.weighted_total is not None %}{{ evaluation.weighted_total }}{% else %}—{% endif %}
+             </span>
+           </div>
+
+           <div style="display:flex; gap:0.6rem; margin-top:1.25rem;">
+             <button type="submit" name="review_action" value="approve" class="btn btn-primary">Approve AI Scores</button>
+             <button type="submit" name="review_action" value="save_overrides" class="btn btn-ghost">Save Overrides</button>
+           </div>
+         </form>
+       {% endif %}
+     </div>
+
+    </div>
+  </div>
+
+{% endblock %}

@@ -129,6 +129,8 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 200
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+X_FRAME_OPTIONS = "SAMEORIGIN"
+
 # Authentication flow
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard:main_dashboard"
@@ -194,3 +196,5 @@ if not DEBUG:
     # so the two cannot disagree. `manage.py check --deploy` warns about this;
     # the warning is expected.
     SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "0"))
+# OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3")
+#OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "phi4-mini:latest")
