@@ -1,7 +1,10 @@
 ﻿from django.db import models
 
-<<<<<<< Updated upstream
-=======
+"""
+Models for the judging system, including evaluations, criterion scores,
+score overrides, and appeals.
+"""
+"""
 Schema reference: JengaSec Database Design V1, section 4
 (evaluations, criterion_scores, score_overrides, appeals).
 
@@ -220,4 +223,3 @@ class Appeal(models.Model):
 
     def __str__(self):
         return f"Appeal #{self.pk} :: {self.team.team_name} ({self.get_status_display()})"
->>>>>>> Stashed changes
