@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications | JengaSec Evaluation Platform{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="NOTIFICATIONS" title="Notifications" %}
+
+{% if unread_total %}
+  <p class="text-muted" style="margin-bottom:1.5rem;">
+    {{ unread_total }} unread of {{ notifications|length }}.
+  </p>
+{% endif %}
+
+{% for notification in notifications %}
+  <div class="card" style="margin-bottom:1rem;">
+    <span class="tlabel">// {{ notification.get_type_display|upper }}</span>
+    <h3 class="card-title">{{ notification.subject }}</h3>
+    {% if notification.body %}<p class="text-muted">{{ notification.body }}</p>{% endif %}
+
+    <div style="margin-top:1rem; display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+      {% if notification.is_read %}
+        {% include "components/badge.html" with label="Read" color="muted" %}
+      {% else %}
+        {% include "components/badge.html" with label="Unread" color="gold" %}
+      {% endif %}
+      <span class="form-help">// {{ notification.created_at|date:"j M Y, H:i" }}</span>
+
+      {% if not notification.is_read or notification.link %}
+        {# State change, so this is a POST form rather than a link. #}
+        <form method="post" action="{% url 'notifications:mark_read' notification.pk %}" style="margin:0;">
+          {% csrf_token %}
+          {% if notification.link %}
+            {% include "components/button.html" with label="Open" variant="ghost" size="sm" type="submit" %}
+          {% else %}
+            {% include "components/button.html" with label="Mark read" variant="ghost" size="sm" type="submit" %}
+          {% endif %}
+        </form>
+      {% endif %}
+    </div>
+  </div>
+{% empty %}
+  {% include "components/card.html" with tag="// EMPTY" title="Nothing yet" body="Notifications about submissions, evaluations and results will appear here." %}
+{% endfor %}
+{% endblock %}
