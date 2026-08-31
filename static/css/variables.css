@@ -46,3 +46,7 @@
   --nav-height: 60px;
   --sidebar-width: 240px;
 }
+
+@view-transition{
+  navigation: auto;
+}
