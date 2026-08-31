@@ -120,6 +120,13 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard:main_dashboard"
 LOGOUT_REDIRECT_URL = "login"
 
+# Email — console backend in dev (password reset emails print to the
+# runserver terminal). Swap for SMTP settings in production.
+EMAIL_BACKEND = os.environ.get(
+    "DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
+DEFAULT_FROM_EMAIL = "JengaSec <sucybersec@strathmore.edu>"
+
 # AI evaluation layer (Ollama)
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3")
