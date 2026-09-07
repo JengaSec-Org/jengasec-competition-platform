@@ -1,0 +1,12 @@
+Hello{% if user.first_name %} {{ user.first_name }}{% endif %},
+
+{{ notification.body }}
+
+The organisers review appeals in the order they are received. You will be
+notified as soon as a decision is made.
+{% if notification.link %}
+Track it here: {{ site_url }}{{ notification.link }}
+{% endif %}
+--
+JengaSec Evaluation Platform
+Strathmore Cybersecurity Club

@@ -9,6 +9,17 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Local development convenience: read BASE_DIR/.env if python-dotenv is
+# installed. In production the environment is supplied by systemd from a
+# root-owned EnvironmentFile, and no .env exists. `.env` is gitignored --
+# the Gmail app password must never reach the repository.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(BASE_DIR / ".env")
+except ImportError:  # pragma: no cover - optional dependency
+    pass
+
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
     "django-insecure-dev-only-change-me-before-deployment",
@@ -63,6 +74,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "accounts.context_processors.user_roles",
                 "accounts.context_processors.competition_phase",
+                "notifications.context_processors.unread_notifications",
             ],
         },
     },
@@ -142,6 +154,30 @@ EMAIL_BACKEND = os.environ.get(
     "DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
 )
 DEFAULT_FROM_EMAIL = "JengaSec <sucybersec@strathmore.edu>"
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# SMTP, used once DJANGO_EMAIL_BACKEND selects the SMTP backend. Gmail with
+# an app password: the account needs 2-Step Verification enabled, and the
+# Workspace administrator must not have disabled app passwords for the
+# domain.
+#
+# EMAIL_HOST_USER has to match the address in DEFAULT_FROM_EMAIL, or Gmail
+# rewrites the From header and the mail reads as spoofed.
+#
+# The password comes from the environment and nowhere else. Production
+# supplies it from ansible-vault via a mode-0600 EnvironmentFile; it is
+# never a default here, so a missing secret fails loudly instead of
+# silently sending as somebody else.
+EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.environ.get("DJANGO_EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes")
+EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER", "sucybersec@strathmore.edu")
+EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_HOST_PASSWORD", "")
+EMAIL_TIMEOUT = int(os.environ.get("DJANGO_EMAIL_TIMEOUT", "10"))
+
+# Absolute base for links inside notification emails (relative paths are
+# meaningless in a mail client).
+SITE_URL = os.environ.get("DJANGO_SITE_URL", "http://localhost:8000")
 
 # AI evaluation layer (Ollama)
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")

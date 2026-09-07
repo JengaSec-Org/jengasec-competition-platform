@@ -118,6 +118,9 @@ class Team(models.Model):
     status = models.CharField(
         max_length=15, choices=Status.choices, default=Status.REGISTERED
     )
+    # Why a registration was turned down. Sent verbatim to the captain, so
+    # it has to say what to correct -- not just that something was wrong.
+    rejection_reason = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

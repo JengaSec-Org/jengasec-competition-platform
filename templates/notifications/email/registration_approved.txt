@@ -1,0 +1,10 @@
+Hello{% if user.first_name %} {{ user.first_name }}{% endif %},
+
+{{ notification.body }}
+{% if notification.link %}
+Your dashboard: {{ site_url }}{{ notification.link }}
+{% endif %}
+Keep this message -- it is the record of your cell assignment.
+--
+JengaSec Evaluation Platform
+Strathmore Cybersecurity Club

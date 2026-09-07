@@ -64,7 +64,7 @@ Replace "#" with {% url %} tags as each module ships its views.
 
   <div class="side-section">
     <div class="side-heading">// Account</div>
-    <a class="side-link" href="#"><span class="glyph">&#9993;</span> Notifications</a>
+    <a class="side-link" href="{% url 'notifications:list' %}"><span class="glyph">&#9993;</span> Notifications{% if unread_notifications %} <span class="badge badge-gold">{{ unread_notifications }}</span>{% endif %}</a>
     {% if user.is_staff %}
     <a class="side-link" href="/admin/"><span class="glyph">&#9919;</span> Django Admin</a>
     <a class="side-link" href="{% url 'audit:log' %}"><span class="glyph">&#9783;</span> Audit Logs</a>

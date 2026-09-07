@@ -154,6 +154,11 @@ class CompetitionSettings(models.Model):
         default=20, help_text="Applied to new application briefs."
     )
     appeal_window_days = models.PositiveIntegerField(default=3)
+    member_grace_days = models.PositiveIntegerField(
+        default=7,
+        help_text="Days a team has to replace a departed member before its "
+                  "registration is reviewed again.",
+    )
 
     updated_at = models.DateTimeField(auto_now=True)
 

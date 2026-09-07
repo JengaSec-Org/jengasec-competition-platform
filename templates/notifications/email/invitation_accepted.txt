@@ -1,0 +1,9 @@
+Hello{% if user.first_name %} {{ user.first_name }}{% endif %},
+
+{{ notification.body }}
+{% if notification.link %}
+{{ site_url }}{{ notification.link }}
+{% endif %}
+--
+JengaSec Evaluation Platform
+Strathmore Cybersecurity Club

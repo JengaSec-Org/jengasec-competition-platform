@@ -13,7 +13,6 @@ from django.utils import timezone
 from accounts.models import Team
 from audit.models import AuditLog
 from competitions.models import Competition
-from notifications.models import Notification
 from services.audit_service import record as audit
 from submissions.signals import submission_finalized
 from submissions.models import (
@@ -259,27 +258,10 @@ def finalize(submission, user):
         ]
     )
 
-    recipients = {user}
-    if submission.team.captain:
-        recipients.add(submission.team.captain)
-    Notification.objects.bulk_create(
-        [
-            Notification(
-                user=recipient,
-                type=Notification.Type.SUBMISSION_CONFIRMED,
-                subject=f"{submission.submission_type.name} received",
-                body=(
-                    f"{submission.team.team_name} submitted "
-                    f"{submission.submission_type.name} "
-                    f"(version {submission.current_version}) for "
-                    f"{submission.competition.name}."
-                ),
-                sent_at=timezone.now(),
-            )
-            for recipient in recipients
-            if recipient and recipient.is_authenticated
-        ]
-    )
+    # Confirming the submission is Module 12's job now: notifications/signals
+    # listens for `submission_finalized` below and notifies the whole team
+    # (not just the captain and the uploader), in-app and by email. The
+    # inline bulk_create that used to live here duplicated it.
 
     audit(
         AuditLog.Action.SUBMISSION_SUBMITTED,
