@@ -233,4 +233,4 @@ if not DEBUG:
     # the warning is expected.
     SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "0"))
 # OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3")
-#OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "phi4-mini:latest")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3.5:4b") 

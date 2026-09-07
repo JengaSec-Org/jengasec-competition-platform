@@ -82,10 +82,11 @@
       <div class="card">
         <h3 class="card-title">Judge Review</h3>
 
-        {% if evaluation.status == "pending" %}
+         {% if evaluation.status == "pending" %}
           <p class="ai-confidence" style="margin-top:0.75rem;">
             Waiting on the AI evaluation to run before judge review becomes available.
-          </p>
+          </p>  
+        
          {% else %}
            <form method="post">
              {% csrf_token %}
