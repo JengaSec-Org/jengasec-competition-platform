@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Team Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div class="page-title">
+        <h1>Team Management</h1>
+        <p>Create, manage and monitor competition teams.</p>
+    </div>
+
+    {% include "components/button.html" with label="Create Team" href="/accounts/team-form/" variant="primary" %}
+
+</div>
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+        <div class="stat-number">22</div>
+        <div class="stat-label">Total Teams</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-number">12</div>
+        <div class="stat-label">Blue Teams</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-number">10</div>
+        <div class="stat-label">Red Teams</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-number">134</div>
+        <div class="stat-label">Participants</div>
+    </div>
+
+</div>
+
+<div class="card">
+
+<div class="toolbar">
+
+<div class="toolbar-left">
+
+<div class="search-box">
+
+{% include "components/input.html" with name="search_team" label="Search Teams" placeholder="Search team..." %}
+
+</div>
+
+</div>
+
+<div class="toolbar-right">
+
+<select class="select">
+
+<option>All Teams</option>
+<option>Blue Team</option>
+<option>Red Team</option>
+
+</select>
+
+</div>
+
+</div>
+
+<table class="table">
+
+<thead>
+
+<tr>
+
+<th>Team</th>
+
+<th>Category</th>
+
+<th>Captain</th>
+
+<th>Members</th>
+
+<th>Status</th>
+
+<th>Actions</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>Blue Alpha</td>
+
+<td>Blue Team</td>
+
+<td>John Mwangi</td>
+
+<td>6</td>
+
+<td><span class="badge badge-success">Active</span></td>
+
+<td>
+
+<div class="action-buttons">
+
+{% include "components/button.html" with label="View" href="/accounts/team-details/" variant="ghost" size="sm" %}
+
+{% include "components/button.html" with label="Edit" href="/accounts/team-form/" variant="gold" size="sm" %}
+
+</div>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>Red Phoenix</td>
+
+<td>Red Team</td>
+
+<td>Ahmed Hassan</td>
+
+<td>5</td>
+
+<td><span class="badge badge-warning">Pending</span></td>
+
+<td>
+
+<div class="action-buttons">
+
+{% include "components/button.html" with label="View" href="/accounts/team-details/" variant="ghost" size="sm" %}
+
+{% include "components/button.html" with label="Edit" href="/accounts/team-form/" variant="gold" size="sm" %}
+
+</div>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+{% endblock %}

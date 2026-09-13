@@ -1,4 +1,4 @@
-"""User profiles, roles, and team management.
+﻿"""User profiles, roles, and team management.
 
 Schema entities: Users (Django User + UserProfile), Teams, TeamMembers.
 Roles reuse Django auth Groups (created in migration 0001) so the
@@ -61,9 +61,10 @@ class UserProfile(models.Model):
 
 
 class Team(models.Model):
-    class TeamType(models.TextChoices):
-        BLUE = "blue", "Blue Team"
-        RED = "red", "Red Team"
+    class Track(models.TextChoices):
+        CLOUD = "cloud", "Cloud"
+        APPLICATION = "application", "Application"
+        AI = "ai", "AI"
 
     class Status(models.TextChoices):
         REGISTERED = "registered", "Registered"
@@ -75,7 +76,8 @@ class Team(models.Model):
         "competitions.Competition", on_delete=models.CASCADE, related_name="teams"
     )
     team_name = models.CharField(max_length=120)
-    team_type = models.CharField(max_length=10, choices=TeamType.choices)
+    track = models.CharField(max_length=20, choices=Track.choices)
+    application_choice = models.CharField(max_length=200, blank=True)
     captain = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -99,7 +101,7 @@ class Team(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.team_name} [{self.get_team_type_display()}]"
+        return f"{self.team_name} [{self.get_track_display()}]"
 
 
 class TeamMember(models.Model):
@@ -108,7 +110,6 @@ class TeamMember(models.Model):
         MEMBER = "member", "Member"
 
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="members")
-    # Optional link to a platform account — members may register later.
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -133,3 +134,46 @@ class TeamMember(models.Model):
 
     def __str__(self):
         return f"{self.student_name} ({self.team.team_name})"
+
+
+class TeamJoinRequest(models.Model):
+    """A prospective member's request to join a team, pending captain review.
+
+    Separate from TeamMember: TeamMember rows are the real, confirmed
+    roster (and drive the captain/team_member Groups via signals.py), so a
+    request only becomes a TeamMember row once approved.
+    """
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    STATUS_CHOICES = [
+        (PENDING, "Pending"),
+        (APPROVED, "Approved"),
+        (REJECTED, "Rejected"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="team_join_requests",
+    )
+    team = models.ForeignKey(
+        Team, on_delete=models.CASCADE, related_name="join_requests"
+    )
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PENDING)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-requested_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(status="pending"),
+                name="one_pending_join_request_per_user",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} -> {self.team.team_name} ({self.status})"

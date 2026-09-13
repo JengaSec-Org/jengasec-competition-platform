@@ -61,6 +61,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "accounts.context_processors.user_roles",
+                "notifications.context_processors.unread_notification_count",
             ],
         },
     },
@@ -119,13 +120,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard:main_dashboard"
 LOGOUT_REDIRECT_URL = "login"
-
-# Email — console backend in dev (password reset emails print to the
-# runserver terminal). Swap for SMTP settings in production.
-EMAIL_BACKEND = os.environ.get(
-    "DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
-)
-DEFAULT_FROM_EMAIL = "JengaSec <sucybersec@strathmore.edu>"
 
 # AI evaluation layer (Ollama)
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")

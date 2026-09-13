@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Role Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+<div class="page-title">
+
+<h1>Role Management</h1>
+
+<p>Manage platform roles and permissions.</p>
+
+</div>
+
+</div>
+
+<div class="role-grid">
+
+<div class="card">
+
+<h2>Administrator</h2>
+
+<p>Full platform access.</p>
+
+{% include "components/button.html" with label="Edit Permissions" variant="ghost" %}
+
+</div>
+
+<div class="card">
+
+<h2>Judge</h2>
+
+<p>Review AI scores and approve evaluations.</p>
+
+{% include "components/button.html" with label="Edit Permissions" variant="ghost" %}
+
+</div>
+
+<div class="card">
+
+<h2>Blue Team</h2>
+
+<p>Submit proposals and monitor performance.</p>
+
+{% include "components/button.html" with label="Edit Permissions" variant="ghost" %}
+
+</div>
+
+<div class="card">
+
+<h2>Red Team</h2>
+
+<p>Attack target environment and submit findings.</p>
+
+{% include "components/button.html" with label="Edit Permissions" variant="ghost" %}
+
+</div>
+
+<div class="card">
+
+<h2>Partner</h2>
+
+<p>View competition insights and reports.</p>
+
+{% include "components/button.html" with label="Edit Permissions" variant="ghost" %}
+
+</div>
+
+</div>
+
+{% endblock %}

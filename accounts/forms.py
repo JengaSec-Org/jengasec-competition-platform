@@ -2,8 +2,9 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from competitions.models import Competition
 
-from .models import Team, TeamMember, UserProfile
+from .models import Team, TeamJoinRequest, TeamMember, UserProfile
 
 
 class UserProfileForm(forms.ModelForm):
@@ -42,7 +43,7 @@ class TeamForm(forms.ModelForm):
         fields = [
             "competition",
             "team_name",
-            "team_type",
+            "track",
             "captain",
             "institution",
             "status",
@@ -59,3 +60,49 @@ class TeamMemberForm(forms.ModelForm):
 TeamMemberFormSet = forms.inlineformset_factory(
     Team, TeamMember, form=TeamMemberForm, extra=3, can_delete=True
 )
+
+
+class TeamCreateForm(forms.ModelForm):
+    """Self-service team creation: the logged-in user becomes captain
+    automatically, unlike TeamForm (admin picks the captain by hand)."""
+
+    class Meta:
+        model = Team
+        fields = ["competition", "team_name", "track", "application_choice", "institution"]
+        widgets = {"track": forms.RadioSelect}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["competition"].queryset = Competition.objects.filter(
+            status__in=[
+                Competition.Status.DRAFT,
+                Competition.Status.OPEN,
+                Competition.Status.IN_PROGRESS,
+            ]
+        ).order_by("-start_date")
+        self.fields["application_choice"].required = False
+        self.fields["institution"].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if (
+            cleaned_data.get("track") == Team.Track.APPLICATION
+            and not cleaned_data.get("application_choice")
+        ):
+            self.add_error(
+                "application_choice",
+                "Tell us which application your team wants to build.",
+            )
+        return cleaned_data
+
+
+class TeamJoinForm(forms.Form):
+    team = forms.ModelChoiceField(
+        queryset=Team.objects.none(),
+        required=False,
+        empty_label="— Join no team for now —",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["team"].queryset = Team.objects.order_by("team_name")

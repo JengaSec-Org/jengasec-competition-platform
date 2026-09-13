@@ -11,14 +11,43 @@ Replace "#" with {% url %} tags as each module ships its views.
     <a class="side-link" href="{% url 'dashboard:main_dashboard' %}"><span class="glyph">&#9670;</span> My Dashboard</a>
   </div>
 
+
   {% if user.is_staff %}
-  <div class="side-section">
+<div class="side-section">
     <div class="side-heading">// Operations</div>
-    <a class="side-link" href="{% url 'dashboard:admin_dashboard' %}"><span class="glyph">&#9881;</span> Command Center</a>
-    <a class="side-link" href="#"><span class="glyph">&#9873;</span> Competitions</a>
-    <a class="side-link" href="#"><span class="glyph">&#9632;</span> Teams</a>
-  </div>
-  {% endif %}
+
+    <a class="side-link" href="{% url 'dashboard:admin_dashboard' %}">
+        <span class="glyph">&#9881;</span>
+        Command Center
+    </a>
+
+    <a class="side-link" href="#">
+        <span class="glyph">&#9873;</span>
+        Competitions
+    </a>
+
+    <a class="side-link" href="{% url 'accounts:users' %}">
+        <span class="glyph">&#128100;</span>
+        User Management
+    </a>
+
+    <a class="side-link" href="{% url 'accounts:teams' %}">
+        <span class="glyph">&#128101;</span>
+        Team Management
+    </a>
+
+    <a class="side-link" href="{% url 'accounts:roles' %}">
+        <span class="glyph">&#128274;</span>
+        Role Management
+    </a>
+
+    <a class="side-link" href="{% url 'accounts:profile' %}">
+        <span class="glyph">&#128100;</span>
+        My Profile
+    </a>
+
+</div>
+{% endif %}
 
   {% if "blue_team" in user_roles %}
   <div class="side-section">
@@ -54,8 +83,7 @@ Replace "#" with {% url %} tags as each module ships its views.
 
   <div class="side-section">
     <div class="side-heading">// Account</div>
-    <a class="side-link" href="#"><span class="glyph">&#9993;</span> Notifications</a>
-    {% if user.is_staff %}
+    <a class="side-link" href="{% url 'notifications:list' %}"><span class="glyph">&#9993;</span> Notifications{% if unread_notification_count %} <span class="badge">{{ unread_notification_count }}</span>{% endif %}</a>    {% if user.is_staff %}
     <a class="side-link" href="/admin/"><span class="glyph">&#9919;</span> Django Admin</a>
     <a class="side-link" href="#"><span class="glyph">&#9783;</span> Audit Logs</a>
     {% endif %}

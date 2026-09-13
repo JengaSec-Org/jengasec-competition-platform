@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Team Details{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+<div class="page-title">
+
+<h1>Blue Alpha</h1>
+
+<p>Competition Team Details</p>
+
+</div>
+
+{% include "components/button.html" with label="Edit Team" href="/accounts/team-form/" variant="gold" %}
+
+</div>
+
+<div class="stats-grid">
+
+<div class="stat-card">
+
+<div class="stat-number">6</div>
+
+<div class="stat-label">Members</div>
+
+</div>
+
+<div class="stat-card">
+
+<div class="stat-number">4</div>
+
+<div class="stat-label">Submissions</div>
+
+</div>
+
+<div class="stat-card">
+
+<div class="stat-number">89%</div>
+
+<div class="stat-label">Average Score</div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Team Information</h2>
+
+<table class="table">
+
+<tbody>
+
+<tr>
+
+<th>Captain</th>
+
+<td>John Mwangi</td>
+
+</tr>
+
+<tr>
+
+<th>Category</th>
+
+<td>Blue Team</td>
+
+</tr>
+
+<tr>
+
+<th>Organization</th>
+
+<td>Strathmore University</td>
+
+</tr>
+
+<tr>
+
+<th>Status</th>
+
+<td><span class="badge badge-success">Active</span></td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+<div class="card" style="margin-top:25px;">
+
+<h2>Team Members</h2>
+
+<table class="table">
+
+<thead>
+
+<tr>
+
+<th>Name</th>
+
+<th>Role</th>
+
+<th>Email</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>John Mwangi</td>
+
+<td>Captain</td>
+
+<td>john@jengasec.org</td>
+
+</tr>
+
+<tr>
+
+<td>Mary Achieng</td>
+
+<td>Member</td>
+
+<td>mary@jengasec.org</td>
+
+</tr>
+
+<tr>
+
+<td>Ahmed Hassan</td>
+
+<td>Member</td>
+
+<td>ahmed@jengasec.org</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+User Management
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div class="page-title">
+
+        <h1>User Management</h1>
+
+        <p>
+            Manage platform users, teams and permissions.
+        </p>
+
+    </div>
+
+    {% include "components/button.html" with label="Register User" href="/accounts/user-form/" variant="primary" %}
+
+</div>
+
+<div class="stats-grid">
+
+<div class="stat-card">
+
+<div class="stat-number">132</div>
+
+<div class="stat-label">
+Total Users
+</div>
+
+</div>
+
+<div class="stat-card">
+
+<div class="stat-number">120</div>
+
+<div class="stat-label">
+Active Users
+</div>
+
+</div>
+
+<div class="stat-card">
+
+<div class="stat-number">18</div>
+
+<div class="stat-label">
+Judges
+</div>
+
+</div>
+
+<div class="stat-card">
+
+<div class="stat-number">22</div>
+
+<div class="stat-label">
+Teams
+</div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<div class="toolbar">
+
+<div class="toolbar-left">
+
+<div class="search-box">
+
+{% include "components/input.html" with name="search" label="Search Users" placeholder="Search by name or email" %}
+
+</div>
+
+</div>
+
+<div class="toolbar-right">
+
+<select class="select">
+
+<option>All Roles</option>
+
+<option>Administrator</option>
+
+<option>Judge</option>
+
+<option>Blue Team</option>
+
+<option>Red Team</option>
+
+<option>Partner</option>
+
+</select>
+
+</div>
+
+</div>
+
+<table class="table">
+
+<thead>
+
+<tr>
+
+<th></th>
+
+<th>Name</th>
+
+<th>Email</th>
+
+<th>Role</th>
+
+<th>Status</th>
+
+<th>Last Login</th>
+
+<th>Actions</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>
+
+<div class="avatar">
+J
+</div>
+
+</td>
+
+<td>John Mwangi</td>
+
+<td>john@jengasec.org</td>
+
+<td>Judge</td>
+
+<td>
+
+<span class="badge badge-success">
+
+Active
+
+</span>
+
+</td>
+
+<td>Today</td>
+
+<td>
+
+<div class="action-buttons">
+
+{% include "components/button.html" with label="View" variant="ghost" size="sm" %}
+
+{% include "components/button.html" with label="Edit" href="/accounts/user-form/" variant="gold" size="sm" %}
+
+</div>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<div class="avatar">
+
+M
+
+</div>
+
+</td>
+
+<td>Mary Achieng</td>
+
+<td>mary@jengasec.org</td>
+
+<td>Administrator</td>
+
+<td>
+
+<span class="badge badge-success">
+
+Active
+
+</span>
+
+</td>
+
+<td>Yesterday</td>
+
+<td>
+
+<div class="action-buttons">
+
+{% include "components/button.html" with label="View" variant="ghost" size="sm" %}
+
+{% include "components/button.html" with label="Edit" variant="gold" size="sm" %}
+
+</div>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<div class="avatar">
+
+A
+
+</div>
+
+</td>
+
+<td>Ahmed Hassan</td>
+
+<td>ahmed@jengasec.org</td>
+
+<td>Blue Team</td>
+
+<td>
+
+<span class="badge badge-warning">
+
+Pending
+
+</span>
+
+</td>
+
+<td>2 days ago</td>
+
+<td>
+
+<div class="action-buttons">
+
+{% include "components/button.html" with label="View" variant="ghost" size="sm" %}
+
+{% include "components/button.html" with label="Edit" variant="gold" size="sm" %}
+
+</div>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+{% endblock %}

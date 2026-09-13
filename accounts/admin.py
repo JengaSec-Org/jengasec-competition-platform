@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Team, TeamMember, UserProfile
+from .models import Team, TeamJoinRequest, TeamMember, UserProfile
 
 
 @admin.register(UserProfile)
@@ -17,8 +17,8 @@ class TeamMemberInline(admin.TabularInline):
 
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ("team_name", "team_type", "competition", "captain", "status")
-    list_filter = ("team_type", "status", "competition")
+    list_display = ("team_name", "track", "competition", "captain", "status")
+    list_filter = ("track", "status", "competition")
     search_fields = ("team_name", "institution")
     inlines = [TeamMemberInline]
 
@@ -28,3 +28,9 @@ class TeamMemberAdmin(admin.ModelAdmin):
     list_display = ("student_name", "email", "team", "role", "user")
     list_filter = ("role", "team__competition")
     search_fields = ("student_name", "email")
+
+
+@admin.register(TeamJoinRequest)
+class TeamJoinRequestAdmin(admin.ModelAdmin):
+    list_display = ("user", "team", "status", "requested_at", "decided_at")
+    list_filter = ("status", "team")

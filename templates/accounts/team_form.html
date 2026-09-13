@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Create Team{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with tag="ONBOARDING" title="Create Team" %}
+
+<div class="card">
+  <p class="text-muted">As captain, create your team to continue.</p>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-error" role="alert">
+      <span class="alert-tag">[ERR]</span>
+      <span>{{ form.non_field_errors.0 }}</span>
+    </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {% include "components/form_field.html" with field=form.competition %}
+    {% include "components/form_field.html" with field=form.team_name %}
+    {% include "components/form_field.html" with field=form.institution %}
+    {% include "components/form_field.html" with field=form.track %}
+    <div id="application-choice-group" style="display:none;">
+      {% include "components/form_field.html" with field=form.application_choice %}
+    </div>
+    <hr>
+    <div class="form-actions">
+      {% include "components/button.html" with label="Save Team" variant="primary" type="submit" %}
+    </div>
+  </form>
+</div>
+
+<script>
+document.querySelectorAll('input[name="track"]').forEach(function (radio) {
+  radio.addEventListener('change', toggleApplicationField);
+});
+function toggleApplicationField() {
+  var checked = document.querySelector('input[name="track"]:checked');
+  document.getElementById('application-choice-group').style.display =
+    (checked && checked.value === 'application') ? 'block' : 'none';
+}
+window.addEventListener('DOMContentLoaded', toggleApplicationField);
+</script>
+{% endblock %}

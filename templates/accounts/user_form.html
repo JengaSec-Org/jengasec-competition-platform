@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create User{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div class="page-title">
+        <h1>Create User</h1>
+        <p>Create a new platform user and assign their role.</p>
+    </div>
+
+    {% include "components/button.html" with label="Back to Users" href="/accounts/users/" variant="ghost" %}
+
+</div>
+
+<form>
+
+<div class="card">
+
+<h2>User Information</h2>
+
+<br>
+
+<div class="form-grid">
+
+{% include "components/input.html" with name="first_name" label="First Name" required=True %}
+
+{% include "components/input.html" with name="last_name" label="Last Name" required=True %}
+
+{% include "components/input.html" with name="username" label="Username" required=True %}
+
+{% include "components/input.html" with name="email" label="Email Address" type="email" required=True %}
+
+{% include "components/input.html" with name="phone" label="Phone Number" %}
+
+<div class="form-group">
+
+<label class="form-label">
+Role
+</label>
+
+<select class="select">
+
+<option>Administrator</option>
+<option>Judge</option>
+<option>Blue Team</option>
+<option>Red Team</option>
+<option>Partner</option>
+
+</select>
+
+</div>
+
+<div class="form-group">
+
+<label class="form-label">
+Team
+</label>
+
+<select class="select">
+
+<option>No Team</option>
+<option>Blue Team Alpha</option>
+<option>Blue Team Bravo</option>
+<option>Red Team Phoenix</option>
+
+</select>
+
+</div>
+
+<div class="form-group">
+
+<label class="form-label">
+Status
+</label>
+
+<select class="select">
+
+<option>Active</option>
+<option>Inactive</option>
+<option>Pending</option>
+
+</select>
+
+</div>
+
+{% include "components/input.html" with name="password" label="Password" type="password" required=True %}
+
+{% include "components/input.html" with name="confirm_password" label="Confirm Password" type="password" required=True %}
+
+</div>
+
+<hr>
+
+<div class="form-actions">
+
+{% include "components/button.html" with label="Save User" variant="primary" type="submit" %}
+
+{% include "components/button.html" with label="Cancel" href="/accounts/users/" variant="ghost" %}
+
+</div>
+
+</div>
+
+</form>
+
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+<div class="page-title">
+<h1>My Profile</h1>
+<p>View and manage your account information.</p>
+</div>
+
+{% include "components/button.html" with label="Edit Profile" href="/accounts/user-form/" variant="gold" %}
+
+</div>
+
+<div class="profile-grid">
+
+<div class="card profile-card">
+
+<div class="profile-avatar">
+
+ZM
+
+</div>
+
+<h2>Zamzam Farah</h2>
+
+<p class="profile-role">Administrator</p>
+
+<hr>
+
+<p><strong>Email</strong></p>
+<p>zamzam@jengasec.org</p>
+
+<p><strong>Phone</strong></p>
+<p>+254712345678</p>
+
+<p><strong>Status</strong></p>
+
+<span class="badge badge-success">Active</span>
+
+</div>
+
+<div class="card">
+
+<h2>Account Information</h2>
+
+<table class="table">
+
+<tr>
+
+<th>Username</th>
+
+<td>zamzam</td>
+
+</tr>
+
+<tr>
+
+<th>Role</th>
+
+<td>Administrator</td>
+
+</tr>
+
+<tr>
+
+<th>Team</th>
+
+<td>Platform Management</td>
+
+</tr>
+
+<tr>
+
+<th>Last Login</th>
+
+<td>Today 08:35 AM</td>
+
+</tr>
+
+<tr>
+
+<th>Account Created</th>
+
+<td>15 Jan 2026</td>
+
+</tr>
+
+</table>
+
+<br>
+
+{% include "components/button.html" with label="Change Password" variant="primary" %}
+
+</div>
+
+</div>
+
+{% endblock %}
