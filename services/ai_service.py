@@ -64,6 +64,9 @@ def evaluate_document(document_text: str, rubric: dict) -> list[dict]:
         model=settings.OLLAMA_MODEL,
         messages=[{"role": "user", "content": prompt}],
         format=EvaluationResult.model_json_schema(),
+
+        think=False,
+
         options={"temperature": 0.1},
     )
 

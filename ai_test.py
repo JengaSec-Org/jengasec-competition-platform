@@ -130,7 +130,7 @@ print(results)
 # 5. Persist the immutable audit record
 run = AIEvaluationRun.objects.create(
     evaluation=evaluation,
-    model_name="phi4-mini",  # match whatever model you actually pulled
+    model_name="qwen3.5:4b",  # match whatever model you actually pulled
     status=AIEvaluationRun.Status.SUCCEEDED,
     raw_output=results,
     completed_at=timezone.now(),
@@ -144,10 +144,21 @@ for r in results:
         print(f"WARNING: AI returned '{r['criterion']}' -- no match in rubric, skipped.")
         continue
 
+
+
+    raw_score = r["score"]
+    clamped_score = max(0, min(raw_score, float(criterion.max_score)))
+    if clamped_score != raw_score:
+        print(f"WARNING: AI gave {raw_score} for '{criterion.criterion}' "
+              f"(max {criterion.max_score}) -- clamped to {clamped_score}.")
+
+        
+
     AICriterionResult.objects.create(
         ai_run=run,
         criterion=criterion,
-        score=r["score"],
+        # score=r["score"],
+        score=clamped_score,
         confidence=r["confidence"],
         evidence=r["evidence"],
         explanation=r["reasoning"],
@@ -157,7 +168,8 @@ for r in results:
         evaluation=evaluation,
         criterion=criterion,
         defaults={
-            "ai_score": r["score"],
+           # "ai_score": r["score"],
+            "ai_score": clamped_score,
             "confidence": r["confidence"],
             "evidence": r["evidence"],
             "reasoning": r["reasoning"],
