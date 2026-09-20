@@ -97,7 +97,6 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "accounts.context_processors.user_roles",
-                "notifications.context_processors.unread_notification_count",
                 "accounts.context_processors.competition_phase",
                 "notifications.context_processors.unread_notifications",
             ],
@@ -248,7 +247,7 @@ SITE_URL = os.environ.get("DJANGO_SITE_URL", "http://localhost:8000")
 
 # AI evaluation layer (Ollama)
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3.5:4b")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Running behind a reverse proxy
@@ -299,5 +298,3 @@ if not DEBUG:
     # so the two cannot disagree. `manage.py check --deploy` warns about this;
     # the warning is expected.
     SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "0"))
-# OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3.5:4b") 

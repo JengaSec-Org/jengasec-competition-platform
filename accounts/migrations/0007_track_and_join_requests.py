@@ -7,6 +7,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('accounts', '0004_create_team_roles'),
+        ('accounts', '0005_team_rejection_reason'),
         ('competitions', '0001_initial'),
     ]
 
@@ -16,16 +17,6 @@ class Migration(migrations.Migration):
         # and what TargetAssignment / cell allocation key on, so it stays.
         # Anyone who applied the earlier version on a dev database should
         # delete db.sqlite3 and migrate again.
-        migrations.AddField(
-            model_name='team',
-            name='track',
-            field=models.CharField(
-                choices=[('cloud', 'Cloud'), ('application', 'Application'), ('ai', 'AI')],
-                default='cloud',
-                max_length=20,
-            ),
-            preserve_default=False,
-        ),
         migrations.AddField(
             model_name='team',
             name='application_choice',

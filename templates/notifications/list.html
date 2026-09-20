@@ -1,34 +1,4 @@
 {% extends "base.html" %}
-{% block title %}Notifications{% endblock %}
-{% block content %}
-{% include "components/page_header.html" with tag="ACCOUNT" title="Notifications" %}
-
-<div class="card">
-  {% if notifications %}
-    <table class="table">
-      <tbody>
-        {% for n in notifications %}
-          <tr {% if not n.is_read %}style="font-weight:600;"{% endif %}>
-            <td>{{ n.subject }}</td>
-            <td>{{ n.body }}</td>
-            <td>{{ n.created_at }}</td>
-            <td>
-              {% if not n.is_read %}
-                <form method="post" action="{% url 'notifications:read' n.id %}" style="display:inline">
-                  {% csrf_token %}
-                  {% include "components/button.html" with label="Mark read" size="sm" type="submit" %}
-                </form>
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p class="text-muted">No notifications yet.</p>
-  {% endif %}
-</div>
-{% endblock %}
 
 {% block title %}Notifications | JengaSec Evaluation Platform{% endblock %}
 

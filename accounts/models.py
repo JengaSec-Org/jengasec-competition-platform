@@ -1,4 +1,4 @@
-﻿"""User profiles, roles, and team management.
+"""User profiles, roles, and team management.
 
 Schema entities: Users (Django User + UserProfile), Teams, TeamMembers.
 Roles reuse Django auth Groups (created in migration 0001) so the
@@ -79,16 +79,9 @@ class Team(models.Model):
         BLUE = "blue", "Blue Team"
         RED = "red", "Red Team"
 
-<<<<<<< HEAD
-    class Track(models.TextChoices):
-        CLOUD = "cloud", "Cloud"
-        APPLICATION = "application", "Application"
-        AI = "ai", "AI"
-=======
     # Shared with the competitions app (see competitions/constants.py).
     Track = Track
     Enterprise = Enterprise
->>>>>>> feature/production
 
     class Status(models.TextChoices):
         REGISTERED = "registered", "Registered"
@@ -103,16 +96,14 @@ class Team(models.Model):
     # Which side of the competition. Decides the captain's and members'
     # platform role (blue_team / red_team) and therefore their dashboard.
     team_type = models.CharField(max_length=10, choices=TeamType.choices)
-<<<<<<< HEAD
-    track = models.CharField(max_length=20, choices=Track.choices)
-    application_choice = models.CharField(max_length=200, blank=True)
-=======
     track = models.CharField(
         max_length=15,
         choices=Track.choices,
         blank=True,
         help_text="Cloud, Application or AI specialisation.",
     )
+    # For the Application track: which application brief the team builds.
+    application_choice = models.CharField(max_length=200, blank=True)
     enterprise = models.CharField(
         max_length=1, choices=Enterprise.choices, blank=True
     )
@@ -120,7 +111,6 @@ class Team(models.Model):
     cell_id = models.CharField(max_length=20, blank=True)
     # The component this team owns, e.g. "Customer Authentication Service".
     responsibility = models.CharField(max_length=200, blank=True)
->>>>>>> feature/production
     captain = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -152,9 +142,6 @@ class Team(models.Model):
         ]
 
     def __str__(self):
-<<<<<<< HEAD
-        return f"{self.team_name} [{self.get_track_display()}]"
-=======
         label = self.cell_id or self.team_name
         return f"{label} [{self.get_team_type_display()}]"
 
@@ -170,7 +157,6 @@ class Team(models.Model):
             return ""
         base = self.get_track_display()
         return f"{base} Red" if self.team_type == self.TeamType.RED else f"{base} Blue"
->>>>>>> feature/production
 
 
 class TeamMember(models.Model):
