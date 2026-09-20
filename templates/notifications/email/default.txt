@@ -1,0 +1,10 @@
+{{ notification.subject }}
+
+{{ notification.body }}
+{% if notification.link %}
+View it here: {{ site_url }}{{ notification.link }}
+{% endif %}
+--
+JengaSec Evaluation Platform
+Strathmore Cybersecurity Club
+You are receiving this because you are registered on a JengaSec competition team.

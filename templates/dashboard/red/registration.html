@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Red Team — Registration | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="RED_TEAM :: REGISTRATION" title="Earn Your Place." %}
+{% include "dashboard/_phase_rail.html" %}
+{% include "dashboard/_team_ident.html" %}
+
+{% if qualifier_locked %}
+  {# ---- Non-AI red teams: elimination challenge, format TBA ---- #}
+  <div class="card locked-card" style="max-width:760px;">
+    <span class="tlabel" style="color: var(--gold);">// ELIMINATION_CHALLENGE</span>
+    <h3 class="card-title">
+      Qualifier
+      {% include "components/badge.html" with label="Locked" color="gold" %}
+    </h3>
+    <p class="text-muted">
+      {{ team.get_track_display }} Red teams don't register by proposal. You
+      qualify through an elimination challenge, and only the teams that come
+      through it go on to the live competition.
+    </p>
+    <p class="text-muted" style="margin-top:0.75rem;">
+      The format is still being finalised. This page will carry your challenge
+      brief, entry window and standing as soon as it's announced — nothing is
+      required from you yet.
+    </p>
+    <div class="locked-strip" aria-hidden="true"></div>
+    <p class="form-help" style="margin-top:1rem;">
+      // STATUS :: AWAITING_ANNOUNCEMENT
+    </p>
+  </div>
+{% else %}
+  {# ---- AI red teams: proposal route ---- #}
+  <div class="card card-flat" style="margin-bottom:1.25rem;">
+    <span class="tlabel">// YOUR_PROPOSAL</span>
+    {% if proposal %}
+      <h3 class="card-title">Proposal submitted</h3>
+      <table class="table">
+        <tbody>
+          <tr><td class="cell-mono">STATUS</td><td>{{ proposal.get_status_display }}</td></tr>
+          <tr>
+            <td class="cell-mono">OUTCOME</td>
+            <td>
+              {% if proposal.selection_status == "selected" %}
+                {% include "components/badge.html" with label=proposal.get_selection_status_display color="green" %}
+              {% elif proposal.selection_status == "rejected" %}
+                {% include "components/badge.html" with label=proposal.get_selection_status_display color="red" %}
+              {% else %}
+                {% include "components/badge.html" with label=proposal.get_selection_status_display color="muted" %}
+              {% endif %}
+            </td>
+          </tr>
+          <tr><td class="cell-mono">VERSION</td><td><span class="version-pill">v{{ proposal.current_version }}</span></td></tr>
+          <tr><td class="cell-mono">SUBMITTED</td><td>{{ proposal.submitted_at|date:"Y-m-d H:i"|default:"Not yet submitted" }}</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:1rem;">
+        <a href="{% url 'submissions:detail' proposal.pk %}" class="btn btn-ghost btn-sm">View Proposal</a>
+        {% if registration_open and not read_only %}
+          <a href="{% url 'submissions:new_version' proposal.pk %}" class="btn btn-danger btn-sm">Upload New Version</a>
+        {% endif %}
+      </div>
+    {% else %}
+      <h3 class="card-title">Submit your AI Red proposal</h3>
+      <p class="text-muted">
+        AI Red teams register by proposal. Set out the offensive agent work you
+        intend to do — how you'll probe defensive agents, manipulate their
+        inputs and test the limits of their authorisation.
+      </p>
+      {% if deadline %}
+        <p class="form-help" style="margin-top:0.75rem;">
+          // REGISTRATION_CLOSES :: {{ deadline|date:"F j, Y" }}
+        </p>
+      {% endif %}
+      {% if registration_open and not read_only %}
+        <div style="margin-top:1rem;">
+          <a href="{% url 'submissions:wizard_step1' %}" class="btn btn-danger btn-sm">Submit Proposal</a>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <div class="card card-flat">
+    <span class="tlabel">// YOUR_SPECIALISATION</span>
+    <h3 class="card-title">{{ team.get_track_display }} Red</h3>
+    {% if spec %}
+      <p class="text-muted">What you'll be attacking once the competition goes live:</p>
+      <ul class="spec-list red" style="margin-top:0.75rem;">
+        {% for item in spec.attack_surface %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

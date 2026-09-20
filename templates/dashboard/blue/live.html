@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Blue Team — Live | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="BLUE_TEAM :: LIVE" title="Defend What You Built." %}
+{% include "dashboard/_phase_rail.html" %}
+{% include "dashboard/_team_ident.html" %}
+
+<div class="chart-grid">
+  {# ---- Competition specification ---- #}
+  <div class="card card-flat">
+    <span class="tlabel">// COMPETITION_SPECIFICATION</span>
+    <h3 class="card-title">{{ team.responsibility|default:"Responsibility not yet issued" }}</h3>
+    {% if spec %}
+      <p class="text-muted">{{ spec.summary }}</p>
+      <div class="spec-grid">
+        <div class="spec-col">
+          <h4>JengaSec provides</h4>
+          <ul class="spec-list">
+            {% for item in spec.provided %}<li>{{ item }}</li>{% endfor %}
+          </ul>
+        </div>
+        <div class="spec-col">
+          <h4>You provide</h4>
+          <ul class="spec-list">
+            {% for item in spec.required %}<li>{{ item }}</li>{% endfor %}
+          </ul>
+        </div>
+      </div>
+      <p class="form-help" style="margin-top:1rem;">
+        // RED_TEAM_EXPOSURE :: {{ spec.red_exposure }}
+        {% if attackers %}· {{ attackers|length }} red team{{ attackers|length|pluralize }} assigned to you{% endif %}
+      </p>
+    {% endif %}
+  </div>
+
+  {# ---- Scorecard ---- #}
+  <div class="card card-flat">
+    <span class="tlabel">// SCORECARD</span>
+    <h3 class="card-title">Your Score Breakdown</h3>
+    {% for section in scorecard.sections %}
+      <div class="score-section">
+        <h4>{{ section.name }}</h4>
+        {% for row in section.rows %}
+          <div class="score-row">
+            <span>{{ row.label }}</span>
+            <span class="val {% if row.score is None %}pending{% endif %}">
+              {% if row.score is None %}—{% else %}{{ row.score }}{% endif %}/{{ row.max }}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+    <div class="score-total">
+      <span>TOTAL</span>
+      <span class="val">
+        {% if scorecard.total is None %}—{% else %}{{ scorecard.total }}{% endif %}/{{ scorecard.total_max }}
+      </span>
+    </div>
+    <div class="delay-note">
+      {% if scorecard.pending %}// Scores appear once the competition event stream is live.{% endif %}
+      // Participant scores update every {{ delay_minutes }} minutes ·
+      last checked {{ scorecard.last_updated|date:"H:i" }} ·
+      <a href="{% url 'dashboard:info' %}">how scoring works</a>
+    </div>
+  </div>
+</div>
+
+{# ---- Submissions ---- #}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// SUBMISSIONS</span>
+  <h3 class="card-title">Your Documents</h3>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Type</th><th>Version</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for submission in submissions %}
+          <tr>
+            <td><a href="{% url 'submissions:detail' submission.pk %}">{{ submission.submission_type.name }}</a></td>
+            <td class="cell-mono">v{{ submission.current_version }}</td>
+            <td>{{ submission.get_status_display }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3"><div class="table-empty">// Nothing submitted yet</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if not read_only %}
+    <div style="margin-top:1rem; display:flex; gap:0.75rem; flex-wrap:wrap;">
+      <a href="{% url 'submissions:wizard_step1' %}" class="btn btn-primary btn-sm">Upload Document</a>
+      <a href="{% url 'dashboard:blue_live_status' %}" class="btn btn-ghost btn-sm">Live Status</a>
+    </div>
+  {% endif %}
+</div>
+
+<div class="panel-dark">
+  <div class="term-head">
+    <div class="term-dots"><span></span><span></span><span></span></div>
+    <span class="term-title">enterprise_context.log</span>
+  </div>
+  <p class="mono" style="font-size:12px; color:rgba(255,255,255,0.55); position:relative; z-index:1;">
+    &gt; {{ team.get_enterprise_display|default:"ENTERPRISE :: UNASSIGNED" }}<br>
+    {% if peers %}&gt; PEER_COMPONENTS ::
+      {% for peer in peers %}{{ peer.cell_id|default:peer.team_name }}{% if not forloop.last %} · {% endif %}{% endfor %}<br>
+    {% endif %}
+    &gt; Availability counts. Taking the service down to dodge an attack scores
+    as downtime — see <a href="{% url 'dashboard:info' %}" style="color:var(--primary-light);">Info</a>
+    <span class="badge-cursor"></span>
+  </p>
+</div>
+{% endblock %}

@@ -32,7 +32,11 @@
     {% if form.errors %}
       <div class="alert alert-error" role="alert">
         <span class="alert-tag">[ERR]</span>
-        <span>Invalid credentials. Check your username and password.</span>
+        {% if form.non_field_errors %}
+          <span>{{ form.non_field_errors|join:" " }}</span>
+        {% else %}
+          <span>Invalid credentials. Check your username and password.</span>
+        {% endif %}
       </div>
     {% endif %}
 

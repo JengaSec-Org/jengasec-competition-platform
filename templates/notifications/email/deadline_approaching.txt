@@ -1,0 +1,12 @@
+Hello{% if user.first_name %} {{ user.first_name }}{% endif %},
+
+{{ notification.body }}
+
+If you have already uploaded a draft, remember that it is only counted once
+it has been finalised.
+{% if notification.link %}
+Finish your submission: {{ site_url }}{{ notification.link }}
+{% endif %}
+--
+JengaSec Evaluation Platform
+Strathmore Cybersecurity Club

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}AI Evaluation Results{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// REVIEW_QUEUE</span></div>
+  <h1>AI Evaluation <span class="text-gold">Results</span></h1>
+</div>
+
+<p class="text-muted" style="margin-bottom:1.5rem;">
+  Every score below reflects the current working evaluation. Nothing is final until approved.
+</p>
+
+<form method="get" style="max-width:280px; margin-bottom:1.5rem;">
+<!--  {% include "components/dropdown.html" with name="status" label="Filter by status" options=status_options selected=status_filter %}  --> 
+
+  <div class="form-group">
+    <label class="form-label" for="id_status">Filter by status</label>
+    <select class="input" id="id_status" name="status">
+      {% for opt in status_options %}
+        <option value="{{ opt.value }}" {% if opt.value == status_filter %}selected{% endif %}>{{ opt.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+
+
+<script>
+  document.querySelector('select[name="status"]').addEventListener('change', function () {
+    this.form.submit();
+  });
+</script>
+
+{% for e in evaluations %}
+  <a href="{% url 'judging:ai_result_detail' e.id %}"
+     class="card"
+     style="display:block; margin-bottom:0.9rem; text-decoration:none; color:inherit;">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between;">
+      <div>
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <h3 class="card-title" style="margin:0;">{{ e.submission.team.team_name }}</h3>
+          <span class="tlabel">SUB-{{ e.submission.id }}</span>
+        </div>
+        <p class="text-muted" style="font-size:0.9rem; margin-top:0.25rem;">{{ e.rubric.title }}</p>
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.6rem;">
+          {% with run=e.ai_runs.first %}
+            {% if run %}
+              {% include "components/badge.html" with label="AI · "|add:run.model_name color="muted" %}
+            {% endif %}
+          {% endwith %}
+          {% if e.confidence_level == "high" %}
+            {% include "components/badge.html" with label="High confidence" color="green" %}
+          {% elif e.confidence_level == "medium" %}
+            {% include "components/badge.html" with label="Medium confidence" color="gold" %}
+          {% elif e.confidence_level == "low" %}
+            {% include "components/badge.html" with label="Low confidence — flagged" color="red" %}
+          {% endif %}
+        </div>
+      </div>
+      <div style="text-align:right;">
+        {% if e.weighted_total is not None %}
+          <p class="score-final" style="margin:0;">{{ e.weighted_total }}</p>
+        {% else %}
+          <p class="score-final" style="margin:0;">—</p>
+        {% endif %}
+        <p class="tlabel">Current score</p>
+        {% if e.status == "approved" or e.status == "published" %}
+          {% include "components/badge.html" with label=e.get_status_display color="green" %}
+        {% elif e.status == "pending" %}
+          {% include "components/badge.html" with label=e.get_status_display color="muted" %}
+        {% else %}
+          {% include "components/badge.html" with label=e.get_status_display color="gold" %}
+        {% endif %}
+      </div>
+    </div>
+  </a>
+{% empty %}
+  <p class="text-muted">No evaluations assigned to you yet.</p>
+{% endfor %}
+
+{% endblock %}

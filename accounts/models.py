@@ -9,6 +9,8 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db import models
 
+from competitions.constants import Enterprise, Track
+
 
 class UserProfile(models.Model):
     class Role(models.TextChoices):
@@ -59,16 +61,34 @@ class UserProfile(models.Model):
             self.user.is_staff = True
             self.user.save(update_fields=["is_staff"])
 
+        if target != current:
+            from audit.models import AuditLog
+            from services.audit_service import record
+
+            record(
+                AuditLog.Action.ROLE_CHANGED,
+                actor=self.user,
+                target=self.user,
+                description=f"Role set to {self.get_role_display() or 'none'}",
+                groups=sorted(target),
+            )
+
 
 class Team(models.Model):
     class TeamType(models.TextChoices):
         BLUE = "blue", "Blue Team"
         RED = "red", "Red Team"
 
+<<<<<<< HEAD
     class Track(models.TextChoices):
         CLOUD = "cloud", "Cloud"
         APPLICATION = "application", "Application"
         AI = "ai", "AI"
+=======
+    # Shared with the competitions app (see competitions/constants.py).
+    Track = Track
+    Enterprise = Enterprise
+>>>>>>> feature/production
 
     class Status(models.TextChoices):
         REGISTERED = "registered", "Registered"
@@ -83,8 +103,24 @@ class Team(models.Model):
     # Which side of the competition. Decides the captain's and members'
     # platform role (blue_team / red_team) and therefore their dashboard.
     team_type = models.CharField(max_length=10, choices=TeamType.choices)
+<<<<<<< HEAD
     track = models.CharField(max_length=20, choices=Track.choices)
     application_choice = models.CharField(max_length=200, blank=True)
+=======
+    track = models.CharField(
+        max_length=15,
+        choices=Track.choices,
+        blank=True,
+        help_text="Cloud, Application or AI specialisation.",
+    )
+    enterprise = models.CharField(
+        max_length=1, choices=Enterprise.choices, blank=True
+    )
+    # Competition cell, e.g. APP-01 / CLOUD-02 / AI-03.
+    cell_id = models.CharField(max_length=20, blank=True)
+    # The component this team owns, e.g. "Customer Authentication Service".
+    responsibility = models.CharField(max_length=200, blank=True)
+>>>>>>> feature/production
     captain = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -96,6 +132,9 @@ class Team(models.Model):
     status = models.CharField(
         max_length=15, choices=Status.choices, default=Status.REGISTERED
     )
+    # Why a registration was turned down. Sent verbatim to the captain, so
+    # it has to say what to correct -- not just that something was wrong.
+    rejection_reason = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -104,11 +143,34 @@ class Team(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["competition", "team_name"], name="unique_team_per_competition"
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["competition", "cell_id"],
+                condition=~models.Q(cell_id=""),
+                name="unique_cell_per_competition",
+            ),
         ]
 
     def __str__(self):
+<<<<<<< HEAD
         return f"{self.team_name} [{self.get_track_display()}]"
+=======
+        label = self.cell_id or self.team_name
+        return f"{label} [{self.get_team_type_display()}]"
+
+    @property
+    def display_label(self):
+        """Cell-prefixed name, e.g. 'APP-01 · Nyati Defenders'."""
+        return f"{self.cell_id} · {self.team_name}" if self.cell_id else self.team_name
+
+    @property
+    def track_label(self):
+        """Track name, phrased for the side the team is on (Cloud Red, etc.)."""
+        if not self.track:
+            return ""
+        base = self.get_track_display()
+        return f"{base} Red" if self.team_type == self.TeamType.RED else f"{base} Blue"
+>>>>>>> feature/production
 
 
 class TeamMember(models.Model):

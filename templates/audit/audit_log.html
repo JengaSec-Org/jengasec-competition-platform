@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Audit Log | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="PLATFORM_AUDIT" title="Audit Log" %}
+
+<p class="text-muted" style="max-width:70ch; margin-bottom:1.25rem;">
+  Who did what on the platform — sign-ins, uploads, downloads, lifecycle changes
+  and score overrides. Append-only: entries cannot be edited or deleted, here or
+  in Django admin. Competition telemetry is a separate layer and does not land here.
+</p>
+
+{# ---- Filters ---- #}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// FILTER</span>
+  <form method="get" class="audit-filters">
+    <div class="form-group">
+      <label class="form-label" for="id_category">Category</label>
+      <select class="select" name="category" id="id_category">
+        <option value="">All</option>
+        {% for value, label in categories %}
+          <option value="{{ value }}" {% if filters.category == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="id_action">Action</label>
+      <select class="select" name="action" id="id_action">
+        <option value="">All</option>
+        {% for value, label in actions %}
+          <option value="{{ value }}" {% if filters.action == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="id_actor">Actor</label>
+      <select class="select" name="actor" id="id_actor">
+        <option value="">Anyone</option>
+        {% for username in actors %}
+          <option value="{{ username }}" {% if filters.actor == username %}selected{% endif %}>{{ username }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="id_since">From</label>
+      <input class="input" type="date" name="since" id="id_since" value="{{ filters.since }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="id_until">To</label>
+      <input class="input" type="date" name="until" id="id_until" value="{{ filters.until }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="id_q">Search</label>
+      <input class="input" type="search" name="q" id="id_q" value="{{ filters.q }}"
+             placeholder="description, target or IP">
+    </div>
+    <div class="audit-filter-actions">
+      <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+      <a href="{% url 'audit:log' %}" class="btn btn-ghost btn-sm">Clear</a>
+    </div>
+  </form>
+</div>
+
+<p class="form-help" style="margin-bottom:0.75rem;">// {{ total }} entr{{ total|pluralize:"y,ies" }} matching</p>
+
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th><th>IP</th></tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+        <tr>
+          <td class="cell-mono">{{ entry.created_at|date:"Y-m-d H:i:s" }}</td>
+          <td>{{ entry.actor_label|default:"system" }}</td>
+          <td>
+            {% if entry.action == "login_failed" %}
+              {% include "components/badge.html" with label=entry.get_action_display color="red" %}
+            {% elif entry.category == "competition" %}
+              {% include "components/badge.html" with label=entry.get_action_display color="gold" %}
+            {% else %}
+              {% include "components/badge.html" with label=entry.get_action_display color="green" %}
+            {% endif %}
+          </td>
+          <td>{{ entry.target_label|default:"—" }}</td>
+          <td class="text-muted">{{ entry.description|default:"—" }}</td>
+          <td class="cell-mono">{{ entry.ip_address|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6"><div class="table-empty">// No audit entries match these filters</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% include "components/pagination.html" with page_obj=page_obj %}
+{% endblock %}

@@ -15,6 +15,9 @@ Top app bar. Included by base.html — no parameters required.
 
   <div class="nav-actions">
     {% if user.is_authenticated %}
+      {% if "blue_team" in user_roles or "red_team" in user_roles %}
+        <a href="{% url 'dashboard:info' %}" class="btn btn-ghost-dark btn-sm">Info</a>
+      {% endif %}
       <div class="nav-user">
         <span class="avatar">{{ user.username|first }}</span>
         <span>{{ user.username }}</span>

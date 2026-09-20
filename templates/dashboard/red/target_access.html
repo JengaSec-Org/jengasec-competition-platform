@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Target Access | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="RED_TEAM :: TARGET_ACCESS" title="Your Way In" %}
+{% include "dashboard/_team_ident.html" %}
+
+<div class="alert alert-error" role="note" style="margin-bottom:1.5rem;">
+  <span class="alert-tag">[SCOPE]</span>
+  <span>
+    Only the targets listed here are in scope, and only their
+    {{ team.get_track_display|lower|default:"assigned" }} layer.
+    Anything else is out of scope and disqualifying.
+  </span>
+</div>
+
+<div class="target-grid">
+  {% for assignment in targets %}
+    <div class="target {% if not assignment.is_active %}locked{% endif %}">
+      <div class="target-head">
+        <span class="cell-tag red">{{ assignment.target_team.cell_id|default:"TARGET" }}</span>
+        {% if assignment.is_active %}
+          {% include "components/badge.html" with label="Open" color="red" %}
+        {% else %}
+          {% include "components/badge.html" with label="Locked" color="muted" %}
+        {% endif %}
+      </div>
+      <h4>{{ assignment.target_team.team_name }}</h4>
+      <p class="ident-meta">
+        {{ assignment.target_team.get_track_display|default:"—" }} ·
+        {{ assignment.target_team.get_enterprise_display|default:"—" }}
+      </p>
+      {% if assignment.target_team.responsibility %}
+        <p class="text-muted" style="margin-top:0.5rem;">
+          {{ assignment.target_team.responsibility }}
+        </p>
+      {% endif %}
+
+      {% if assignment.is_active %}
+        <div class="conn-block">
+          <div class="conn-row">
+            <span class="conn-key">endpoint</span>
+            <span class="conn-val">{{ assignment.endpoint|default:"not provisioned" }}</span>
+          </div>
+          {% if assignment.access_notes %}
+            <div class="conn-row">
+              <span class="conn-key">access</span>
+              <span class="conn-val">{{ assignment.access_notes }}</span>
+            </div>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="conn-block locked-block">
+          <span class="conn-val muted">
+            Connection details are released when the engagement window opens.
+          </span>
+        </div>
+      {% endif %}
+    </div>
+  {% empty %}
+    <div class="card card-flat">
+      <div class="table-empty">// No targets assigned yet</div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="card card-flat" style="margin-top:1.25rem;">
+  <span class="tlabel">// BEFORE_YOU_START</span>
+  <h3 class="card-title">Work From the Scenario Briefs</h3>
+  <p class="text-muted">
+    Attacks are scored against predefined scenarios, each with an explicit
+    success condition and expected evidence. An unproven claim does not score —
+    capture the evidence as you go.
+  </p>
+  <div style="margin-top:1rem; display:flex; gap:0.75rem; flex-wrap:wrap;">
+    <a href="{% url 'dashboard:info' %}" class="btn btn-ghost btn-sm">Scenario Briefs</a>
+    <a href="{% url 'submissions:wizard_step1' %}" class="btn btn-danger btn-sm">Submit Findings</a>
+  </div>
+</div>
+
+<div class="panel-dark">
+  <div class="term-head">
+    <div class="term-dots"><span></span><span></span><span></span></div>
+    <span class="term-title">access.log</span>
+  </div>
+  <p class="mono" style="font-size:12px; color:rgba(255,255,255,0.55); position:relative; z-index:1;">
+    &gt; TARGETS_IN_SCOPE :: {{ active_count }} of {{ targets|length }}<br>
+    &gt; Every connection is observed. Traffic to anything not listed above is
+    logged as out-of-scope activity<span class="badge-cursor"></span>
+  </p>
+</div>
+{% endblock %}

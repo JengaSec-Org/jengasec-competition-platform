@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Blue Team — Registration | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="BLUE_TEAM :: REGISTRATION" title="Choose What You'll Build" %}
+{% include "dashboard/_phase_rail.html" %}
+{% include "dashboard/_team_ident.html" %}
+
+{# ---- Your proposal ---- #}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// YOUR_PROPOSAL</span>
+  {% if proposal %}
+    <h3 class="card-title">
+      {% if proposal.application_brief %}
+        {{ proposal.application_brief.code }} — {{ proposal.application_brief.name }}
+      {% else %}
+        Proposal submitted
+      {% endif %}
+    </h3>
+    <table class="table">
+      <tbody>
+        <tr><td class="cell-mono">STATUS</td><td>{{ proposal.get_status_display }}</td></tr>
+        <tr>
+          <td class="cell-mono">OUTCOME</td>
+          <td>
+            {% if proposal.selection_status == "selected" %}
+              {% include "components/badge.html" with label=proposal.get_selection_status_display color="green" %}
+            {% elif proposal.selection_status == "rejected" %}
+              {% include "components/badge.html" with label=proposal.get_selection_status_display color="red" %}
+            {% elif proposal.selection_status == "shortlisted" %}
+              {% include "components/badge.html" with label=proposal.get_selection_status_display color="gold" %}
+            {% else %}
+              {% include "components/badge.html" with label=proposal.get_selection_status_display color="muted" %}
+            {% endif %}
+          </td>
+        </tr>
+        <tr><td class="cell-mono">VERSION</td><td><span class="version-pill">v{{ proposal.current_version }}</span></td></tr>
+        <tr><td class="cell-mono">SUBMITTED</td><td>{{ proposal.submitted_at|date:"Y-m-d H:i"|default:"Not yet submitted" }}</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:1rem;">
+      <a href="{% url 'submissions:detail' proposal.pk %}" class="btn btn-ghost btn-sm">View Proposal</a>
+      {% if registration_open and not read_only %}
+        <a href="{% url 'submissions:new_version' proposal.pk %}" class="btn btn-primary btn-sm">Upload New Version</a>
+      {% endif %}
+    </div>
+  {% else %}
+    <h3 class="card-title">You haven't proposed yet</h3>
+    <p class="text-muted">
+      Pick an application below and submit a proposal for it. Several teams may
+      propose for the same application — the strongest proposals are selected
+      after review, so make yours count.
+    </p>
+    {% if deadline %}
+      <p class="form-help" style="margin-top:0.75rem;">
+        // REGISTRATION_CLOSES :: {{ deadline|date:"F j, Y" }}
+      </p>
+    {% endif %}
+  {% endif %}
+</div>
+
+{# ---- Application catalogue ---- #}
+<span class="tlabel">// APPLICATION_CATALOGUE</span>
+<h3 class="card-title" style="margin:0.35rem 0 0.5rem;">Applications You Can Build</h3>
+<p class="text-muted" style="max-width:70ch; margin-bottom:1.25rem;">
+  Each of these is one component of the enterprise. You build a building block,
+  not the whole company. Proposals per application are capped so the field
+  spreads across the catalogue.
+</p>
+
+<div class="brief-grid">
+  {% for brief in briefs %}
+    <div class="brief {% if brief.is_full %}full{% endif %}">
+      <div class="brief-head">
+        <span class="brief-code">{{ brief.code }}</span>
+        {% if brief.is_full %}
+          {% include "components/badge.html" with label="Cap reached" color="red" %}
+        {% else %}
+          <span class="brief-slots">{{ brief.proposal_count }}/{{ brief.proposal_cap }} proposals</span>
+        {% endif %}
+      </div>
+      <h4>{{ brief.name }}</h4>
+      {% if brief.summary %}<p class="text-muted">{{ brief.summary }}</p>{% endif %}
+      {% if brief.requirement_list %}
+        <h5>Requirements</h5>
+        <ul class="spec-list">
+          {% for requirement in brief.requirement_list %}<li>{{ requirement }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+      <div style="margin-top:1rem;">
+        {% if read_only or not registration_open %}
+          <span class="form-help">// Registration closed</span>
+        {% elif brief.is_full %}
+          <span class="form-help">// This application has reached its proposal cap</span>
+        {% elif proposal and proposal.application_brief_id == brief.pk %}
+          {% include "components/badge.html" with label="Your proposal" color="green" %}
+        {% else %}
+          <a href="{% url 'submissions:wizard_step1' %}?brief={{ brief.pk }}"
+             class="btn btn-primary btn-sm">Propose This Application</a>
+        {% endif %}
+      </div>
+    </div>
+  {% empty %}
+    <div class="card card-flat">
+      <div class="table-empty">// No applications published yet — check back shortly</div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

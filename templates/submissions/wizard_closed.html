@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Upload | JengaSec{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="UPLOAD_WIZARD" title="No Open Submission Window" %}
+
+<div class="card" style="max-width:620px; border-top-color: var(--gold);">
+  <span class="tlabel tlabel-gold">// WINDOW_CLOSED</span>
+  <h3 class="card-title">Nothing to submit right now</h3>
+  {% if teams %}
+    <p class="text-muted">
+      Your team isn't in a competition that's currently accepting documents. Submission
+      windows open when a competition moves to <em>Open</em> or <em>In Progress</em> and
+      today falls inside its dates.
+    </p>
+    <table class="table" style="margin-top:1rem;">
+      <thead><tr><th>Team</th><th>Competition</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for team in teams %}
+        <tr>
+          <td>{{ team.team_name }}</td>
+          <td>{{ team.competition.name }}</td>
+          <td class="cell-mono">{{ team.competition.get_status_display }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="text-muted">
+      You aren't registered to a team yet. An administrator assigns teams —
+      once you're on one, your submission windows appear here.
+    </p>
+  {% endif %}
+  <div style="margin-top:1.25rem;">
+    <a href="{% url 'submissions:list' %}" class="btn btn-ghost btn-sm">View Submissions</a>
+  </div>
+</div>
+{% endblock %}

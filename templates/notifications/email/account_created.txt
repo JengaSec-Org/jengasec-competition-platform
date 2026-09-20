@@ -1,0 +1,9 @@
+Welcome to JengaSec.
+
+{{ notification.body }}
+
+If you did not create this account, ignore this message and the link will
+expire on its own.
+--
+JengaSec Evaluation Platform
+Strathmore Cybersecurity Club

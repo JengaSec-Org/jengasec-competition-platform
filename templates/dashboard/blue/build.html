@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Blue Team — Build | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="BLUE_TEAM :: BUILD" title="Build It. Secure It." %}
+{% include "dashboard/_phase_rail.html" %}
+{% include "dashboard/_team_ident.html" %}
+
+<div class="chart-grid">
+  {# ---- What you're building ---- #}
+  <div class="card card-flat">
+    <span class="tlabel">// YOUR_APPLICATION</span>
+    {% if proposal.application_brief %}
+      <h3 class="card-title">
+        {{ proposal.application_brief.code }} — {{ proposal.application_brief.name }}
+      </h3>
+      <p class="text-muted">{{ proposal.application_brief.summary }}</p>
+      {% if proposal.application_brief.requirement_list %}
+        <h5 style="margin-top:1rem;">Requirements</h5>
+        <ul class="spec-list">
+          {% for requirement in proposal.application_brief.requirement_list %}
+            <li>{{ requirement }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% else %}
+      <h3 class="card-title">{{ team.responsibility|default:"Application not yet allocated" }}</h3>
+      <p class="text-muted">
+        Your allocated application appears here once proposal selection is complete.
+      </p>
+    {% endif %}
+  </div>
+
+  {# ---- Specification ---- #}
+  <div class="card card-flat">
+    <span class="tlabel">// SPECIFICATION</span>
+    <h3 class="card-title">What You Deliver</h3>
+    {% if spec %}
+      <p class="text-muted">{{ spec.summary }}</p>
+      <div class="spec-grid">
+        <div class="spec-col">
+          <h4>JengaSec provides</h4>
+          <ul class="spec-list">
+            {% for item in spec.provided %}<li>{{ item }}</li>{% endfor %}
+          </ul>
+        </div>
+        <div class="spec-col">
+          <h4>You provide</h4>
+          <ul class="spec-list">
+            {% for item in spec.required %}<li>{{ item }}</li>{% endfor %}
+          </ul>
+        </div>
+      </div>
+    {% else %}
+      <p class="text-muted">Your track has not been set yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+{# ---- Deliverables checklist ---- #}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// DELIVERABLES</span>
+  <h3 class="card-title">Build Checklist</h3>
+  <p class="text-muted" style="margin-bottom:1rem;">
+    Every team submits the same artefact set:
+    {% for item in submission_requirements %}{{ item }}{% if not forloop.last %} · {% endif %}{% endfor %}.
+  </p>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th></th><th>Document</th><th>Version</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for deliverable in deliverables %}
+          <tr>
+            <td class="cell-mono">
+              {% if deliverable.submission and deliverable.submission.status != "draft" %}
+                <span class="check done">&#10003;</span>
+              {% else %}
+                <span class="check">&#9675;</span>
+              {% endif %}
+            </td>
+            <td>{{ deliverable.name }}</td>
+            <td class="cell-mono">
+              {% if deliverable.submission %}v{{ deliverable.submission.current_version }}{% else %}—{% endif %}
+            </td>
+            <td>
+              {% if deliverable.submission %}
+                {{ deliverable.submission.get_status_display }}
+              {% else %}
+                <span class="text-muted">Not started</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if deliverable.submission %}
+                <a href="{% url 'submissions:detail' deliverable.submission.pk %}" class="btn btn-ghost btn-sm">Open</a>
+              {% elif not read_only %}
+                <a href="{% url 'submissions:wizard_step1' %}" class="btn btn-primary btn-sm">Upload</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel-dark">
+  <div class="term-head">
+    <div class="term-dots"><span></span><span></span><span></span></div>
+    <span class="term-title">build_phase.log</span>
+  </div>
+  <p class="mono" style="font-size:12px; color:rgba(255,255,255,0.55); position:relative; z-index:1;">
+    &gt; {{ team.get_enterprise_display|default:"ENTERPRISE :: UNASSIGNED" }}<br>
+    &gt; Your component plugs into a shared enterprise foundation —
+    network, identity, monitoring, logging, DNS and gateway are provided.<br>
+    &gt; Red teams attack what you ship. Build it as though it were production
+    <span class="badge-cursor"></span>
+  </p>
+</div>
+{% endblock %}

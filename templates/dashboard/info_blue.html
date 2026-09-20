@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Info | JengaSec Evaluation Platform{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="BLUE_TEAM :: INFO" title="How Scoring Works" %}
+
+<nav class="info-nav" aria-label="Info sections">
+  <a href="#availability">Availability</a>
+  <a href="#composition">Final score</a>
+  <a href="#points">Earning points</a>
+  <a href="#objectives">Objectives</a>
+  <a href="#threats">Threat model</a>
+</nav>
+
+{# ---- Availability ---- #}
+<div class="card card-flat" id="availability" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// AVAILABILITY</span>
+  <h3 class="card-title">Service Uptime</h3>
+  <p class="text-muted">
+    Monitoring polls your health endpoint continuously. Availability is
+    successful checks divided by total checks.
+  </p>
+  <div class="table-wrap" style="margin-top:0.75rem;">
+    <table class="table">
+      <thead><tr><th>Availability</th><th>Rating</th></tr></thead>
+      <tbody>
+        {% for band, rating in availability_bands %}
+          <tr><td class="cell-mono">{{ band }}</td><td>{{ rating }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="form-error" style="margin-top:0.75rem;">
+    // Taking your service offline to avoid attack scores as downtime.
+    Scoring rewards secure operation, not survival.
+  </p>
+</div>
+
+{# ---- Score composition ---- #}
+<div class="card card-flat" id="composition" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// SCORE_COMPOSITION</span>
+  <h3 class="card-title">How Your Final Score Is Built</h3>
+  {% for label, weight in score_weights %}
+    <div class="weight-row">
+      <span style="min-width:11rem;">{{ label }}</span>
+      <span class="bar"><i style="width: {{ weight }}%;"></i></span>
+      <span class="pct">{{ weight }}%</span>
+    </div>
+  {% endfor %}
+  <div class="delay-note">
+    // Participant scores update every {{ delay_minutes }} minutes. Live attack
+    outcomes are not shown during the competition.
+  </div>
+</div>
+
+{# ---- Earning points ---- #}
+<div class="card card-flat" id="points" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// EARNING_POINTS</span>
+  <h3 class="card-title">Defensive Actions That Score</h3>
+  <p class="text-muted" style="margin-bottom:0.75rem;">
+    Resilience earns points — you are not only scored on avoiding compromise.
+  </p>
+  <div class="table-wrap">
+    <table class="table points-table">
+      <tbody>
+        {% for label, points in blue_actions %}
+          <tr><td>{{ label }}</td><td class="pos">+{{ points }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ---- Objectives ---- #}
+<div class="card card-flat" id="objectives" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// OBJECTIVES</span>
+  <h3 class="card-title">Assigned Objectives</h3>
+  {% for objective in objectives %}
+    <div class="score-section">
+      <h4>{{ objective.code }} — {{ objective.name }} · max {{ objective.max_points }} pts</h4>
+      {% if objective.objective %}<p class="text-muted">{{ objective.objective }}</p>{% endif %}
+      <ul class="spec-list" style="margin-top:0.5rem;">
+        {% for condition in objective.success_conditions %}<li>{{ condition }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% empty %}
+    <div class="table-empty">// No objectives issued yet</div>
+  {% endfor %}
+</div>
+
+{# ---- Threat model ---- #}
+<div class="card card-flat" id="threats">
+  <span class="tlabel">// THREAT_MODEL</span>
+  <h3 class="card-title">Scenarios You Must Withstand</h3>
+  <p class="text-muted" style="margin-bottom:0.75rem;">
+    Red teams work from these predefined scenarios against your track. Each one
+    has an explicit success condition, so a result can be settled on evidence.
+  </p>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Code</th><th>Scenario</th><th>Success condition</th><th>If compromised</th></tr></thead>
+      <tbody>
+        {% for scenario in scenarios %}
+          <tr>
+            <td class="cell-mono">{{ scenario.code }}</td>
+            <td>{{ scenario.name }}</td>
+            <td class="text-muted">{{ scenario.success_condition }}</td>
+            <td class="neg cell-mono">{{ scenario.blue_points }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4"><div class="table-empty">// No scenarios published for your track yet</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Upload — Step 2 | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/submissions.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="UPLOAD_WIZARD" title="Upload Document" %}
+{% include "submissions/_wizard_progress.html" with step=2 %}
+
+<div class="card card-flat" style="max-width:720px;">
+  <span class="tlabel">// STEP_02</span>
+  <h3 class="card-title">
+    {% if is_new_version %}New Version — v{{ submission.current_version|add:1 }}{% else %}{{ submission_type.name }}{% endif %}
+  </h3>
+
+  <table class="table" style="margin-bottom:1.25rem;">
+    <tbody>
+      <tr><td class="cell-mono">TEAM</td><td>{{ team.team_name }}</td></tr>
+      <tr><td class="cell-mono">COMPETITION</td><td>{{ competition.name }}</td></tr>
+      <tr><td class="cell-mono">TYPE</td><td>{{ submission_type.name }}</td></tr>
+      <tr><td class="cell-mono">NEXT VERSION</td><td><span class="version-pill">v{{ submission.current_version|add:1 }}</span></td></tr>
+    </tbody>
+  </table>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="upload-box" id="upload-box">
+      {% for field in form %}
+        {{ field }}
+        {% for error in field.errors %}<div class="form-error">// {{ error }}</div>{% endfor %}
+      {% endfor %}
+      <div class="upload-hint">PDF, DOCX or ZIP &middot; maximum 50 MB</div>
+    </div>
+
+    <p class="form-help" style="margin-top:1rem;">
+      Your file is stored with a SHA-256 fingerprint and kept as its own version —
+      previous uploads are never overwritten.
+    </p>
+
+    <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
+      <button type="submit" class="btn btn-primary">Upload &rarr;</button>
+      {% if is_new_version %}
+        <a href="{% url 'submissions:detail' submission.pk %}" class="btn btn-ghost">Cancel</a>
+      {% else %}
+        <a href="{% url 'submissions:wizard_step1' %}" class="btn btn-ghost">&larr; Back</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<script>
+  // Light drag-and-drop affordance over the native file input.
+  (function () {
+    var box = document.getElementById('upload-box');
+    var input = box ? box.querySelector('input[type="file"]') : null;
+    if (!box || !input) return;
+    ['dragenter', 'dragover'].forEach(function (evt) {
+      box.addEventListener(evt, function (e) { e.preventDefault(); box.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(function (evt) {
+      box.addEventListener(evt, function (e) { e.preventDefault(); box.classList.remove('dragover'); });
+    });
+    box.addEventListener('drop', function (e) {
+      if (e.dataTransfer.files.length) input.files = e.dataTransfer.files;
+    });
+  })();
+</script>
+{% endblock %}

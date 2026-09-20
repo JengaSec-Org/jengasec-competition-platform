@@ -1,0 +1,11 @@
+Hello{% if user.first_name %} {{ user.first_name }}{% endif %},
+
+{{ notification.body }}
+{% if notification.link %}
+View your result: {{ site_url }}{{ notification.link }}
+{% endif %}
+If you believe the result is mistaken, you may file an appeal from the same
+page, within the appeal window set by the organisers.
+--
+JengaSec Evaluation Platform
+Strathmore Cybersecurity Club

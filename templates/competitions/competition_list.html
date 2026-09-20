@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Competitions | JengaSec{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="COMPETITION_MANAGEMENT" title="Competitions" %}
+
+<div style="margin-bottom:1.5rem;">
+  <a href="{% url 'competitions:create' %}" class="btn btn-primary btn-sm">+ Create Competition</a>
+</div>
+
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Competition</th><th>Start</th><th>End</th><th>Phase</th>
+        <th>Status</th><th class="cell-num">Teams</th><th class="cell-num">Submissions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for competition in competitions %}
+        <tr>
+          <td><a href="{% url 'competitions:detail' competition.pk %}">{{ competition.name }}</a></td>
+          <td class="cell-mono">{{ competition.start_date|date:"Y-m-d" }}</td>
+          <td class="cell-mono">{{ competition.end_date|date:"Y-m-d" }}</td>
+          <td>{% include "components/badge.html" with label=competition.get_phase_display color="green" %}</td>
+          <td class="cell-mono">{{ competition.get_status_display }}</td>
+          <td class="cell-num">{{ competition.team_count }}</td>
+          <td class="cell-num">{{ competition.submission_count }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="table-empty">// No competitions yet — create the first one</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

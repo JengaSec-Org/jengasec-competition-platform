@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Red Team | JengaSec Evaluation Platform{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="RED_TEAM_DASHBOARD" title="Awaiting Assignment" %}
+
+<div class="card" style="max-width:620px; border-top-color: var(--gold);">
+  <span class="tlabel tlabel-gold">// AWAITING_ASSIGNMENT</span>
+  <h3 class="card-title">No red team assigned yet</h3>
+  <p class="text-muted">
+    An administrator assigns you to a red team and a specialisation —
+    Cloud Red, Application Red or AI Red. Your registration route, targets and
+    scenario briefs appear here once that's done.
+  </p>
+  <p class="text-muted" style="margin-top:0.75rem;">
+    Questions? <a href="mailto:sucybersec@strathmore.edu">sucybersec@strathmore.edu</a>
+  </p>
+</div>
+{% endblock %}

@@ -29,3 +29,94 @@
   {% endif %}
 </div>
 {% endblock %}
+
+{% block title %}Notifications | JengaSec Evaluation Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Unread carries a gold spine; read fades back to the page. The badge
+     alone is not enough to scan a long list at a glance. */
+  .notif { position: relative; margin-bottom: 1rem; }
+  .notif-unread { border-left: 4px solid var(--gold); }
+  .notif-read { opacity: 0.72; }
+  .notif-meta {
+    margin-top: 1rem; display: flex; gap: 0.75rem;
+    align-items: center; flex-wrap: wrap;
+  }
+  .notif-tabs { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; }
+  .notif-tabs form { margin: 0 0 0 auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="NOTIFICATIONS" title="Notifications" %}
+
+<div class="notif-tabs">
+  {% if active_filter == "unread" %}
+    {% include "components/button.html" with label="All" variant="ghost" size="sm" href="?" %}
+    {% include "components/button.html" with label="Unread" variant="primary" size="sm" href="?filter=unread" %}
+  {% else %}
+    {% include "components/button.html" with label="All" variant="primary" size="sm" href="?" %}
+    {% include "components/button.html" with label="Unread" variant="ghost" size="sm" href="?filter=unread" %}
+  {% endif %}
+
+  {% if unread_total %}
+    <form method="post" action="{% url 'notifications:mark_all_read' %}">
+      {% csrf_token %}
+      {% include "components/button.html" with label="Mark all read" variant="ghost" size="sm" type="submit" %}
+    </form>
+  {% endif %}
+</div>
+
+<p class="text-muted" style="margin-bottom:1.5rem;">
+  {% if unread_total %}
+    <strong>{{ unread_total }}</strong> unread of {{ total }}.
+  {% else %}
+    All {{ total }} notification{{ total|pluralize }} read.
+  {% endif %}
+</p>
+
+{% for notification in notifications %}
+  <div class="card notif {% if notification.is_read %}notif-read{% else %}notif-unread{% endif %}">
+    <span class="tlabel">// {{ notification.get_type_display|upper }}</span>
+    <h3 class="card-title">{{ notification.subject }}</h3>
+    {% if notification.body %}<p class="text-muted">{{ notification.body }}</p>{% endif %}
+
+    <div class="notif-meta">
+      {% if notification.is_read %}
+        {% include "components/badge.html" with label="Read" color="muted" %}
+      {% else %}
+        {% include "components/badge.html" with label="Unread" color="gold" %}
+      {% endif %}
+
+      <span class="form-help">// {{ notification.created_at|date:"j M Y, H:i" }}</span>
+
+      {% if notification.send_email %}
+        {% if notification.sent_at %}
+          <span class="form-help" title="Emailed {{ notification.sent_at|date:'j M Y, H:i' }}">&#9993; emailed</span>
+        {% else %}
+          <span class="form-help">&#9993; email queued</span>
+        {% endif %}
+      {% endif %}
+
+      {% if not notification.is_read or notification.link %}
+        {# State change, so a POST form rather than a link. #}
+        <form method="post" action="{% url 'notifications:mark_read' notification.pk %}" style="margin:0;">
+          {% csrf_token %}
+          {% if notification.link %}
+            {% include "components/button.html" with label="Open" variant="ghost" size="sm" type="submit" %}
+          {% else %}
+            {% include "components/button.html" with label="Mark read" variant="ghost" size="sm" type="submit" %}
+          {% endif %}
+        </form>
+      {% endif %}
+    </div>
+  </div>
+{% empty %}
+  {% if active_filter == "unread" %}
+    {% include "components/card.html" with tag="// INBOX_ZERO" title="Nothing unread" body="Every notification has been read. Switch to All to see the history." %}
+  {% else %}
+    {% include "components/card.html" with tag="// EMPTY" title="Nothing yet" body="Notifications about submissions, evaluations, deadlines and appeals will appear here." %}
+  {% endif %}
+{% endfor %}
+{% endblock %}

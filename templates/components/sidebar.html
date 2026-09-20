@@ -47,6 +47,13 @@ Replace "#" with {% url %} tags as each module ships its views.
 
 </div>
 {% endif %}
+    <a class="side-link" href="{% url 'dashboard:admin_dashboard' %}"><span class="glyph">&#9881;</span> Command Center</a>
+    <a class="side-link" href="{% url 'competitions:list' %}"><span class="glyph">&#9873;</span> Competitions</a>
+    <a class="side-link" href="#"><span class="glyph">&#9632;</span> Teams</a>
+    <a class="side-link" href="{% url 'submissions:list' %}"><span class="glyph">&#9776;</span> Submissions</a>
+    <a class="side-link" href="{% url 'submissions:proposal_review' %}"><span class="glyph">&#9998;</span> Proposal Review</a>
+  </div>
+  {% endif %}
 
   {% if "blue_team" in user_roles %}
   <div class="side-section">
@@ -56,6 +63,12 @@ Replace "#" with {% url %} tags as each module ships its views.
     <a class="side-link" href="#"><span class="glyph">&#8679;</span> Upload Proposal</a>
     <a class="side-link" href="#"><span class="glyph">&#9776;</span> Submission History</a>
     <a class="side-link" href="#"><span class="glyph">&#9679;</span> Live Status</a>
+    <a class="side-link" href="{% url 'submissions:wizard_step1' %}"><span class="glyph">&#8679;</span> Upload Document</a>
+    <a class="side-link" href="{% url 'submissions:list' %}"><span class="glyph">&#9776;</span> Submission History</a>
+    <a class="side-link" href="{% url 'dashboard:info' %}"><span class="glyph">&#9432;</span> Info &amp; Scoring</a>
+    {% if competition_phase == "live" %}
+    <a class="side-link" href="{% url 'dashboard:blue_live_status' %}"><span class="glyph">&#9679;</span> Live Status</a>
+    {% endif %}
   </div>
   {% endif %}
 
@@ -66,6 +79,12 @@ Replace "#" with {% url %} tags as each module ships its views.
     <a class="side-link" href="{% url 'accounts:team_requests' %}"><span class="glyph">&#9823;</span> My Team</a>
     <a class="side-link" href="#"><span class="glyph">&#9678;</span> Target Access</a>
     <a class="side-link" href="#"><span class="glyph">&#8679;</span> Submit Findings</a>
+    {% if competition_phase == "live" %}
+    <a class="side-link" href="{% url 'dashboard:red_target_access' %}"><span class="glyph">&#9678;</span> Target Access</a>
+    {% endif %}
+    <a class="side-link" href="{% url 'submissions:wizard_step1' %}"><span class="glyph">&#8679;</span> Submit Findings</a>
+    <a class="side-link" href="{% url 'submissions:list' %}"><span class="glyph">&#9776;</span> Submission History</a>
+    <a class="side-link" href="{% url 'dashboard:info' %}"><span class="glyph">&#9432;</span> Scenarios &amp; Scoring</a>
   </div>
   {% endif %}
 
@@ -74,9 +93,10 @@ Replace "#" with {% url %} tags as each module ships its views.
     <div class="side-heading">// Insights</div>
     <a class="side-link" href="{% url 'dashboard:insights_dashboard' %}"><span class="glyph">&#9998;</span> Insights Dashboard</a>
     {% if "judge" in user_roles or user.is_staff %}
-    <a class="side-link" href="#"><span class="glyph">&#9878;</span> Review Queue</a>
-    <a class="side-link" href="#"><span class="glyph">&#9636;</span> Rubrics</a>
+    <a class="side-link" href="{% url 'judging:ai_results' %}"><span class="glyph">&#9878;</span> Review Queue</a>
+    <a class="side-link" href="{% url 'judging:rubric_builder' %}"><span class="glyph">&#9636;</span> Rubrics</a>
     {% endif %}
+    <a class="side-link" href="{% url 'judging:scoring_config' %}"><span class="glyph">&#9881;</span> Scoring Configuration</a>
     <a class="side-link" href="#"><span class="glyph">&#9650;</span> Analytics</a>
     <a class="side-link" href="#"><span class="glyph">&#9636;</span> Reports</a>
   </div>
@@ -85,8 +105,10 @@ Replace "#" with {% url %} tags as each module ships its views.
   <div class="side-section">
     <div class="side-heading">// Account</div>
     <a class="side-link" href="{% url 'notifications:list' %}"><span class="glyph">&#9993;</span> Notifications{% if unread_notification_count %} <span class="badge">{{ unread_notification_count }}</span>{% endif %}</a>    {% if user.is_staff %}
+    <a class="side-link" href="{% url 'notifications:list' %}"><span class="glyph">&#9993;</span> Notifications{% if unread_notifications %} <span class="badge badge-gold">{{ unread_notifications }}</span>{% endif %}</a>
+    {% if user.is_staff %}
     <a class="side-link" href="/admin/"><span class="glyph">&#9919;</span> Django Admin</a>
-    <a class="side-link" href="#"><span class="glyph">&#9783;</span> Audit Logs</a>
+    <a class="side-link" href="{% url 'audit:log' %}"><span class="glyph">&#9783;</span> Audit Logs</a>
     {% endif %}
   </div>
 

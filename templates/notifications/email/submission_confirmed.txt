@@ -1,0 +1,12 @@
+Hello{% if user.first_name %} {{ user.first_name }}{% endif %},
+
+{{ notification.body }}
+
+Nothing further is needed from you right now. You will hear from us again
+when evaluation is complete.
+{% if notification.link %}
+Review your submission: {{ site_url }}{{ notification.link }}
+{% endif %}
+--
+JengaSec Evaluation Platform
+Strathmore Cybersecurity Club

@@ -10,17 +10,17 @@
 
 <div class="stat-grid">
   <div class="card stat-card">
-    <div class="stat-value">0</div>
+    <div class="stat-value">{{ assigned_count|default:0 }}</div>
     <div class="stat-label">Assigned Reviews</div>
     <span class="stat-tag">// AWAITING_YOUR_SCORE</span>
   </div>
   <div class="card stat-card">
-    <div class="stat-value">0</div>
+    <div class="stat-value">{{ completed_count|default:0 }}</div>
     <div class="stat-label">Completed Reviews</div>
     <span class="stat-tag">// APPROVED_BY_YOU</span>
   </div>
   <div class="card stat-card">
-    <div class="stat-value">--</div>
+    <div class="stat-value">{% if average_score is None %}--{% else %}{{ average_score }}{% endif %}</div>
     <div class="stat-label">Avg. Score Given</div>
     <span class="stat-tag">// CONSISTENCY_METRIC</span>
   </div>
@@ -36,9 +36,27 @@
   {% include "components/table.html" with headers=review_headers rows=review_rows empty="No reviews assigned yet" %}
 </div>
 
+
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// Rubrics</span>
+  <h3 class="card-title">Rubric Overview</h3>
+  <p class="text-muted" style="margin-bottom:1rem;">
+    Define the criteria the AI and judges will score submissions against.
+  </p>
+
+  {% url 'judging:rubric_builder' as rubric_url %}
+
+  {% include "components/button.html" with label="View Rubrics" href=rubric_url variant="ghost" size="block" %}
+</div>
+
+
 <div class="card card-flat">
   <span class="tlabel">// COMPETITION_PULSE</span>
   <h3 class="card-title">Competition Overview</h3>
   <p class="text-muted">Aggregate statistics (score distributions, submission trends, judge consistency) will appear here as evaluations progress.</p>
 </div>
+
+
 {% endblock %}
+
+

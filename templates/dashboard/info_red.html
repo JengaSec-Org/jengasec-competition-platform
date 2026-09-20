@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Info | JengaSec Evaluation Platform{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/competition.css' %}">{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="RED_TEAM :: INFO" title="Scenarios & Scoring" %}
+
+<nav class="info-nav" aria-label="Info sections">
+  <a href="#scenarios">Attack scenarios</a>
+  <a href="#points">Earning points</a>
+  <a href="#outcomes">Graduated outcomes</a>
+  <a href="#rules">Rules of engagement</a>
+</nav>
+
+{# ---- Attack scenarios ---- #}
+<div id="scenarios" style="margin-bottom:1.5rem;">
+  <span class="tlabel">// ATTACK_SCENARIOS</span>
+  <h3 class="card-title" style="margin:0.35rem 0 0.75rem;">Your Scenario Briefs</h3>
+  <p class="text-muted" style="margin-bottom:1rem; max-width:70ch;">
+    Scoring runs on predefined scenarios with explicit success conditions, so a
+    result is objective and can be settled on evidence rather than argument.
+  </p>
+  <div class="scenario-grid">
+    {% for scenario in scenarios %}
+      <div class="scenario">
+        <div class="scenario-code">{{ scenario.code }}</div>
+        <h4>{{ scenario.name }}</h4>
+        <dl>
+          <dt>Objective</dt>
+          <dd>{{ scenario.objective }}</dd>
+          <dt>Success condition</dt>
+          <dd>{{ scenario.success_condition }}</dd>
+          {% if scenario.expected_evidence %}
+            <dt>Expected evidence</dt>
+            <dd>{{ scenario.expected_evidence }}</dd>
+          {% endif %}
+        </dl>
+        <div class="scenario-points">
+          <span class="pts-red">RED +{{ scenario.red_points }}</span>
+          <span class="pts-blue">BLUE {{ scenario.blue_points }}</span>
+        </div>
+      </div>
+    {% empty %}
+      <div class="card card-flat">
+        <div class="table-empty">// No scenarios published for your track yet</div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+{# ---- Earning points ---- #}
+<div class="card card-flat" id="points" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// EARNING_POINTS</span>
+  <h3 class="card-title">Offensive Actions That Score</h3>
+  <div class="table-wrap">
+    <table class="table points-table">
+      <tbody>
+        {% for label, points in red_actions %}
+          <tr><td>{{ label }}</td><td class="pos">+{{ points }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="delay-note">
+    // Participant scores update every {{ delay_minutes }} minutes — a quiet
+    board does not mean an attack failed.
+  </div>
+</div>
+
+{# ---- Graduated outcomes ---- #}
+<div class="card card-flat" id="outcomes" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// GRADUATED_OUTCOMES</span>
+  <h3 class="card-title">Partial Success Still Scores</h3>
+  <p class="text-muted" style="margin-bottom:0.75rem;">
+    A detected attack, a contained attack and a full compromise are not the same
+    outcome — and a detected attack scores for both sides.
+  </p>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Result</th><th>Red</th><th>Blue</th></tr></thead>
+      <tbody>
+        {% for label, red, blue in graduated_outcomes %}
+          <tr>
+            <td>{{ label }}</td>
+            <td class="cell-mono {% if red > 0 %}pos{% endif %}">{% if red > 0 %}+{% endif %}{{ red }}</td>
+            <td class="cell-mono {% if blue > 0 %}pos{% elif blue < 0 %}neg{% endif %}">{% if blue > 0 %}+{% endif %}{{ blue }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ---- Rules ---- #}
+<div class="card" id="rules" style="border-top-color: var(--danger);">
+  <span class="tlabel" style="color: var(--danger);">// RULES_OF_ENGAGEMENT</span>
+  <h3 class="card-title">Stay In Scope</h3>
+  <ul class="spec-list red">
+    <li>Only your assigned targets are in scope. Out-of-scope activity is disqualifying.</li>
+    <li>Attack the {{ team.get_track_display|lower|default:"assigned" }} layer only — other tracks belong to other red teams.</li>
+    <li>Every action is observed as telemetry and converted into a competition event.</li>
+    <li>Capture the expected evidence for a scenario; unproven claims do not score.</li>
+  </ul>
+</div>
+{% endblock %}
