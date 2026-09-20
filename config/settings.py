@@ -18,6 +18,27 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("true", "1", "yes")
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
+# Render sets this to the service's public hostname (e.g. jengasec.onrender.com).
+RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+# Django refuses POSTs (login, forms) from an origin it does not trust. Behind
+# a TLS-terminating proxy (Render, Cloudflare, nginx) that origin is https://,
+# so every public hostname must be listed here with its scheme.
+CSRF_TRUSTED_ORIGINS = [
+    o for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o
+]
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
+
+# Behind a proxy Django only sees plain HTTP; this header is how it learns the
+# original request was HTTPS (needed for secure cookies and is_secure()).
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -40,6 +61,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Serves the collected static files from the app process itself, so no
+    # nginx is needed in front (Render). Must sit right after SecurityMiddleware.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -110,9 +134,46 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# Hashed filenames + gzip/brotli, so static files can be cached forever and a
+# deploy never serves a stale CSS file. Requires `collectstatic` at build time.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# Uploads on Cloudflare R2 (S3-compatible) when the R2_* variables are set.
+# Needed wherever the app's own disk is ephemeral (Render): otherwise every
+# deploy deletes every submission. The bucket stays PRIVATE — file.url returns
+# a signed link that expires, so submissions are never publicly listable.
+#
+#   R2_BUCKET             bucket name
+#   R2_ENDPOINT_URL       https://<account-id>.r2.cloudflarestorage.com
+#   R2_ACCESS_KEY_ID      from an R2 API token with Object Read & Write
+#   R2_SECRET_ACCESS_KEY
+if os.environ.get("R2_BUCKET"):
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": os.environ["R2_BUCKET"],
+            "endpoint_url": os.environ["R2_ENDPOINT_URL"],
+            "access_key": os.environ["R2_ACCESS_KEY_ID"],
+            "secret_key": os.environ["R2_SECRET_ACCESS_KEY"],
+            "region_name": "auto",           # R2 has one region: "auto"
+            "signature_version": "s3v4",
+            "default_acl": None,             # R2 has no ACLs; leave unset
+            "file_overwrite": False,         # a same-named upload gets a suffix, never clobbers
+            "querystring_auth": True,        # signed URLs...
+            "querystring_expire": 3600,      # ...valid for one hour
+        },
+    }
+
 # Uploaded submission documents (Django Media storage)
 MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# Overridable so a host with an ephemeral filesystem (Render) can point it at a
+# persistent disk — otherwise every deploy deletes every submission.
+MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "media"))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

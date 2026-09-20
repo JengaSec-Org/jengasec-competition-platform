@@ -68,8 +68,16 @@ class TeamCreateForm(forms.ModelForm):
 
     class Meta:
         model = Team
-        fields = ["competition", "team_name", "track", "application_choice", "institution"]
-        widgets = {"track": forms.RadioSelect}
+        fields = [
+            "competition",
+            "team_name",
+            "team_type",
+            "track",
+            "application_choice",
+            "institution",
+        ]
+        widgets = {"team_type": forms.RadioSelect, "track": forms.RadioSelect}
+        labels = {"team_type": "Which side are you competing on?"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

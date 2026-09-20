@@ -17,3 +17,6 @@ pandas>=2.2
 # Production serving
 gunicorn>=22.0
 whitenoise>=6.7
+
+# Uploads on S3-compatible object storage (Cloudflare R2) when R2_* env vars are set
+django-storages[s3]>=1.14

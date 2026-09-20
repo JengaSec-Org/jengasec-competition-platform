@@ -11,10 +11,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='team',
-            name='team_type',
-        ),
+        # NB: an earlier version of this migration removed `team_type`.
+        # That field is what routes a captain to the blue or red dashboard
+        # and what TargetAssignment / cell allocation key on, so it stays.
+        # Anyone who applied the earlier version on a dev database should
+        # delete db.sqlite3 and migrate again.
         migrations.AddField(
             model_name='team',
             name='track',

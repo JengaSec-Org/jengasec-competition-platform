@@ -61,6 +61,10 @@ class UserProfile(models.Model):
 
 
 class Team(models.Model):
+    class TeamType(models.TextChoices):
+        BLUE = "blue", "Blue Team"
+        RED = "red", "Red Team"
+
     class Track(models.TextChoices):
         CLOUD = "cloud", "Cloud"
         APPLICATION = "application", "Application"
@@ -76,6 +80,9 @@ class Team(models.Model):
         "competitions.Competition", on_delete=models.CASCADE, related_name="teams"
     )
     team_name = models.CharField(max_length=120)
+    # Which side of the competition. Decides the captain's and members'
+    # platform role (blue_team / red_team) and therefore their dashboard.
+    team_type = models.CharField(max_length=10, choices=TeamType.choices)
     track = models.CharField(max_length=20, choices=Track.choices)
     application_choice = models.CharField(max_length=200, blank=True)
     captain = models.ForeignKey(

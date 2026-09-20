@@ -1,0 +1,70 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Dashboard → New → Blueprint → pick this repo. Render creates the web service
+# from this file and prompts for every value marked sync: false.
+#
+# The database is Neon, not Render Postgres: Neon's free tier does not expire,
+# Render's free database is deleted after 30 days. Create the Neon project
+# first and paste its connection details when prompted.
+
+services:
+  - type: web
+    name: jengasec
+    runtime: python
+    plan: free                      # starter ($7) for no spin-down + a persistent disk for uploads
+    region: frankfurt               # closest to Nairobi
+    branch: main
+    buildCommand: ./build.sh
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true         # Render generates a random 64-char value
+      # DJANGO_ALLOWED_HOSTS / CSRF origins: the *.onrender.com hostname is picked
+      # up automatically from RENDER_EXTERNAL_HOSTNAME. Add a custom domain here
+      # (comma-separated) once you have one.
+      - key: DJANGO_ALLOWED_HOSTS
+        value: localhost,127.0.0.1
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        value: ""
+
+      # ── Neon ──────────────────────────────────────────────────────────────
+      - key: JENGASEC_DB_NAME
+        sync: false
+      - key: JENGASEC_DB_USER
+        sync: false
+      - key: JENGASEC_DB_PASSWORD
+        sync: false
+      - key: JENGASEC_DB_HOST
+        sync: false                 # the -pooler hostname from the Neon dashboard
+      - key: JENGASEC_DB_PORT
+        value: "5432"
+      - key: JENGASEC_DB_SSLMODE
+        value: require              # Neon refuses plaintext connections
+
+      # ── First admin account (build.sh → ensure_superuser) ─────────────────
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false
+
+      # ── Uploads → Cloudflare R2 ───────────────────────────────────────────
+      # Render's filesystem is wiped on every deploy, so submissions live in an
+      # R2 bucket instead (free: 10 GB, no egress fees). Cloudflare dashboard →
+      # R2 → Create bucket `jengasec-submissions` → Manage R2 API Tokens →
+      # Create token, "Object Read & Write", scoped to that bucket.
+      - key: R2_BUCKET
+        value: jengasec-submissions
+      - key: R2_ENDPOINT_URL
+        sync: false                 # https://<account-id>.r2.cloudflarestorage.com
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false

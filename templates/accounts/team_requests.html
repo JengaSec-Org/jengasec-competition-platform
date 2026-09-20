@@ -1,46 +1,47 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Team Requests{% endblock %}
+{% block title %}{{ team.team_name }} | My Team{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
 {% endblock %}
 
 {% block content %}
+{% include "components/page_header.html" with tag="MY_TEAM" title=team.team_name %}
 
-<div class="page-header">
-  <div class="page-title">
-    <h1>Join Requests</h1>
-    <p>Pending requests to join {{ team.name }}.</p>
-  </div>
-</div>
+<p class="text-muted" style="margin-bottom:1.5rem;">
+  {{ team.get_team_type_display }} &middot; {{ team.get_track_display }} track &middot; {{ team.competition.name }}
+  {% if is_captain %}
+    &middot; {% include "components/badge.html" with label="You are captain" color="gold" %}
+  {% else %}
+    &middot; {% include "components/badge.html" with label="Member" color="muted" %}
+  {% endif %}
+</p>
 
-<div class="card">
+{% if is_captain %}
+<div class="card" style="margin-bottom:1.5rem;">
+  <span class="tlabel">// JOIN_REQUESTS</span>
+  <h3 class="card-title">Pending requests</h3>
   {% if join_requests %}
     <table class="table">
       <thead>
-        <tr>
-          <th>User</th>
-          <th>Email</th>
-          <th>Requested</th>
-          <th></th>
-        </tr>
+        <tr><th>User</th><th>Email</th><th>Requested</th><th></th></tr>
       </thead>
       <tbody>
         {% for jr in join_requests %}
           <tr>
             <td>{{ jr.user.get_full_name|default:jr.user.username }}</td>
             <td>{{ jr.user.email }}</td>
-            <td>{{ jr.requested_at }}</td>
-            <td>
+            <td>{{ jr.requested_at|date:"j M Y, H:i" }}</td>
+            <td style="white-space:nowrap;">
               <form method="post" action="{% url 'accounts:team_request_decide' jr.id 'approve' %}" style="display:inline">
                 {% csrf_token %}
                 {% include "components/button.html" with label="Approve" variant="primary" size="sm" type="submit" %}
               </form>
               <form method="post" action="{% url 'accounts:team_request_decide' jr.id 'reject' %}" style="display:inline">
                 {% csrf_token %}
-                {% include "components/button.html" with label="Reject" variant="danger" size="sm" type="submit" %}
+                {% include "components/button.html" with label="Decline" variant="ghost" size="sm" type="submit" %}
               </form>
             </td>
           </tr>
@@ -48,45 +49,55 @@
       </tbody>
     </table>
   {% else %}
-    <p class="text-muted">No pending join requests.</p>
+    <p class="text-muted">No pending requests. People who pick your team at sign-up will appear here.</p>
   {% endif %}
 </div>
-
-<div class="page-header">
-  <div class="page-title">
-    <h1>Team Roster</h1>
-    <p>Current members of {{ team.name }}.</p>
-  </div>
-</div>
+{% endif %}
 
 <div class="card">
+  <span class="tlabel">// ROSTER</span>
+  <h3 class="card-title">Members ({{ members|length }})</h3>
   {% if members %}
     <table class="table">
       <thead>
-        <tr>
-          <th>User</th>
-          <th>Email</th>
-          <th></th>
-        </tr>
+        <tr><th>Name</th><th>Email</th><th>Role</th><th>Account</th>{% if is_captain %}<th></th>{% endif %}</tr>
       </thead>
       <tbody>
         {% for m in members %}
           <tr>
-            <td>{{ m.user.get_full_name|default:m.user.username }}</td>
-            <td>{{ m.user.email }}</td>
+            <td>{{ m.student_name }}</td>
+            <td>{{ m.email }}</td>
             <td>
-              <form method="post" action="{% url 'accounts:team_member_remove' m.user.id %}" style="display:inline" onsubmit="return confirm('Remove {{ m.user.username }} from the team?');">
-                {% csrf_token %}
-                {% include "components/button.html" with label="Remove" variant="danger" size="sm" type="submit" %}
-              </form>
+              {% if m.role == "captain" %}
+                {% include "components/badge.html" with label="Captain" color="gold" %}
+              {% else %}
+                {% include "components/badge.html" with label="Member" color="muted" %}
+              {% endif %}
             </td>
+            <td>
+              {% if m.user %}
+                {% include "components/badge.html" with label="Registered" color="green" %}
+              {% else %}
+                {% include "components/badge.html" with label="No account yet" color="muted" %}
+              {% endif %}
+            </td>
+            {% if is_captain %}
+            <td>
+              {% if m.user_id != user.pk %}
+                <form method="post" action="{% url 'accounts:team_member_remove' m.id %}" style="display:inline"
+                      onsubmit="return confirm('Remove {{ m.student_name|escapejs }} from the team?');">
+                  {% csrf_token %}
+                  {% include "components/button.html" with label="Remove" variant="danger" size="sm" type="submit" %}
+                </form>
+              {% endif %}
+            </td>
+            {% endif %}
           </tr>
         {% endfor %}
       </tbody>
     </table>
   {% else %}
-    <p class="text-muted">No members yet besides you.</p>
+    <p class="text-muted">Nobody on the roster yet.</p>
   {% endif %}
 </div>
-
 {% endblock %}

@@ -113,7 +113,12 @@ textarea.is-invalid {
 }
 
 .auth-card .form-label {
-  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.auth-card .form-label .req {
+  color: var(--gold-light);
 }
 
 .auth-card .input,
@@ -139,10 +144,49 @@ textarea.is-invalid {
 
 .auth-sub {
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.22em;
+  font-size: 10px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(0, 200, 80, 0.6);
+  color: rgba(0, 200, 80, 0.72);
   text-align: center;
   margin-bottom: 1.75rem;
+}
+
+/* Secondary prompt under the auth form ("New here? Create an account") */
+.auth-alt {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(0, 200, 80, 0.14);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.auth-alt a {
+  color: var(--primary-light);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(0, 200, 80, 0.4);
+}
+
+.auth-alt a:hover {
+  color: var(--text-inverse);
+  text-decoration-color: var(--primary-light);
+}
+
+/* Muted prose inside the dark card (choose-team explanations) */
+.auth-card .text-muted {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.925rem;
+  line-height: 1.55;
+}
+
+/* Inputs on the dark card: body font at a comfortable size */
+.auth-card .input,
+.auth-card input:not([type="hidden"]) {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
 }

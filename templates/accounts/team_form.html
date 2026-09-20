@@ -17,6 +17,7 @@
     {% csrf_token %}
     {% include "components/form_field.html" with field=form.competition %}
     {% include "components/form_field.html" with field=form.team_name %}
+    {% include "components/form_field.html" with field=form.team_type %}
     {% include "components/form_field.html" with field=form.institution %}
     {% include "components/form_field.html" with field=form.track %}
     <div id="application-choice-group" style="display:none;">

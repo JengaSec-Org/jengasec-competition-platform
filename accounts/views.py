@@ -1,4 +1,4 @@
-﻿from django.contrib import messages
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
@@ -6,12 +6,14 @@ from django.utils import timezone
 
 from notifications.models import Notification
 
+from services import team_service
+
 from .forms import TeamCreateForm, TeamJoinForm, UserRegistrationForm
 from .models import Team, TeamJoinRequest, TeamMember
 
 
 def _user_has_team(user):
-    return Team.objects.filter(captain=user).exists() or TeamMember.objects.filter(user=user).exists()
+    return team_service.team_for(user) is not None
 
 
 def register(request):
@@ -45,10 +47,10 @@ def team_form(request):
     if request.method == "POST":
         form = TeamCreateForm(request.POST)
         if form.is_valid():
-            team = form.save(commit=False)
-            team.captain = request.user
-            team.save()
-            messages.success(request, f"Team '{team.team_name}' created.")
+            team = team_service.create_team_for_captain(form, request.user)
+            messages.success(
+                request, f"Team '{team.team_name}' created. You are its captain."
+            )
             return redirect("dashboard:main_dashboard")
     else:
         form = TeamCreateForm()
@@ -93,16 +95,31 @@ def choose_team(request):
 
 @login_required
 def team_requests(request):
-    team = Team.objects.filter(captain=request.user).first()
+    """The team page. Captains manage it; members get the same page read-only.
+
+    One view rather than two so the roster can never show a member less
+    than the captain sees -- only the actions differ.
+    """
+    team = team_service.team_for(request.user)
     if not team:
         return redirect("dashboard:main_dashboard")
 
-    pending = team.join_requests.filter(status=TeamJoinRequest.PENDING).select_related("user")
-    members = team.members.select_related("user")
+    is_captain = team_service.is_captain_of(request.user, team)
+    pending = (
+        team.join_requests.filter(status=TeamJoinRequest.PENDING).select_related("user")
+        if is_captain
+        else TeamJoinRequest.objects.none()
+    )
+    members = team.members.select_related("user").order_by("-role", "student_name")
     return render(
         request,
         "accounts/team_requests.html",
-        {"team": team, "join_requests": pending, "members": members},
+        {
+            "team": team,
+            "join_requests": pending,
+            "members": members,
+            "is_captain": is_captain,
+        },
     )
 
 
@@ -117,15 +134,7 @@ def team_request_decide(request, request_id, decision):
         join_request.decided_at = timezone.now()
         if decision == "approve":
             join_request.status = TeamJoinRequest.APPROVED
-            TeamMember.objects.get_or_create(
-                team=team,
-                user=join_request.user,
-                defaults={
-                    "student_name": join_request.user.get_full_name() or join_request.user.username,
-                    "email": join_request.user.email,
-                    "role": TeamMember.MemberRole.MEMBER,
-                },
-            )
+            team_service.add_member(team, join_request.user)
             TeamJoinRequest.objects.filter(
                 user=join_request.user, status=TeamJoinRequest.PENDING
             ).exclude(id=join_request.id).update(
@@ -157,6 +166,9 @@ def team_member_remove(request, member_id):
         return redirect("dashboard:main_dashboard")
 
     member = get_object_or_404(TeamMember, id=member_id, team=team)
+    if member.user_id == request.user.pk:
+        messages.error(request, "A captain cannot remove themselves from the team.")
+        return redirect("accounts:team_requests")
 
     if request.method == "POST":
         removed_user = member.user
