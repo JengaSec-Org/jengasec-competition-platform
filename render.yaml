@@ -55,16 +55,22 @@ services:
       - key: DJANGO_SUPERUSER_PASSWORD
         sync: false
 
-      # ── Uploads → Cloudflare R2 ───────────────────────────────────────────
-      # Render's filesystem is wiped on every deploy, so submissions live in an
-      # R2 bucket instead (free: 10 GB, no egress fees). Cloudflare dashboard →
-      # R2 → Create bucket `jengasec-submissions` → Manage R2 API Tokens →
-      # Create token, "Object Read & Write", scoped to that bucket.
-      - key: R2_BUCKET
+      # ── Uploads → S3-compatible bucket (Backblaze B2) ─────────────────────
+      # Render's filesystem is wiped on every deploy, so submissions live in a
+      # bucket instead. Backblaze B2: 10 GB free, no card needed, S3 API.
+      #   backblaze.com → sign up → Buckets → Create: `jengasec-submissions`,
+      #   PRIVATE. Note the Endpoint shown on the bucket (s3.<region>.backblazeb2.com).
+      #   Application Keys → Add: name `jengasec-render`, Read and Write, restricted
+      #   to that bucket. keyID → S3_ACCESS_KEY_ID, applicationKey → S3_SECRET_ACCESS_KEY.
+      # Any other S3-compatible store (Cloudflare R2, Supabase) works with the
+      # same values — see config/settings.py.
+      - key: S3_BUCKET
         value: jengasec-submissions
-      - key: R2_ENDPOINT_URL
-        sync: false                 # https://<account-id>.r2.cloudflarestorage.com
-      - key: R2_ACCESS_KEY_ID
+      - key: S3_ENDPOINT_URL
+        sync: false                 # https://s3.<region>.backblazeb2.com
+      - key: S3_REGION
+        sync: false                 # the <region> part of the endpoint, e.g. eu-central-003
+      - key: S3_ACCESS_KEY_ID
         sync: false
-      - key: R2_SECRET_ACCESS_KEY
+      - key: S3_SECRET_ACCESS_KEY
         sync: false
