@@ -1,157 +1,58 @@
 {% extends "base.html" %}
-{% load static %}
 
-{% block title %}Team Management{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
-{% endblock %}
+{% block title %}Teams | JengaSec{% endblock %}
 
 {% block content %}
+{% include "components/page_header.html" with tag="USER_MANAGEMENT" title="Teams" %}
 
-<div class="page-header">
-
-    <div class="page-title">
-        <h1>Team Management</h1>
-        <p>Create, manage and monitor competition teams.</p>
-    </div>
-
-    {% include "components/button.html" with label="Create Team" href="/accounts/team-form/" variant="primary" %}
-
-</div>
-
-<div class="stats-grid">
-
-    <div class="stat-card">
-        <div class="stat-number">22</div>
-        <div class="stat-label">Total Teams</div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-number">12</div>
-        <div class="stat-label">Blue Teams</div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-number">10</div>
-        <div class="stat-label">Red Teams</div>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-number">134</div>
-        <div class="stat-label">Participants</div>
-    </div>
-
+<div class="notif-tabs" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.5rem;">
+  {% if status %}
+    {% include "components/button.html" with label="All" variant="ghost" size="sm" href="?" %}
+  {% else %}
+    {% include "components/button.html" with label="All" variant="primary" size="sm" href="?" %}
+  {% endif %}
+  {% for value, label in statuses %}
+    {% if status == value %}
+      {% include "components/button.html" with label=label variant="primary" size="sm" href="?status="|add:value %}
+    {% else %}
+      {% include "components/button.html" with label=label variant="ghost" size="sm" href="?status="|add:value %}
+    {% endif %}
+  {% endfor %}
 </div>
 
 <div class="card">
-
-<div class="toolbar">
-
-<div class="toolbar-left">
-
-<div class="search-box">
-
-{% include "components/input.html" with name="search_team" label="Search Teams" placeholder="Search team..." %}
-
+  {% if teams %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Team</th><th>Competition</th><th>Side / track</th><th>Cell</th><th>Captain</th><th>Members</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for t in teams %}
+          <tr>
+            <td><strong>{{ t.team_name }}</strong>{% if t.pending_count %}<div class="form-help">{{ t.pending_count }} join request{{ t.pending_count|pluralize }} pending</div>{% endif %}</td>
+            <td>{{ t.competition.name }}</td>
+            <td>{{ t.get_team_type_display }}{% if t.track %} &middot; {{ t.get_track_display }}{% endif %}</td>
+            <td>{% if t.cell_id %}<code class="tlabel">{{ t.cell_id }}</code>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td>{% if t.captain %}{{ t.captain.get_full_name|default:t.captain.username }}{% else %}<span class="text-muted">none</span>{% endif %}</td>
+            <td>{{ t.member_count }}</td>
+            <td>
+              {% if t.status == "approved" %}{% include "components/badge.html" with label=t.get_status_display color="green" %}
+              {% elif t.status == "rejected" %}{% include "components/badge.html" with label=t.get_status_display color="red" %}
+              {% elif t.status == "withdrawn" %}{% include "components/badge.html" with label=t.get_status_display color="muted" %}
+              {% else %}{% include "components/badge.html" with label=t.get_status_display color="gold" %}{% endif %}
+            </td>
+            <td>
+              {% url 'accounts:team_detail' t.pk as detail_url %}
+              {% include "components/button.html" with label="Review" href=detail_url variant="ghost" size="sm" %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="table-empty">No teams{% if status %} with that status{% endif %}.</p>
+  {% endif %}
 </div>
-
-</div>
-
-<div class="toolbar-right">
-
-<select class="select">
-
-<option>All Teams</option>
-<option>Blue Team</option>
-<option>Red Team</option>
-
-</select>
-
-</div>
-
-</div>
-
-<table class="table">
-
-<thead>
-
-<tr>
-
-<th>Team</th>
-
-<th>Category</th>
-
-<th>Captain</th>
-
-<th>Members</th>
-
-<th>Status</th>
-
-<th>Actions</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-<tr>
-
-<td>Blue Alpha</td>
-
-<td>Blue Team</td>
-
-<td>John Mwangi</td>
-
-<td>6</td>
-
-<td><span class="badge badge-success">Active</span></td>
-
-<td>
-
-<div class="action-buttons">
-
-{% include "components/button.html" with label="View" href="/accounts/team-details/" variant="ghost" size="sm" %}
-
-{% include "components/button.html" with label="Edit" href="/accounts/team-form/" variant="gold" size="sm" %}
-
-</div>
-
-</td>
-
-</tr>
-
-<tr>
-
-<td>Red Phoenix</td>
-
-<td>Red Team</td>
-
-<td>Ahmed Hassan</td>
-
-<td>5</td>
-
-<td><span class="badge badge-warning">Pending</span></td>
-
-<td>
-
-<div class="action-buttons">
-
-{% include "components/button.html" with label="View" href="/accounts/team-details/" variant="ghost" size="sm" %}
-
-{% include "components/button.html" with label="Edit" href="/accounts/team-form/" variant="gold" size="sm" %}
-
-</div>
-
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-</div>
-
 {% endblock %}

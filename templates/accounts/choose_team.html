@@ -1,59 +1,40 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Choose a Team | JengaSec Evaluation Platform</title>
-<meta name="theme-color" content="#007A3D">
-<link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/variables.css' %}">
-<link rel="stylesheet" href="{% static 'css/reset.css' %}">
-<link rel="stylesheet" href="{% static 'css/typography.css' %}">
-<link rel="stylesheet" href="{% static 'css/buttons.css' %}">
-<link rel="stylesheet" href="{% static 'css/forms.css' %}">
-<link rel="stylesheet" href="{% static 'css/components.css' %}">
-</head>
-<body>
-<div class="auth-shell">
-  <div class="auth-card">
-    <div class="auth-brand">Jenga<em>Sec</em></div>
-    <div class="auth-sub">// ONBOARDING :: CHOOSE TEAM</div>
+{% extends "accounts/auth_base.html" %}
 
-    {% if pending_request %}
-      <div class="alert alert-info" role="alert">
-        <span class="alert-tag">[PENDING]</span>
-        <span>Your request to join <strong>{{ pending_request.team.name }}</strong> is waiting on the captain's approval.</span>
+{% block title %}Your invitations | JengaSec{% endblock %}
+{% block auth_context %}ONBOARDING :: TEAM{% endblock %}
+
+{% block heading %}
+<h1 class="auth-heading">Waiting for your captain</h1>
+<p class="auth-lead">Team members join by invitation. Your captain sends one to this address — <strong>{{ user.email }}</strong> — and it appears here for seven days.</p>
+{% endblock %}
+
+{% block card %}
+{% if invitations %}
+  {% for inv in invitations %}
+    <div class="alert alert-info" role="alert" style="display:block;">
+      <span class="alert-tag">[INVITE]</span>
+      <span><strong>{{ inv.team.team_name }}</strong> &middot; {{ inv.team.get_team_type_display }}{% if inv.team.track %} &middot; {{ inv.team.track_label }}{% endif %} &middot; {{ inv.team.competition.name }}</span>
+      <div class="form-help" style="margin:0.5rem 0 0.75rem;">
+        From {{ inv.invited_by.get_full_name|default:inv.invited_by.username }} &middot; expires {{ inv.expires_at|date:"j M Y" }}
       </div>
-      <p class="text-muted">You'll be moved to the dashboard automatically once it's approved. Check back later.</p>
-    {% else %}
-      <p class="text-muted">Request to join a team, or continue without one for now.</p>
+      <div style="display:flex; gap:0.5rem;">
+        <form method="post" action="{% url 'accounts:invitation_respond' inv.token 'accept' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-sm">Accept</button>
+        </form>
+        <form method="post" action="{% url 'accounts:invitation_respond' inv.token 'decline' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost btn-sm">Decline</button>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <p class="text-muted">No invitations yet. Check that your captain has your exact address, and look in your spam folder — invitations reach it more often than anyone expects.</p>
+{% endif %}
 
-      {% if form.non_field_errors %}
-        <div class="alert alert-error" role="alert">
-          <span class="alert-tag">[ERR]</span>
-          <span>{{ form.non_field_errors.0 }}</span>
-        </div>
-      {% endif %}
-
-      <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-          <label class="form-label" for="id_team">Team</label>
-          <select class="select" name="team" id="id_team">
-            <option value="">— Join no team for now —</option>
-            {% for team in form.team.field.queryset %}
-              <option value="{{ team.id }}">{{ team.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Continue</button>
-      </form>
-    {% endif %}
-  </div>
-</div>
-</body>
-</html>
+<p class="auth-alt">
+  Leading a team instead? <a href="{% url 'accounts:team_form' %}">Create it as captain</a>
+  &middot; <a href="{% url 'dashboard:main_dashboard' %}">Dashboard</a>
+</p>
+{% endblock %}

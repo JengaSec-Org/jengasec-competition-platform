@@ -190,3 +190,69 @@ textarea.is-invalid {
   font-family: var(--font-body);
   font-size: 0.95rem;
 }
+
+/* ── Auth screens: one centered card on the terminal ground ──────────── */
+.auth-body { background: var(--background); min-height: 100vh; }
+
+/* Faint grid instead of scanlines: reads as a workspace, not a CRT. */
+.auth-shell-grid {
+  flex-direction: column;
+  background-color: var(--background);
+  background-image:
+    linear-gradient(rgba(0, 200, 80, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 200, 80, 0.045) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.auth-shell-grid::before {
+  /* soft green glow behind the card */
+  background: radial-gradient(60% 45% at 50% 42%, rgba(0, 122, 61, 0.22), transparent 70%);
+}
+
+.auth-home {
+  position: absolute; top: 1.25rem; left: 1.5rem; z-index: 2;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(0, 200, 80, 0.75); text-decoration: none;
+}
+.auth-home:hover { color: var(--text-inverse); }
+
+.auth-stack {
+  position: relative; z-index: 1;
+  width: min(460px, 100%);
+  display: flex; flex-direction: column; align-items: stretch; gap: 1.5rem;
+}
+
+.auth-mark { text-align: center; }
+.auth-logo {
+  width: 44px; height: 44px; object-fit: contain; display: block;
+  margin: 0 auto 0.75rem; filter: drop-shadow(0 0 12px rgba(0, 200, 80, 0.35));
+}
+.auth-mark .auth-brand { margin-bottom: 0.35rem; font-size: 2.2rem; }
+.auth-mark .auth-sub { margin-bottom: 0; }
+
+.auth-stack .auth-card {
+  width: 100%;
+  padding: 2.25rem 2.5rem;
+  border-color: rgba(0, 200, 80, 0.3);
+  box-shadow: 0 0 0 1px rgba(0, 200, 80, 0.06), 0 30px 60px rgba(0, 0, 0, 0.45);
+}
+
+.auth-heading {
+  font-family: var(--font-display); font-size: 1.9rem; letter-spacing: 0.04em;
+  color: var(--text-inverse); margin: 0 0 0.3rem; line-height: 1;
+}
+.auth-lead {
+  font-family: var(--font-body); font-size: 0.93rem; color: rgba(255, 255, 255, 0.58);
+  margin: 0 0 1.5rem; line-height: 1.5;
+}
+
+.auth-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+
+.auth-foot {
+  text-align: center; font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 255, 255, 0.35);
+}
+
+@media (max-width: 520px) {
+  .auth-stack .auth-card { padding: 1.75rem 1.25rem; }
+  .auth-row { grid-template-columns: 1fr; }
+}

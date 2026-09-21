@@ -15,6 +15,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from services import competition_service as comp_svc
 from services import submission_service as svc
+from services import team_service
 
 from accounts.roles import JUDGE, user_in_role
 from audit.models import AuditLog
@@ -403,6 +404,7 @@ def _require_staff(user):
 SELECTION_ACTIONS = {
     "shortlist": Submission.SelectionStatus.SHORTLISTED,
     "select": Submission.SelectionStatus.SELECTED,
+    "reserve": Submission.SelectionStatus.RESERVE,
     "reject": Submission.SelectionStatus.REJECTED,
     "reset": Submission.SelectionStatus.PENDING,
 }
@@ -430,6 +432,18 @@ def proposal_review(request, competition_id=None):
             previous = proposal.get_selection_status_display()
             proposal.selection_status = SELECTION_ACTIONS[action]
             proposal.save(update_fields=["selection_status", "updated_at"])
+            # Selection is what puts a team in a cell (Guide section 4):
+            # up to ten teams propose per brief, one builds it per enterprise.
+            if action == "select":
+                try:
+                    team_service.assign_cell(proposal.team)
+                    messages.info(
+                        request,
+                        f"{proposal.team.team_name} assigned cell "
+                        f"{proposal.team.cell_label}.",
+                    )
+                except team_service.TeamRuleError as exc:
+                    messages.warning(request, f"Selected, but no cell assigned: {exc}")
             audit(
                 AuditLog.Action.PROPOSAL_SELECTION,
                 request=request,
@@ -448,7 +462,7 @@ def proposal_review(request, competition_id=None):
         return redirect(request.path)
 
     proposals = (
-        Submission.objects.filter(submission_type__name="Proposal")
+        Submission.objects.filter(submission_type__name__in=svc.PROPOSAL_TYPES)
         .select_related("team", "competition", "application_brief")
         .order_by("application_brief__code", "team__team_name")
     )

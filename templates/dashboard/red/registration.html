@@ -10,26 +10,32 @@
 {% include "dashboard/_team_ident.html" %}
 
 {% if qualifier_locked %}
-  {# ---- Non-AI red teams: elimination challenge, format TBA ---- #}
-  <div class="card locked-card" style="max-width:760px;">
-    <span class="tlabel" style="color: var(--gold);">// ELIMINATION_CHALLENGE</span>
+  {# ---- Application Red: registration only; challenges from 1 October (Entry Guide s.3) ---- #}
+  <div class="card" style="max-width:760px;">
+    <span class="tlabel" style="color: var(--gold);">// APPLICATION_RED</span>
     <h3 class="card-title">
-      Qualifier
-      {% include "components/badge.html" with label="Locked" color="gold" %}
+      Challenges open 1 October 2026
+      {% if team.cell_id %}{% include "components/badge.html" with label=team.cell_label color="green" %}{% else %}{% include "components/badge.html" with label="Cell pending approval" color="gold" %}{% endif %}
     </h3>
     <p class="text-muted">
-      {{ team.get_track_display }} Red teams don't register by proposal. You
-      qualify through an elimination challenge, and only the teams that come
-      through it go on to the live competition.
+      Application Red teams do not submit a proposal. Once your registration is
+      approved you are assigned a cell; from <strong>1 October 2026</strong> you attack
+      that cell's application within a scheduled window and report your findings to a
+      professional standard.
     </p>
-    <p class="text-muted" style="margin-top:0.75rem;">
-      The format is still being finalised. This page will carry your challenge
-      brief, entry window and standing as soon as it's announced — nothing is
-      required from you yet.
-    </p>
-    <div class="locked-strip" aria-hidden="true"></div>
+    {% if team.application_brief %}
+      <p class="form-help" style="margin-top:1rem;">// TARGET :: {{ team.application_brief.code }} — {{ team.application_brief.name }}</p>
+      {% if team.application_brief.red_exposure_list %}
+        <p class="text-muted" style="margin-top:0.5rem;"><strong>What Red will try</strong> (from the brief):</p>
+        <ul style="margin:0.25rem 0 0 1.25rem;">
+          {% for line in team.application_brief.red_exposure_list %}<li class="text-muted">{{ line }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+    {% else %}
+      <p class="form-help" style="margin-top:1rem;">// TARGET :: assigned by the organisers with your cell</p>
+    {% endif %}
     <p class="form-help" style="margin-top:1rem;">
-      // STATUS :: AWAITING_ANNOUNCEMENT
+      // STATUS :: {% if team.status == "approved" %}REGISTERED_AND_PLACED{% else %}AWAITING_REGISTRATION_REVIEW{% endif %}
     </p>
   </div>
 {% else %}

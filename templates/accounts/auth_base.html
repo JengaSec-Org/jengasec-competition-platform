@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}JengaSec Evaluation Platform{% endblock %}</title>
+<meta name="theme-color" content="#007A3D">
+<link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/variables.css' %}">
+<link rel="stylesheet" href="{% static 'css/reset.css' %}">
+<link rel="stylesheet" href="{% static 'css/typography.css' %}">
+<link rel="stylesheet" href="{% static 'css/buttons.css' %}">
+<link rel="stylesheet" href="{% static 'css/forms.css' %}">
+<link rel="stylesheet" href="{% static 'css/components.css' %}">
+</head>
+<body class="auth-body">
+<div class="auth-shell auth-shell-grid">
+  <a href="{% url 'landing' %}" class="auth-home">&larr; jengasec.org</a>
+
+  <div class="auth-stack">
+    <div class="auth-mark">
+      <img src="{% static 'images/logo.png' %}" alt="" class="auth-logo">
+      <div class="auth-brand">Jenga<em>Sec</em></div>
+      <div class="auth-sub">// EVALUATION_PLATFORM :: {% block auth_context %}AUTHENTICATE{% endblock %}</div>
+    </div>
+
+    <div class="auth-card">
+      {% block heading %}{% endblock %}
+      {% if messages %}{% for message in messages %}
+        {% include "components/alert.html" with level=message.tags text=message %}
+      {% endfor %}{% endif %}
+      {% block card %}{% endblock %}
+    </div>
+
+    <div class="auth-foot">Strathmore Cybersecurity Club &middot; Nairobi, Kenya &middot; 2026</div>
+  </div>
+</div>
+</body>
+</html>

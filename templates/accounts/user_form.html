@@ -1,114 +1,113 @@
 {% extends "base.html" %}
-{% load static %}
 
-{% block title %}Create User{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
-{% endblock %}
+{% block title %}{% if mode == "edit" %}Edit {{ edited.username }}{% else %}Issue an account{% endif %} | JengaSec{% endblock %}
 
 {% block content %}
+{% if mode == "edit" %}
+  {% include "components/page_header.html" with tag="USER_MANAGEMENT" title=edited.username %}
+{% else %}
+  {% include "components/page_header.html" with tag="USER_MANAGEMENT" title="Issue an account" %}
+{% endif %}
 
-<div class="page-header">
+<div class="chart-grid" style="align-items:start;">
+  <div class="card">
+    {% if mode == "create" %}
+      <p class="text-muted" style="margin-bottom:1.25rem;">
+        For organisers, judges and partners. No password is set here: the person
+        receives a one-time link by email and chooses their own. Competitors
+        register themselves at the public sign-up and never appear in this form.
+      </p>
+    {% endif %}
 
-    <div class="page-title">
-        <h1>Create User</h1>
-        <p>Create a new platform user and assign their role.</p>
-    </div>
+    {% if form.non_field_errors %}
+      <div class="alert alert-error" role="alert">
+        <span class="alert-tag">[ERR]</span><span>{{ form.non_field_errors.0 }}</span>
+      </div>
+    {% endif %}
 
-    {% include "components/button.html" with label="Back to Users" href="/accounts/users/" variant="ghost" %}
+    <form method="post">
+      {% csrf_token %}
+      {% include "components/form_field.html" with field=form.first_name %}
+      {% include "components/form_field.html" with field=form.last_name %}
+      {% include "components/form_field.html" with field=form.username %}
+      {% include "components/form_field.html" with field=form.email %}
+      {% include "components/form_field.html" with field=form.role %}
+      {% include "components/form_field.html" with field=form.institution %}
+      {% if form.is_active %}
+        <div class="form-group">
+          <label class="form-label" for="{{ form.is_active.id_for_label }}">
+            <input type="checkbox" name="{{ form.is_active.html_name }}" id="{{ form.is_active.id_for_label }}" {% if form.is_active.value %}checked{% endif %}>
+            {{ form.is_active.label }}
+          </label>
+          <p class="form-help">Unticking locks the account without deleting anything.</p>
+        </div>
+      {% endif %}
+      <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
+        {% if mode == "edit" %}
+          {% include "components/button.html" with label="Save changes" variant="primary" type="submit" %}
+        {% else %}
+          {% include "components/button.html" with label="Create and send link" variant="primary" type="submit" %}
+        {% endif %}
+        {% url 'accounts:user_list' as back_url %}
+        {% include "components/button.html" with label="Cancel" variant="ghost" href=back_url %}
+      </div>
+    </form>
+  </div>
 
+  {% if mode == "edit" %}
+  <div class="card">
+    <span class="tlabel">// ACCOUNT</span>
+    <h3 class="card-title">Access</h3>
+    {% if needs_password %}
+      <p class="text-muted">This account has not set a password yet. The original link expires after 72 hours.</p>
+      <form method="post" style="margin-top:1rem;">
+        {% csrf_token %}
+        <input type="hidden" name="resend_link" value="1">
+        {% include "components/button.html" with label="Re-send set-password link" variant="gold" size="sm" type="submit" %}
+      </form>
+    {% else %}
+      <p class="text-muted">Password set. They can use <em>Forgot password</em> on the login page to change it.</p>
+    {% endif %}
+    <p class="form-help" style="margin-top:1rem;">// Joined {{ edited.date_joined|date:"j M Y" }} &middot; last login {{ edited.last_login|date:"j M Y, H:i"|default:"never" }}</p>
+  </div>
+
+  <div class="card" style="margin-top:1.5rem;">
+    <span class="tlabel">// VERIFICATION</span>
+    <h3 class="card-title">Email and student status</h3>
+    <p class="text-muted">
+      {% if profile.is_email_verified %}{% include "components/badge.html" with label="Email verified" color="green" %}{% if profile.email_verified_at %} {{ profile.email_verified_at|date:"j M Y" }}{% endif %}
+      {% else %}{% include "components/badge.html" with label="Email unverified" color="red" %}{% endif %}
+    </p>
+    {% if not profile.is_email_verified %}
+      <form method="post" style="margin-top:0.75rem;">
+        {% csrf_token %}
+        <input type="hidden" name="verify_email" value="1">
+        {% include "components/button.html" with label="Mark email verified" variant="ghost" size="sm" type="submit" %}
+      </form>
+    {% endif %}
+    {% if profile.manual_verification_required %}
+      <p class="text-muted" style="margin-top:1rem;">
+        {% if profile.manual_verified_at %}
+          {% include "components/badge.html" with label="Student status confirmed" color="green" %} {{ profile.manual_verified_at|date:"j M Y" }} by {{ profile.manual_verified_by.username|default:"—" }}
+        {% else %}
+          {% include "components/badge.html" with label="Institution not recognised" color="gold" %}
+          <span class="form-help">The address is not at a listed institution. Check the ID document and confirm.</span>
+        {% endif %}
+      </p>
+      {% if profile.identity_document %}
+        <p style="margin-top:0.5rem;"><a href="{% url 'accounts:identity_document' edited.pk %}" class="btn btn-ghost btn-sm">Open ID document</a></p>
+      {% else %}
+        <p class="form-help" style="margin-top:0.5rem;">// No ID document uploaded yet.</p>
+      {% endif %}
+      {% if not profile.manual_verified_at %}
+        <form method="post" style="margin-top:0.75rem;">
+          {% csrf_token %}
+          <input type="hidden" name="verify_institution" value="1">
+          {% include "components/button.html" with label="Confirm student status" variant="gold" size="sm" type="submit" %}
+        </form>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% endif %}
 </div>
-
-<form>
-
-<div class="card">
-
-<h2>User Information</h2>
-
-<br>
-
-<div class="form-grid">
-
-{% include "components/input.html" with name="first_name" label="First Name" required=True %}
-
-{% include "components/input.html" with name="last_name" label="Last Name" required=True %}
-
-{% include "components/input.html" with name="username" label="Username" required=True %}
-
-{% include "components/input.html" with name="email" label="Email Address" type="email" required=True %}
-
-{% include "components/input.html" with name="phone" label="Phone Number" %}
-
-<div class="form-group">
-
-<label class="form-label">
-Role
-</label>
-
-<select class="select">
-
-<option>Administrator</option>
-<option>Judge</option>
-<option>Blue Team</option>
-<option>Red Team</option>
-<option>Partner</option>
-
-</select>
-
-</div>
-
-<div class="form-group">
-
-<label class="form-label">
-Team
-</label>
-
-<select class="select">
-
-<option>No Team</option>
-<option>Blue Team Alpha</option>
-<option>Blue Team Bravo</option>
-<option>Red Team Phoenix</option>
-
-</select>
-
-</div>
-
-<div class="form-group">
-
-<label class="form-label">
-Status
-</label>
-
-<select class="select">
-
-<option>Active</option>
-<option>Inactive</option>
-<option>Pending</option>
-
-</select>
-
-</div>
-
-{% include "components/input.html" with name="password" label="Password" type="password" required=True %}
-
-{% include "components/input.html" with name="confirm_password" label="Confirm Password" type="password" required=True %}
-
-</div>
-
-<hr>
-
-<div class="form-actions">
-
-{% include "components/button.html" with label="Save User" variant="primary" type="submit" %}
-
-{% include "components/button.html" with label="Cancel" href="/accounts/users/" variant="ghost" %}
-
-</div>
-
-</div>
-
-</form>
-
 {% endblock %}

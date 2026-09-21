@@ -40,6 +40,8 @@ underlying state changes:
 | Rejected | `Team.status` becomes `rejected` (reads `Team.rejection_reason`) |
 | Registration closing | `send_registration_reminders`, at 7d / 2d / 12h |
 | Member removed or withdrew | `TeamMember` deleted |
+| Invitation sent / accepted | `accounts/views.py` (`team_requests`, `invitation_respond`) |
+| Account created (staff-issued) | `services/account_service.issue_account()` |
 | Outstanding items | `send_outstanding_digest`, daily |
 | Submission uploaded / evaluated / results published / appeal filed / appeal resolved | submissions and judging signals |
 
@@ -66,42 +68,26 @@ from services import notification_catalogue as cat
 ```
 
 ### Account created
-```python
-cat.account_created(user, verification_url, expires_hours=24)
-```
-Call straight after creating the user, before any other mail: until the
-address is verified it is unproven. Deliberately **not** deduplicated — a
-resent verification link is a new message, not a duplicate.
+Now wired: `services/account_service.issue_account()` creates the user
+with an unusable password and sends the set-password link through this.
+Call `cat.account_created(user, url)` directly only for a separate
+email-verification flow, if one is ever added. Deliberately **not**
+deduplicated — a resent link is a new message, not a duplicate.
 
 ### Email verified
 ```python
 cat.email_verified(user)
 ```
 
-### Invitation sent
-```python
-cat.invitation_sent(email, team, captain, accept_url, expires_days=7,
-                    invitee_user=None)
-```
-The invitee usually has no account. With `invitee_user=None` this returns a
-`{"to", "subject", "body"}` dict for you to send directly, because there is
-no user to attach an in-app row to. Pass `invitee_user` when the address
-already belongs to an account and they get both.
-
-### Invitation accepted
-```python
-cat.invitation_accepted(team, member, outstanding=[...])
-```
-Goes to the captain. Pass `outstanding` — reuse
-`send_outstanding_digest.outstanding_for_member(member)` — so the captain
-sees what that person still owes rather than just that they joined.
+### Invitation sent / accepted
+Now wired (Entry Guide s.6 steps 6-7): `services/team_service.invite()` +
+`accounts/views.team_requests` send `invitation_sent`; the accept view sends
+`invitation_accepted` with the member's outstanding items. Nothing to call.
 
 ### Approved but waitlisted
-```python
-cat.registration_waitlisted(team, position, note="")
-```
-`position` is 1-based. There is no waitlist model yet; when you add one,
-this is the only call needed.
+Retired. The Guide (s.4) has no waitlist: places are awarded at proposal
+selection and the *reserve* named then is the only fallback
+(`Submission.SelectionStatus.RESERVE`).
 
 ### Policy version updated
 ```python

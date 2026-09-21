@@ -274,14 +274,16 @@ def on_competition_settings_saved(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Team, dispatch_uid="notifications.team_saved")
 def on_team_saved(sender, instance, created, **kwargs):
-    """Registration receipts and outcomes.
+    """Registration outcomes.
 
-    Status handlers fire on every save and rely on `dedupe_key` for
-    once-only delivery, the same pattern as evaluations.
+    The receipt is no longer sent on creation: creating a team is the
+    start of assembling one, and the receipt goes out when the captain
+    submits it (`team_service.submit_registration`). Status handlers fire
+    on every save and rely on `dedupe_key` for once-only delivery, the
+    same pattern as evaluations.
     """
     def send():
         if created:
-            cat.registration_submitted(instance)
             return
         if instance.status == Team.Status.APPROVED:
             assignment = instance.target_assignments.first()

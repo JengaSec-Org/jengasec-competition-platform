@@ -4,7 +4,7 @@
 {% include "components/page_header.html" with tag="ONBOARDING" title="Choose Your Role" %}
 
 <div class="card">
-  <p class="text-muted">Creating a team makes you its captain. Requesting to join makes you a member once the captain approves.</p>
+  <p class="text-muted">Captains create the team and invite its members. Members wait for their captain's invitation -- it arrives by email and shows up here.</p>
   {% url 'accounts:team_form' as team_form_url %}
   {% url 'accounts:choose_team' as choose_team_url %}
   <div class="form-actions">

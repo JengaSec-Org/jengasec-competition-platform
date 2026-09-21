@@ -25,36 +25,46 @@ from services import notification_catalogue as cat
 # Hours before the registration deadline at which a captain is warned.
 THRESHOLDS_HOURS = (168, 48, 12)  # 7 days, 2 days, 12 hours
 
-# Smallest team the rules accept. Kept here rather than in the model so
-# organisers can change it without a migration.
-MIN_MEMBERS = 4
-
-
 def outstanding_for(team):
     """What still stands between this team and a complete registration.
 
-    Deliberately literal: the captain gets this list verbatim, so each
-    entry has to name something they can act on.
+    Entry Guide section 2 and the rejection reasons in section 6. Literal
+    on purpose: the captain gets this list verbatim, so each entry has to
+    name something they can act on.
     """
+    from services.team_service import MAX_MEMBERS, MIN_MEMBERS, playing_count
+
     missing = []
     if not team.captain:
         missing.append("No captain is linked to a platform account.")
-    member_count = team.members.count()
-    if member_count < MIN_MEMBERS:
+    count = playing_count(team)
+    if count < MIN_MEMBERS:
         missing.append(
-            f"Only {member_count} member{'s' if member_count != 1 else ''} listed; "
-            f"at least {MIN_MEMBERS} are required."
+            f"Only {count} member{'s' if count != 1 else ''} on the roster; "
+            f"teams are {MIN_MEMBERS} to {MAX_MEMBERS} people."
         )
     unlinked = team.members.filter(user__isnull=True).count()
     if unlinked:
         missing.append(
-            f"{unlinked} member{'s have' if unlinked != 1 else ' has'} not yet "
-            f"created a platform account."
+            f"{unlinked} member{'s have' if unlinked != 1 else ' has'} not accepted "
+            f"their invitation yet (invitations expire after seven days)."
         )
+    pending = team.invitations.filter(status="pending", expires_at__gt=timezone.now()).count()
+    if pending:
+        missing.append(
+            f"{pending} invitation{'s are' if pending != 1 else ' is'} still waiting to be "
+            f"accepted; a registration cannot be submitted with invitations open."
+        )
+    if not team.members.filter(is_security_specialist=True).exists():
+        missing.append("No member is marked as the team's security specialist.")
     if not team.track:
-        missing.append("No track chosen (Cloud, Application or AI).")
+        missing.append("No track chosen (Application or AI).")
+    if team.track == team.Track.APPLICATION and team.team_type == team.TeamType.BLUE and not team.application_brief_id:
+        missing.append("No JengaBank brief chosen.")
     if not team.institution:
-        missing.append("Institution not set.")
+        missing.append("Lead institution not set.")
+    if team.mentor_email and not team.mentor_name:
+        missing.append("Mentor named by email but without a name.")
     return missing
 
 

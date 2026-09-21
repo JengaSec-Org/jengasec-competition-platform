@@ -1,54 +1,32 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login | JengaSec Evaluation Platform</title>
-<meta name="theme-color" content="#007A3D">
-<link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/variables.css' %}">
-<link rel="stylesheet" href="{% static 'css/reset.css' %}">
-<link rel="stylesheet" href="{% static 'css/typography.css' %}">
-<link rel="stylesheet" href="{% static 'css/buttons.css' %}">
-<link rel="stylesheet" href="{% static 'css/forms.css' %}">
-<link rel="stylesheet" href="{% static 'css/components.css' %}">
-</head>
-<body>
-<div class="btn">
-  <a href="{% url 'landing' %}" class="back-link">
-    <span class="back-link-icon">←</span>
-    <span class="back-link-text">Back to Home</span>
-  </a>
-</div>
-<div class="auth-shell">
-  <div class="auth-card">
-    <div class="auth-brand">Jenga<em>Sec</em></div>
-    <div class="auth-sub">// EVALUATION_PLATFORM :: AUTHENTICATE</div>
+{% extends "accounts/auth_base.html" %}
 
-    {% if form.errors %}
-      <div class="alert alert-error" role="alert">
-        <span class="alert-tag">[ERR]</span>
-        {% if form.non_field_errors %}
-          <span>{{ form.non_field_errors|join:" " }}</span>
-        {% else %}
-          <span>Invalid credentials. Check your username and password.</span>
-        {% endif %}
-      </div>
-    {% endif %}
+{% block title %}Login | JengaSec Evaluation Platform{% endblock %}
+{% block auth_context %}AUTHENTICATE{% endblock %}
 
-    <form method="post">
-      {% csrf_token %}
-      {% include "components/input.html" with name="username" label="Username" required=True %}
-      {% include "components/input.html" with name="password" label="Password" type="password" required=True %}
-      <input type="hidden" name="next" value="{{ next }}">
-      <button type="submit" class="btn btn-primary btn-block">Access Platform</button>
-    </form>
-    <p class="auth-alt">New here? <a href="{% url 'accounts:register' %}">Create an account</a></p>
+{% block heading %}
+<h1 class="auth-heading">Welcome back</h1>
+<p class="auth-lead">Sign in to your team, judging or organiser workspace.</p>
+{% endblock %}
+
+{% block card %}
+{% if form.errors %}
+  <div class="alert alert-error" role="alert">
+    <span class="alert-tag">[ERR]</span>
+    <span>Invalid credentials. Check your username and password.</span>
   </div>
-</div>
-</body>
-</html>
+{% endif %}
+
+<form method="post">
+  {% csrf_token %}
+  {% include "components/input.html" with name="username" label="Username" required=True %}
+  {% include "components/input.html" with name="password" label="Password" type="password" required=True %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <button type="submit" class="btn btn-primary btn-block">Access Platform</button>
+</form>
+
+<p class="auth-alt">
+  New here? <a href="{% url 'accounts:register' %}">Create an account</a>
+  &middot; <a href="{% url 'accounts:password_reset' %}">Forgot password?</a>
+  &middot; <a href="{% url 'accounts:resend_verification' %}">Resend verification</a>
+</p>
+{% endblock %}

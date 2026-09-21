@@ -1,87 +1,186 @@
 {% extends "base.html" %}
-{% load static %}
 
 {% block title %}{{ team.team_name }} | My Team{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
-{% endblock %}
 
 {% block content %}
 {% include "components/page_header.html" with tag="MY_TEAM" title=team.team_name %}
 
 <p class="text-muted" style="margin-bottom:1.5rem;">
-  {{ team.get_team_type_display }} &middot; {{ team.get_track_display }} track &middot; {{ team.competition.name }}
+  {% if team.team_identifier %}<code class="tlabel">{{ team.team_identifier }}</code> &middot;{% endif %}
+  {{ team.track_label|default:team.get_team_type_display }} &middot; {{ team.competition.name }}
+  {% if team.cell_id %}&middot; cell <code class="tlabel">{{ team.cell_label }}</code>{% endif %}
+  {% if team.application_brief %}&middot; brief {{ team.application_brief.code }} {{ team.application_brief.name }}{% endif %}
+  &middot;
   {% if is_captain %}
-    &middot; {% include "components/badge.html" with label="You are captain" color="gold" %}
+    {% include "components/badge.html" with label="You are captain" color="gold" %}
   {% else %}
-    &middot; {% include "components/badge.html" with label="Member" color="muted" %}
+    {% include "components/badge.html" with label="Member" color="muted" %}
   {% endif %}
+  &middot;
+  {% if team.status == "approved" %}{% include "components/badge.html" with label="Registration approved" color="green" %}
+  {% elif team.status == "rejected" %}{% include "components/badge.html" with label="Registration rejected" color="red" %}
+  {% elif team.status == "submitted" %}{% include "components/badge.html" with label="Submitted — under review" color="green" %}
+  {% else %}{% include "components/badge.html" with label="Registration in progress" color="gold" %}{% endif %}
 </p>
 
-{% if is_captain %}
+{% if team.status == "submitted" %}
+<div class="card" style="margin-bottom:1.5rem; border-left:4px solid var(--green, #007A3D);">
+  <span class="tlabel">// SUBMITTED {{ team.submitted_at|date:"j M Y, H:i" }}</span>
+  <h3 class="card-title">Under review</h3>
+  <p class="text-muted">The registration is locked while organisers review it (within 3 working days). Roster, preferences and declaration cannot change until they decide.</p>
+</div>
+{% elif team.status == "rejected" %}
+<div class="card" style="margin-bottom:1.5rem; border-left:4px solid var(--danger);">
+  <span class="tlabel">// REJECTED</span>
+  <h3 class="card-title">The organisers returned this registration</h3>
+  <div style="white-space:pre-wrap; margin:0.5rem 0 0;">{{ team.rejection_reason }}</div>
+  {% if is_captain %}<p class="form-help" style="margin-top:0.75rem;">// Correct the above and submit again before registration closes.</p>{% endif %}
+</div>
+{% elif team.status == "approved" and team.repository_url or team.status == "approved" and team.namespace %}
 <div class="card" style="margin-bottom:1.5rem;">
-  <span class="tlabel">// JOIN_REQUESTS</span>
-  <h3 class="card-title">Pending requests</h3>
-  {% if join_requests %}
-    <table class="table">
-      <thead>
-        <tr><th>User</th><th>Email</th><th>Requested</th><th></th></tr>
-      </thead>
-      <tbody>
-        {% for jr in join_requests %}
-          <tr>
-            <td>{{ jr.user.get_full_name|default:jr.user.username }}</td>
-            <td>{{ jr.user.email }}</td>
-            <td>{{ jr.requested_at|date:"j M Y, H:i" }}</td>
-            <td style="white-space:nowrap;">
-              <form method="post" action="{% url 'accounts:team_request_decide' jr.id 'approve' %}" style="display:inline">
-                {% csrf_token %}
-                {% include "components/button.html" with label="Approve" variant="primary" size="sm" type="submit" %}
-              </form>
-              <form method="post" action="{% url 'accounts:team_request_decide' jr.id 'reject' %}" style="display:inline">
-                {% csrf_token %}
-                {% include "components/button.html" with label="Decline" variant="ghost" size="sm" type="submit" %}
-              </form>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p class="text-muted">No pending requests. People who pick your team at sign-up will appear here.</p>
-  {% endif %}
+  <span class="tlabel">// WELCOME_PACK</span>
+  <h3 class="card-title">Your access</h3>
+  {% if team.repository_url %}<p>Repository: <a href="{{ team.repository_url }}">{{ team.repository_url }}</a></p>{% endif %}
+  {% if team.namespace %}<p>Namespace: <code class="tlabel">{{ team.namespace }}</code></p>{% endif %}
+  <p class="form-help" style="margin-top:0.5rem;">// Credentials are issued separately by the organisers, never through this page.</p>
+</div>
+{% endif %}
+
+{% if my_items and not team.is_locked %}
+<div class="card" style="margin-bottom:1.5rem; border-left:4px solid var(--gold);">
+  <span class="tlabel">// YOUR_ITEMS</span>
+  <h3 class="card-title">What you still have to do</h3>
+  <ul style="margin:0.5rem 0 0 1.25rem;">{% for item in my_items %}<li>{{ item }}</li>{% endfor %}</ul>
+  <p style="margin-top:0.75rem;">
+    {% url 'accounts:profile' as profile_url %}{% include "components/button.html" with label="My Profile" href=profile_url variant="ghost" size="sm" %}
+    {% if policy %}{% url 'accounts:conduct' as conduct_url %}{% include "components/button.html" with label="Code of conduct" href=conduct_url variant="ghost" size="sm" %}{% endif %}
+  </p>
+</div>
+{% endif %}
+
+{% if outstanding and not team.is_locked %}
+<div class="card" style="margin-bottom:1.5rem; border-left:4px solid var(--gold);">
+  <span class="tlabel">// TEAM_OUTSTANDING</span>
+  <h3 class="card-title">Before this registration can be submitted</h3>
+  <ul style="margin:0.5rem 0 0 1.25rem;">
+    {% for item in outstanding %}<li>{{ item }}</li>{% endfor %}
+  </ul>
+  <p class="form-help" style="margin-top:0.75rem;">// Teams are {{ min_members }} to {{ max_members }} people plus one optional reserve, with at least one security specialist.</p>
+</div>
+{% endif %}
+
+{% if is_captain and team.can_submit %}
+<div class="card" style="margin-bottom:1.5rem;{% if ready_to_submit %} border-left:4px solid var(--green, #007A3D);{% endif %}">
+  <span class="tlabel">// SUBMIT</span>
+  <h3 class="card-title">{% if ready_to_submit %}Everything is in place{% else %}Submission{% endif %}</h3>
+  <p class="text-muted" style="margin-bottom:0.75rem;">
+    {% if ready_to_submit %}Rank your track preferences, write the skills declaration and submit. The registration locks for review.
+    {% else %}The submit step opens once every item above and every member's checklist is clear.{% endif %}
+  </p>
+  {% url 'accounts:registration_submit' as submit_url %}
+  {% include "components/button.html" with label="Submit registration" href=submit_url variant="primary" size="sm" %}
+</div>
+{% endif %}
+
+{% if is_captain and not team.is_locked %}
+<div class="chart-grid" style="align-items:start; margin-bottom:1.5rem;">
+  <div class="card">
+    <span class="tlabel">// INVITE</span>
+    <h3 class="card-title">Invite a member</h3>
+    <p class="text-muted" style="margin-bottom:1rem;">
+      Invitations go to the address you enter and expire after seven days. The person
+      needs a verified JengaSec account under that exact address to accept.
+      {{ playing_count }} of {{ max_members }} places filled.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      {% include "components/form_field.html" with field=invite_form.email %}
+      <div class="form-group">
+        <label class="form-label" for="{{ invite_form.as_reserve.id_for_label }}">
+          <input type="checkbox" name="{{ invite_form.as_reserve.html_name }}" id="{{ invite_form.as_reserve.id_for_label }}">
+          {{ invite_form.as_reserve.label }}
+        </label>
+        <p class="form-help">A reserve may substitute once, with organiser approval.</p>
+      </div>
+      {% include "components/button.html" with label="Send invitation" variant="primary" size="sm" type="submit" %}
+    </form>
+  </div>
+
+  <div class="card">
+    <span class="tlabel">// PENDING_INVITATIONS</span>
+    <h3 class="card-title">Waiting to be accepted</h3>
+    {% if invitations %}
+      <table class="table">
+        <thead><tr><th>Email</th><th>Sent</th><th>Expires</th><th></th></tr></thead>
+        <tbody>
+          {% for inv in invitations %}
+            <tr>
+              <td>{{ inv.email }}</td>
+              <td>{{ inv.created_at|date:"j M" }}</td>
+              <td>{{ inv.expires_at|date:"j M" }}</td>
+              <td>
+                <form method="post" action="{% url 'accounts:invitation_revoke' inv.pk %}" style="display:inline">
+                  {% csrf_token %}
+                  {% include "components/button.html" with label="Withdraw" variant="ghost" size="sm" type="submit" %}
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-muted">None outstanding.</p>
+    {% endif %}
+  </div>
 </div>
 {% endif %}
 
 <div class="card">
   <span class="tlabel">// ROSTER</span>
-  <h3 class="card-title">Members ({{ members|length }})</h3>
-  {% if members %}
+  <h3 class="card-title">Members ({{ playing_count }}{% if members|length > playing_count %} + reserve{% endif %})</h3>
+  {% if checklist %}
+    <div class="table-wrap">
     <table class="table">
       <thead>
-        <tr><th>Name</th><th>Email</th><th>Role</th><th>Account</th>{% if is_captain %}<th></th>{% endif %}</tr>
+        <tr><th>Name</th><th>Email</th><th>Role</th><th>Specialist</th><th>Checklist</th>{% if is_captain and not team.is_locked %}<th></th>{% endif %}</tr>
       </thead>
       <tbody>
-        {% for m in members %}
+        {% for m, items in checklist %}
           <tr>
             <td>{{ m.student_name }}</td>
             <td>{{ m.email }}</td>
             <td>
-              {% if m.role == "captain" %}
-                {% include "components/badge.html" with label="Captain" color="gold" %}
-              {% else %}
-                {% include "components/badge.html" with label="Member" color="muted" %}
+              {% if m.role == "captain" %}{% include "components/badge.html" with label="Captain" color="gold" %}
+              {% elif m.role == "deputy" %}{% include "components/badge.html" with label="Deputy" color="gold" %}
+              {% elif m.role == "reserve" %}{% include "components/badge.html" with label="Reserve" color="muted" %}
+              {% else %}{% include "components/badge.html" with label="Member" color="muted" %}{% endif %}
+              {% if is_captain and not team.is_locked and m.role != "captain" and m.role != "reserve" %}
+                <form method="post" action="{% url 'accounts:member_toggle_deputy' m.id %}" style="display:inline; margin-left:0.35rem;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-ghost btn-sm" title="Toggle deputy">{% if m.role == "deputy" %}unset deputy{% else %}make deputy{% endif %}</button>
+                </form>
               {% endif %}
             </td>
             <td>
-              {% if m.user %}
-                {% include "components/badge.html" with label="Registered" color="green" %}
-              {% else %}
-                {% include "components/badge.html" with label="No account yet" color="muted" %}
+              {% if m.is_security_specialist %}{% include "components/badge.html" with label="Security" color="green" %}{% else %}<span class="text-muted">—</span>{% endif %}
+              {% if is_captain and not team.is_locked %}
+                <form method="post" action="{% url 'accounts:member_toggle_specialist' m.id %}" style="display:inline; margin-left:0.35rem;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-ghost btn-sm" title="Toggle security specialist">{% if m.is_security_specialist %}unset{% else %}set{% endif %}</button>
+                </form>
               {% endif %}
             </td>
-            {% if is_captain %}
+            <td>
+              {% if items %}
+                <span class="badge badge-gold">{{ items|length }} outstanding</span>
+                <ul class="form-help" style="margin:0.35rem 0 0 1rem; list-style:disc;">
+                  {% for item in items %}<li>{{ item }}</li>{% endfor %}
+                </ul>
+              {% else %}
+                {% include "components/badge.html" with label="Complete" color="green" %}
+              {% endif %}
+            </td>
+            {% if is_captain and not team.is_locked %}
             <td>
               {% if m.user_id != user.pk %}
                 <form method="post" action="{% url 'accounts:team_member_remove' m.id %}" style="display:inline"
@@ -96,8 +195,19 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
   {% else %}
     <p class="text-muted">Nobody on the roster yet.</p>
   {% endif %}
 </div>
+
+{% if team.is_locked and team.skills_declaration %}
+<div class="card" style="margin-top:1.5rem;">
+  <span class="tlabel">// AS_SUBMITTED</span>
+  <h3 class="card-title">Declaration</h3>
+  <p class="text-muted">Track preference: {{ team.track_preference_labels|join:", " }}{% if team.enterprise_preference %} &middot; enterprise preference {{ team.get_enterprise_preference_display }}{% endif %}</p>
+  <div style="white-space:pre-wrap; margin-top:0.75rem;">{{ team.skills_declaration }}</div>
+  {% if team.mentor_name %}<p class="form-help" style="margin-top:0.75rem;">// Mentor: {{ team.mentor_name }}{% if team.mentor_institution %}, {{ team.mentor_institution }}{% endif %}{% if team.mentor_email %} &middot; {{ team.mentor_email }}{% endif %}</p>{% endif %}
+</div>
+{% endif %}
 {% endblock %}

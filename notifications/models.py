@@ -17,7 +17,6 @@ class Notification(models.Model):
         OUTSTANDING_ITEMS = "outstanding_items", "Outstanding Items"
         REGISTRATION_SUBMITTED = "registration_submitted", "Registration Submitted"
         REGISTRATION_APPROVED = "registration_approved", "Registration Approved"
-        REGISTRATION_WAITLISTED = "registration_waitlisted", "Registration Waitlisted"
         REGISTRATION_REJECTED = "registration_rejected", "Registration Rejected"
         REGISTRATION_CLOSING = "registration_closing", "Registration Closing"
         MEMBERSHIP_CHANGED = "membership_changed", "Membership Changed"

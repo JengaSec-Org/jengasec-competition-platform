@@ -1,272 +1,87 @@
 {% extends "base.html" %}
-{% load static %}
 
-{% block title %}
-User Management
-{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
-{% endblock %}
+{% block title %}User Management | JengaSec{% endblock %}
 
 {% block content %}
-
-<div class="page-header">
-
-    <div class="page-title">
-
-        <h1>User Management</h1>
-
-        <p>
-            Manage platform users, teams and permissions.
-        </p>
-
-    </div>
-
-    {% include "components/button.html" with label="Register User" href="/accounts/user-form/" variant="primary" %}
-
+<div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; flex-wrap:wrap;">
+  <div>
+    <div class="eyebrow"><span class="tlabel">// USER_MANAGEMENT</span></div>
+    <h1>Users</h1>
+  </div>
+  {% url 'accounts:user_create' as create_url %}
+  {% include "components/button.html" with label="Issue an account" href=create_url variant="primary" %}
 </div>
 
-<div class="stats-grid">
-
-<div class="stat-card">
-
-<div class="stat-number">132</div>
-
-<div class="stat-label">
-Total Users
-</div>
-
-</div>
-
-<div class="stat-card">
-
-<div class="stat-number">120</div>
-
-<div class="stat-label">
-Active Users
-</div>
-
-</div>
-
-<div class="stat-card">
-
-<div class="stat-number">18</div>
-
-<div class="stat-label">
-Judges
-</div>
-
-</div>
-
-<div class="stat-card">
-
-<div class="stat-number">22</div>
-
-<div class="stat-label">
-Teams
-</div>
-
-</div>
-
+<div class="stat-grid" style="margin-bottom:1.5rem;">
+  <div class="card"><span class="tlabel">// TOTAL</span><h3 class="card-title">{{ stats.total }}</h3><p class="text-muted">Accounts</p></div>
+  <div class="card"><span class="tlabel">// ACTIVE</span><h3 class="card-title">{{ stats.active }}</h3><p class="text-muted">Can sign in</p></div>
+  <div class="card"><span class="tlabel">// JUDGES</span><h3 class="card-title">{{ stats.judges }}</h3><p class="text-muted">Judge role</p></div>
+  <div class="card"><span class="tlabel">// TEAMS</span><h3 class="card-title">{{ stats.teams }}</h3><p class="text-muted"><a href="{% url 'accounts:team_list' %}">Manage teams</a></p></div>
+  <div class="card"><span class="tlabel">// TO_CONFIRM</span><h3 class="card-title">{{ stats.manual }}</h3><p class="text-muted"><a href="{% url 'accounts:user_list' %}?manual=1">Student status to confirm</a></p></div>
 </div>
 
 <div class="card">
+  <form method="get" style="display:flex; gap:0.75rem; align-items:flex-end; flex-wrap:wrap; margin-bottom:1.25rem;">
+    <div class="form-group" style="flex:1; min-width:220px; margin:0;">
+      <label class="form-label" for="id_q">Search</label>
+      <input class="input" type="text" id="id_q" name="q" value="{{ q }}" placeholder="Name, username or email">
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label" for="id_role">Role</label>
+      <select class="select" id="id_role" name="role">
+        <option value="">All roles</option>
+        {% for value, label in roles %}
+          <option value="{{ value }}" {% if role == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% include "components/button.html" with label="Filter" variant="ghost" size="sm" type="submit" %}
+  </form>
 
-<div class="toolbar">
-
-<div class="toolbar-left">
-
-<div class="search-box">
-
-{% include "components/input.html" with name="search" label="Search Users" placeholder="Search by name or email" %}
-
+  {% if users %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>User</th><th>Email</th><th>Role</th><th>Institution</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td>
+              <strong>{{ u.get_full_name|default:u.username }}</strong>
+              <div class="form-help">{{ u.username }}</div>
+            </td>
+            <td>{{ u.email }}</td>
+            <td>
+              {% if u.is_superuser or u.is_staff %}
+                {% include "components/badge.html" with label="Admin" color="gold" %}
+              {% elif u.profile.role %}
+                {% include "components/badge.html" with label=u.profile.get_role_display color="green" %}
+              {% else %}
+                {% include "components/badge.html" with label="No role" color="muted" %}
+              {% endif %}
+            </td>
+            <td>{{ u.profile.institution|default:"—" }}</td>
+            <td>
+              {% if not u.is_active %}
+                {% include "components/badge.html" with label="Disabled" color="red" %}
+              {% elif not u.has_usable_password %}
+                {% include "components/badge.html" with label="Awaiting password" color="gold" %}
+              {% else %}
+                {% include "components/badge.html" with label="Active" color="green" %}
+              {% endif %}
+            </td>
+            <td>
+              {% url 'accounts:user_edit' u.pk as edit_url %}
+              {% include "components/button.html" with label="Edit" href=edit_url variant="ghost" size="sm" %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="table-empty">No users match.</p>
+  {% endif %}
 </div>
-
-</div>
-
-<div class="toolbar-right">
-
-<select class="select">
-
-<option>All Roles</option>
-
-<option>Administrator</option>
-
-<option>Judge</option>
-
-<option>Blue Team</option>
-
-<option>Red Team</option>
-
-<option>Partner</option>
-
-</select>
-
-</div>
-
-</div>
-
-<table class="table">
-
-<thead>
-
-<tr>
-
-<th></th>
-
-<th>Name</th>
-
-<th>Email</th>
-
-<th>Role</th>
-
-<th>Status</th>
-
-<th>Last Login</th>
-
-<th>Actions</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-<tr>
-
-<td>
-
-<div class="avatar">
-J
-</div>
-
-</td>
-
-<td>John Mwangi</td>
-
-<td>john@jengasec.org</td>
-
-<td>Judge</td>
-
-<td>
-
-<span class="badge badge-success">
-
-Active
-
-</span>
-
-</td>
-
-<td>Today</td>
-
-<td>
-
-<div class="action-buttons">
-
-{% include "components/button.html" with label="View" variant="ghost" size="sm" %}
-
-{% include "components/button.html" with label="Edit" href="/accounts/user-form/" variant="gold" size="sm" %}
-
-</div>
-
-</td>
-
-</tr>
-
-<tr>
-
-<td>
-
-<div class="avatar">
-
-M
-
-</div>
-
-</td>
-
-<td>Mary Achieng</td>
-
-<td>mary@jengasec.org</td>
-
-<td>Administrator</td>
-
-<td>
-
-<span class="badge badge-success">
-
-Active
-
-</span>
-
-</td>
-
-<td>Yesterday</td>
-
-<td>
-
-<div class="action-buttons">
-
-{% include "components/button.html" with label="View" variant="ghost" size="sm" %}
-
-{% include "components/button.html" with label="Edit" variant="gold" size="sm" %}
-
-</div>
-
-</td>
-
-</tr>
-
-<tr>
-
-<td>
-
-<div class="avatar">
-
-A
-
-</div>
-
-</td>
-
-<td>Ahmed Hassan</td>
-
-<td>ahmed@jengasec.org</td>
-
-<td>Blue Team</td>
-
-<td>
-
-<span class="badge badge-warning">
-
-Pending
-
-</span>
-
-</td>
-
-<td>2 days ago</td>
-
-<td>
-
-<div class="action-buttons">
-
-{% include "components/button.html" with label="View" variant="ghost" size="sm" %}
-
-{% include "components/button.html" with label="Edit" variant="gold" size="sm" %}
-
-</div>
-
-</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-</div>
-
 {% endblock %}

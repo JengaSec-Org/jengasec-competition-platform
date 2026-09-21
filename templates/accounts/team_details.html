@@ -1,158 +1,155 @@
 {% extends "base.html" %}
-{% load static %}
 
-{% block title %}Team Details{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
-{% endblock %}
+{% block title %}{{ team.team_name }} | Teams | JengaSec{% endblock %}
 
 {% block content %}
+{% include "components/page_header.html" with tag="USER_MANAGEMENT" title=team.team_name %}
 
-<div class="page-header">
+<p class="text-muted" style="margin-bottom:1.5rem;">
+  <code class="tlabel">{{ reference }}</code> &middot;
+  {{ team.track_label|default:team.get_team_type_display }}
+  &middot; {{ team.competition.name }}
+  {% if team.institution %}&middot; {{ team.institution }}{% endif %}
+  &middot;
+  {% if team.status == "approved" %}{% include "components/badge.html" with label=team.get_status_display color="green" %}
+  {% elif team.status == "rejected" %}{% include "components/badge.html" with label=team.get_status_display color="red" %}
+  {% elif team.status == "submitted" %}{% include "components/badge.html" with label=team.get_status_display color="green" %}
+  {% else %}{% include "components/badge.html" with label=team.get_status_display color="gold" %}{% endif %}
+  {% if team.submitted_at %}&middot; submitted {{ team.submitted_at|date:"j M Y, H:i" }}{% endif %}
+  {% if team.cell_id %}&middot; cell <code class="tlabel">{{ team.cell_label }}</code>{% endif %}
+  {% if team.application_brief %}&middot; brief {{ team.application_brief.code }} {{ team.application_brief.name }}{% endif %}
+</p>
 
-<div class="page-title">
+<div class="chart-grid" style="align-items:start;">
+  <div>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <span class="tlabel">// ROSTER</span>
+      <h3 class="card-title">Members ({{ checklist|length }})</h3>
+      {% if checklist %}
+        <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Name</th><th>Role</th><th>Verification</th><th>Checklist</th><th>ID</th></tr></thead>
+          <tbody>
+            {% for m, items in checklist %}
+              <tr>
+                <td>
+                  {{ m.student_name }}
+                  <div class="form-help">{{ m.email }}{% if m.user.profile.phone %} &middot; {{ m.user.profile.phone }}{% endif %}</div>
+                  {% if m.user.profile.date_of_birth %}<div class="form-help">DOB {{ m.user.profile.date_of_birth|date:"j M Y" }}{% if m.user.profile.student_number %} &middot; {{ m.user.profile.student_number }}{% endif %}{% if m.user.profile.programme %} &middot; {{ m.user.profile.programme }}{% endif %}</div>{% endif %}
+                </td>
+                <td>
+                  {% if m.role == "captain" %}{% include "components/badge.html" with label="Captain" color="gold" %}
+                  {% elif m.role == "deputy" %}{% include "components/badge.html" with label="Deputy" color="gold" %}
+                  {% elif m.role == "reserve" %}{% include "components/badge.html" with label="Reserve" color="muted" %}
+                  {% else %}{% include "components/badge.html" with label="Member" color="muted" %}{% endif %}
+                  {% if m.is_security_specialist %}{% include "components/badge.html" with label="Security" color="green" %}{% endif %}
+                </td>
+                <td>
+                  {% if not m.user %}{% include "components/badge.html" with label="No account" color="muted" %}
+                  {% else %}
+                    {% if m.user.profile.is_email_verified %}{% include "components/badge.html" with label="Email ok" color="green" %}{% else %}{% include "components/badge.html" with label="Email unverified" color="red" %}{% endif %}
+                    {% if m.user.profile.manual_verification_required %}
+                      {% if m.user.profile.manual_verified_at %}{% include "components/badge.html" with label="Institution confirmed" color="green" %}
+                      {% else %}<a href="{% url 'accounts:user_edit' m.user.pk %}">{% include "components/badge.html" with label="Institution: confirm" color="gold" %}</a>{% endif %}
+                    {% endif %}
+                  {% endif %}
+                </td>
+                <td>
+                  {% if items %}
+                    <ul class="form-help" style="margin:0 0 0 1rem; list-style:disc;">{% for item in items %}<li>{{ item }}</li>{% endfor %}</ul>
+                  {% else %}{% include "components/badge.html" with label="Complete" color="green" %}{% endif %}
+                </td>
+                <td>
+                  {% if m.user and m.user.profile.identity_document %}
+                    <a href="{% url 'accounts:identity_document' m.user.pk %}" class="btn btn-ghost btn-sm">Open</a>
+                  {% else %}<span class="text-muted">—</span>{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      {% else %}
+        <p class="text-muted">No members on the roster.</p>
+      {% endif %}
+    </div>
 
-<h1>Blue Alpha</h1>
+    {% if team.skills_declaration %}
+    <div class="card" style="margin-bottom:1.5rem;">
+      <span class="tlabel">// DECLARATION</span>
+      <h3 class="card-title">Preferences and skills</h3>
+      <p class="text-muted">Tracks: {{ team.track_preference_labels|join:" → " }}{% if team.enterprise_preference %} &middot; prefers {{ team.get_enterprise_preference_display }}{% endif %}</p>
+      <div style="white-space:pre-wrap; margin-top:0.75rem;">{{ team.skills_declaration }}</div>
+      {% if team.mentor_name %}<p class="form-help" style="margin-top:0.75rem;">// Mentor: {{ team.mentor_name }}{% if team.mentor_institution %}, {{ team.mentor_institution }}{% endif %}{% if team.mentor_email %} &middot; {{ team.mentor_email }}{% endif %}{% if team.mentor_phone %} &middot; {{ team.mentor_phone }}{% endif %}</p>{% endif %}
+    </div>
+    {% endif %}
 
-<p>Competition Team Details</p>
+    {% if outstanding %}
+    <div class="card" style="margin-bottom:1.5rem; border-left:4px solid var(--gold);">
+      <span class="tlabel">// OUTSTANDING</span>
+      <h3 class="card-title">Registration is not complete</h3>
+      <ul style="margin:0.5rem 0 0 1.25rem;">{% for item in outstanding %}<li>{{ item }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
 
+    {% if invitations %}
+    <div class="card">
+      <span class="tlabel">// PENDING_INVITATIONS</span>
+      <h3 class="card-title">{{ invitations|length }} invitation{{ invitations|length|pluralize }} not yet accepted</h3>
+      <ul style="margin:0.5rem 0 0 1.25rem;">
+        {% for inv in invitations %}<li>{{ inv.email }} &middot; <span class="form-help">expires {{ inv.expires_at|date:"j M Y" }}</span></li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <span class="tlabel">// DECISION</span>
+      <h3 class="card-title">Registration outcome</h3>
+      {% if team.status != "submitted" and team.status != "rejected" and team.status != "approved" %}
+        <div class="alert alert-info" role="alert"><span class="alert-tag">[NOTE]</span><span>The captain has not submitted this registration yet.</span></div>
+      {% endif %}
+      <p class="text-muted" style="margin-bottom:1rem;">
+        Approval issues the team identifier{% if suggested.1 and not team.submits_proposal %} and assigns cell <code class="tlabel">{{ suggested.1 }}</code> in {{ suggested.0|upper }}{% else %}; the cell follows at proposal selection{% endif %}.
+        The team is notified by email either way; a rejection sends the reasons verbatim.
+      </p>
+      {% if team.rejection_reason and team.status == "rejected" %}
+        <div class="alert alert-warning" role="alert" style="display:block; white-space:pre-wrap;"><span class="alert-tag">[LAST]</span> {{ team.rejection_reason }}</div>
+      {% endif %}
+      <form method="post" action="{% url 'accounts:team_decide' team.pk %}">
+        {% csrf_token %}
+        {% include "components/form_field.html" with field=form.decision %}
+        {% include "components/form_field.html" with field=form.enterprise %}
+        {% include "components/form_field.html" with field=form.cell_id %}
+        <div class="form-group">
+          <label class="form-label">{{ form.reasons.label }}</label>
+          {% for choice in form.reasons %}
+            <label style="display:block; margin:0.3rem 0; font-size:13px;">{{ choice.tag }} {{ choice.choice_label }}</label>
+          {% endfor %}
+          {% for error in form.reasons.errors %}<div class="form-error">// {{ error }}</div>{% endfor %}
+        </div>
+        {% include "components/form_field.html" with field=form.rejection_reason %}
+        {% include "components/button.html" with label="Apply decision" variant="primary" type="submit" %}
+      </form>
+    </div>
+
+    <div class="card">
+      <span class="tlabel">// WELCOME_PACK</span>
+      <h3 class="card-title">Repository and namespace</h3>
+      <p class="text-muted" style="margin-bottom:1rem;">Recorded here, shown on the team's page, and quoted in the approval notice when set before approval. Credentials never go through the platform.</p>
+      <form method="post" action="{% url 'accounts:team_welcome_pack' team.pk %}">
+        {% csrf_token %}
+        {% include "components/form_field.html" with field=pack_form.repository_url %}
+        {% include "components/form_field.html" with field=pack_form.namespace %}
+        {% include "components/button.html" with label="Save welcome pack" variant="ghost" size="sm" type="submit" %}
+      </form>
+    </div>
+  </div>
 </div>
 
-{% include "components/button.html" with label="Edit Team" href="/accounts/team-form/" variant="gold" %}
-
-</div>
-
-<div class="stats-grid">
-
-<div class="stat-card">
-
-<div class="stat-number">6</div>
-
-<div class="stat-label">Members</div>
-
-</div>
-
-<div class="stat-card">
-
-<div class="stat-number">4</div>
-
-<div class="stat-label">Submissions</div>
-
-</div>
-
-<div class="stat-card">
-
-<div class="stat-number">89%</div>
-
-<div class="stat-label">Average Score</div>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<h2>Team Information</h2>
-
-<table class="table">
-
-<tbody>
-
-<tr>
-
-<th>Captain</th>
-
-<td>John Mwangi</td>
-
-</tr>
-
-<tr>
-
-<th>Category</th>
-
-<td>Blue Team</td>
-
-</tr>
-
-<tr>
-
-<th>Organization</th>
-
-<td>Strathmore University</td>
-
-</tr>
-
-<tr>
-
-<th>Status</th>
-
-<td><span class="badge badge-success">Active</span></td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-</div>
-
-<div class="card" style="margin-top:25px;">
-
-<h2>Team Members</h2>
-
-<table class="table">
-
-<thead>
-
-<tr>
-
-<th>Name</th>
-
-<th>Role</th>
-
-<th>Email</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-<tr>
-
-<td>John Mwangi</td>
-
-<td>Captain</td>
-
-<td>john@jengasec.org</td>
-
-</tr>
-
-<tr>
-
-<td>Mary Achieng</td>
-
-<td>Member</td>
-
-<td>mary@jengasec.org</td>
-
-</tr>
-
-<tr>
-
-<td>Ahmed Hassan</td>
-
-<td>Member</td>
-
-<td>ahmed@jengasec.org</td>
-
-</tr>
-
-</tbody>
-
-</table>
-
-</div>
-
+<p style="margin-top:1.5rem;">
+  {% url 'accounts:team_list' as back_url %}
+  {% include "components/button.html" with label="← All teams" href=back_url variant="ghost" size="sm" %}
+</p>
 {% endblock %}

@@ -24,23 +24,62 @@ from accounts.models import Team, TeamMember
 from services import notification_catalogue as cat
 
 
-def outstanding_for_member(member):
-    """What this member personally still owes. Empty list means done."""
+def outstanding_for_member(member, on_date=None):
+    """What this member personally still owes. Empty list means done.
+
+    Entry Guide section 6, steps 1-7: verified email, recognised (or
+    manually confirmed) institution, profile details, ID document within
+    the age band, the current code of conduct, and -- for the captain and
+    deputy -- a phone number. `on_date` is the registration date the age
+    rule is checked against; today when not given.
+    """
     missing = []
     if member.user is None:
         # Nothing to send in-app to, but recorded so the captain's view of
         # the team is honest about it.
         missing.append("Create a platform account using this email address.")
         return missing
-    if not member.user.email:
+    user = member.user
+    if not user.email:
         missing.append("Add an email address to your account.")
-    if not member.user.first_name and not member.user.last_name:
+    if not user.first_name and not user.last_name:
         missing.append("Add your full name to your profile.")
-    profile = getattr(member.user, "profile", None)
-    if profile is not None and not profile.role:
-        missing.append("Your account has no role yet -- ask an organiser to set it.")
-    if profile is not None and not profile.institution:
+    profile = getattr(user, "profile", None)
+    if profile is None:
+        return missing
+    if not profile.is_email_verified:
+        missing.append("Verify your email address (the link is in your inbox).")
+    if not profile.is_institution_verified:
+        missing.append(
+            "Your address is not at a recognised institution; an organiser "
+            "will confirm your student status from your ID document."
+        )
+    if not profile.institution:
         missing.append("Set your institution on your profile.")
+    if profile.date_of_birth is None:
+        missing.append("Add your date of birth to your profile.")
+    elif not profile.is_age_eligible(on_date):
+        missing.append(
+            f"Competitors must be {profile.MIN_AGE} to {profile.MAX_AGE} on the "
+            f"registration date; your date of birth puts you outside that."
+        )
+    if not profile.student_number:
+        missing.append("Add your student number to your profile.")
+    if not profile.programme:
+        missing.append("Add your programme of study to your profile.")
+    if not profile.repo_handle:
+        missing.append("Add your repository handle (GitHub / GitLab) to your profile.")
+    if not profile.identity_document:
+        missing.append("Upload your student or national ID (PDF, JPG or PNG, up to 5 MB).")
+    if member.role in member.CONTACT_ROLES and not profile.phone:
+        missing.append(
+            f"As {member.get_role_display().lower()} you must add a phone number "
+            f"in international format."
+        )
+    from services.account_service import has_accepted_current_policy
+
+    if not has_accepted_current_policy(user):
+        missing.append("Read and accept the current code of conduct.")
     return missing
 
 
@@ -60,7 +99,9 @@ class Command(BaseCommand):
 
         members = (
             TeamMember.objects.filter(
-                team__status__in=(Team.Status.REGISTERED, Team.Status.APPROVED)
+                team__status__in=(
+                    Team.Status.REGISTERED, Team.Status.REJECTED, Team.Status.APPROVED
+                )
             )
             .select_related("team", "team__competition", "user", "user__profile")
         )

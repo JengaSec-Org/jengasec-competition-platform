@@ -38,6 +38,9 @@ class Submission(models.Model):
         PENDING = "pending", "Pending Review"
         SHORTLISTED = "shortlisted", "Shortlisted"
         SELECTED = "selected", "Selected to Build"
+        # The fourth-strongest proposal per brief. The only fallback if a
+        # selected team withdraws -- there is no waitlist (Guide section 4).
+        RESERVE = "reserve", "Reserve"
         REJECTED = "rejected", "Not Selected"
 
     team = models.ForeignKey(

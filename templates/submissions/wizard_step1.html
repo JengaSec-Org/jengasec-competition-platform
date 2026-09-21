@@ -34,11 +34,17 @@
         <option value="">— Select a competition —</option>
         {% for competition in competitions %}
           <option value="{{ competition.pk }}" {% if competition.pk == selected_competition_id %}selected{% endif %}>
-            {{ competition.name }} ({{ competition.start_date|date:"M d" }} – {{ competition.end_date|date:"M d, Y" }})
+            {{ competition.name }} (event {{ competition.start_date|date:"M d" }} – {{ competition.end_date|date:"M d, Y" }})
           </option>
         {% endfor %}
       </select>
-      <div class="form-help">Closes {{ competitions.0.end_date|date:"F j, Y" }} for the first listed competition.</div>
+      {% with first=competitions.0 %}
+        {% if first.settings.submission_deadline %}
+          <div class="form-help">Submission window closes {{ first.settings.submission_deadline|date:"F j, Y, H:i" }} EAT for {{ first.name }} — enforced by the platform clock.</div>
+        {% else %}
+          <div class="form-help">No submission deadline published yet for {{ first.name }}.</div>
+        {% endif %}
+      {% endwith %}
     </div>
 
     {% if types %}

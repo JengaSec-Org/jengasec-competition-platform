@@ -25,13 +25,33 @@ from submissions.models import (
 
 logger = logging.getLogger(__name__)
 
-# Submission types each side of the competition may file.
-BLUE_TEAM_TYPES = ("Proposal", "Blue Team Documentation", "Blue Team Report")
+# Submission types (Entry Guide section 3). Three registration-phase
+# proposal types, one per track that submits one; Application Red is
+# registration-only and goes through challenges from 1 October instead.
+APPLICATION_BLUE_PROPOSAL = "Application Blue Proposal"
+AI_DEFENCE_PROPOSAL = "AI Defence Proposal"
+AI_RED_PROPOSAL = "AI Red Proposal"
+
+PROPOSAL_TYPE_FOR = {
+    (Team.TeamType.BLUE, Team.Track.APPLICATION): APPLICATION_BLUE_PROPOSAL,
+    (Team.TeamType.BLUE, Team.Track.AI): AI_DEFENCE_PROPOSAL,
+    (Team.TeamType.RED, Team.Track.AI): AI_RED_PROPOSAL,
+}
+PROPOSAL_TYPES = tuple(PROPOSAL_TYPE_FOR.values())
+
+BLUE_TEAM_TYPES = ("Blue Team Documentation", "Blue Team Report")
 RED_TEAM_TYPES = ("Red Team Documentation", "Red Team Report")
 SHARED_TYPES = ("Supporting Evidence",)
-# AI Red teams register by proposal; Cloud and Application Red teams
-# qualify through the elimination challenge instead.
-AI_RED_EXTRA_TYPES = ("Proposal",)
+
+
+def proposal_type_name(team):
+    """The proposal type this team submits, or None (Application Red)."""
+    return PROPOSAL_TYPE_FOR.get((team.team_type, team.track))
+
+
+def is_proposal(submission):
+    return submission.submission_type.name in PROPOSAL_TYPES
+
 
 # One team cannot fill the disk by re-uploading forever.
 MAX_VERSIONS_PER_SUBMISSION = 20
@@ -50,22 +70,25 @@ def teams_for(user):
 def open_competitions_for(user):
     """Competitions the user may submit to right now (wizard step 1).
 
-    Time-based gate: the competition must be accepting submissions and
-    today must fall within its window.
+    The window is the organisers' switch plus the published submission
+    deadline (Entry Guide section 7) -- not the event dates. Proposals are
+    written weeks before the event; `start_date`/`end_date` describe the
+    days at Strathmore, and gating on them shut the window before it had
+    opened. The deadline is enforced by the platform clock.
     """
-    today = timezone.localdate()
+    now = timezone.now()
     team_competition_ids = teams_for(user).values_list("competition_id", flat=True)
     return (
         Competition.objects.filter(
             id__in=team_competition_ids,
             status__in=(Competition.Status.OPEN, Competition.Status.IN_PROGRESS),
-            start_date__lte=today,
-            end_date__gte=today,
         )
         # An organiser closing submissions must actually stop uploads, not
         # just hide the buttons. Competitions with no settings row yet are
-        # left in — the default is open.
+        # left in -- the default is open.
         .exclude(settings_row__submissions_open=False)
+        # Past the published deadline the window is shut, full stop.
+        .exclude(settings_row__submission_deadline__lt=now)
         .distinct()
         .order_by("start_date")
     )
@@ -73,12 +96,11 @@ def open_competitions_for(user):
 
 def submission_types_for(team):
     """Document types this team is allowed to file."""
-    if team.team_type == Team.TeamType.BLUE:
-        allowed = SHARED_TYPES + BLUE_TEAM_TYPES
-    else:
-        allowed = SHARED_TYPES + RED_TEAM_TYPES
-        if team.track == Team.Track.AI:
-            allowed += AI_RED_EXTRA_TYPES
+    side = BLUE_TEAM_TYPES if team.team_type == Team.TeamType.BLUE else RED_TEAM_TYPES
+    allowed = SHARED_TYPES + side
+    proposal = proposal_type_name(team)
+    if proposal:
+        allowed = (proposal,) + allowed
     return SubmissionType.objects.filter(name__in=allowed).order_by("name")
 
 

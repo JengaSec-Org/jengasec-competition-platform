@@ -16,7 +16,9 @@ Replace "#" with {% url %} tags as each module ships its views.
     <div class="side-heading">// Operations</div>
     <a class="side-link" href="{% url 'dashboard:admin_dashboard' %}"><span class="glyph">&#9881;</span> Command Center</a>
     <a class="side-link" href="{% url 'competitions:list' %}"><span class="glyph">&#9873;</span> Competitions</a>
-    <a class="side-link" href="#"><span class="glyph">&#9632;</span> Teams</a>
+    <a class="side-link" href="{% url 'accounts:team_list' %}"><span class="glyph">&#9632;</span> Teams</a>
+    <a class="side-link" href="{% url 'accounts:user_list' %}"><span class="glyph">&#9823;</span> Users</a>
+    <a class="side-link" href="{% url 'accounts:role_list' %}"><span class="glyph">&#9919;</span> Roles</a>
     <a class="side-link" href="{% url 'submissions:list' %}"><span class="glyph">&#9776;</span> Submissions</a>
     <a class="side-link" href="{% url 'submissions:proposal_review' %}"><span class="glyph">&#9998;</span> Proposal Review</a>
   </div>
@@ -27,6 +29,7 @@ Replace "#" with {% url %} tags as each module ships its views.
     <div class="side-heading">// Blue Team</div>
     <a class="side-link" href="{% url 'dashboard:blue_dashboard' %}"><span class="glyph">&#9640;</span> Team Dashboard</a>
     <a class="side-link" href="{% url 'accounts:team_requests' %}"><span class="glyph">&#9823;</span> My Team</a>
+    <a class="side-link" href="{% url 'accounts:conduct' %}"><span class="glyph">&#9998;</span> Code of Conduct</a>
     <a class="side-link" href="{% url 'submissions:wizard_step1' %}"><span class="glyph">&#8679;</span> Upload Document</a>
     <a class="side-link" href="{% url 'submissions:list' %}"><span class="glyph">&#9776;</span> Submission History</a>
     <a class="side-link" href="{% url 'dashboard:info' %}"><span class="glyph">&#9432;</span> Info &amp; Scoring</a>
@@ -41,6 +44,7 @@ Replace "#" with {% url %} tags as each module ships its views.
     <div class="side-heading">// Red Team</div>
     <a class="side-link" href="{% url 'dashboard:red_dashboard' %}"><span class="glyph">&#9640;</span> Team Dashboard</a>
     <a class="side-link" href="{% url 'accounts:team_requests' %}"><span class="glyph">&#9823;</span> My Team</a>
+    <a class="side-link" href="{% url 'accounts:conduct' %}"><span class="glyph">&#9998;</span> Code of Conduct</a>
     {% if competition_phase == "live" %}
     <a class="side-link" href="{% url 'dashboard:red_target_access' %}"><span class="glyph">&#9678;</span> Target Access</a>
     {% endif %}
@@ -59,13 +63,12 @@ Replace "#" with {% url %} tags as each module ships its views.
     <a class="side-link" href="{% url 'judging:rubric_builder' %}"><span class="glyph">&#9636;</span> Rubrics</a>
     {% endif %}
     <a class="side-link" href="{% url 'judging:scoring_config' %}"><span class="glyph">&#9881;</span> Scoring Configuration</a>
-    <a class="side-link" href="#"><span class="glyph">&#9650;</span> Analytics</a>
-    <a class="side-link" href="#"><span class="glyph">&#9636;</span> Reports</a>
   </div>
   {% endif %}
 
   <div class="side-section">
     <div class="side-heading">// Account</div>
+    <a class="side-link" href="{% url 'accounts:profile' %}"><span class="glyph">&#9787;</span> My Profile</a>
     <a class="side-link" href="{% url 'notifications:list' %}"><span class="glyph">&#9993;</span> Notifications{% if unread_notifications %} <span class="badge badge-gold">{{ unread_notifications }}</span>{% endif %}</a>
     {% if user.is_staff %}
     <a class="side-link" href="/admin/"><span class="glyph">&#9919;</span> Django Admin</a>

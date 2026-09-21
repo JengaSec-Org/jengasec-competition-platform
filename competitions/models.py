@@ -201,7 +201,9 @@ class ApplicationBrief(models.Model):
     competition = models.ForeignKey(
         Competition, on_delete=models.CASCADE, related_name="application_briefs"
     )
-    code = models.CharField(max_length=20, help_text="e.g. APP-A1")
+    # Cell code, e.g. APP03 -- the same code exists in both enterprises,
+    # because every brief is built twice (Entry Guide section 1).
+    code = models.CharField(max_length=20, help_text="e.g. APP03")
     name = models.CharField(max_length=200)
     enterprise = models.CharField(max_length=1, choices=Enterprise.choices, blank=True)
     track = models.CharField(
@@ -209,10 +211,15 @@ class ApplicationBrief(models.Model):
     )
     summary = models.TextField(blank=True)
     requirements = models.TextField(
-        blank=True, help_text="One requirement per line."
+        blank=True, help_text="'Security it must get right' -- one requirement per line."
     )
+    # 'What Red will try' (Entry Guide section 5). Shown to the Red team
+    # assigned to this cell and to the Blue team building it.
+    red_exposure = models.TextField(blank=True)
+    # Fraud Monitoring and Notifications & Statements are optional briefs.
+    is_optional = models.BooleanField(default=False)
     proposal_cap = models.PositiveIntegerField(
-        default=20, help_text="Maximum proposals accepted for this application."
+        default=10, help_text="Each published brief accepts up to ten proposals (Guide section 4)."
     )
     is_open = models.BooleanField(default=True)
 
@@ -220,12 +227,23 @@ class ApplicationBrief(models.Model):
         ordering = ["enterprise", "code"]
         constraints = [
             models.UniqueConstraint(
-                fields=["competition", "code"], name="unique_brief_per_competition"
+                fields=["competition", "enterprise", "code"],
+                name="unique_brief_per_enterprise",
             )
         ]
 
     def __str__(self):
-        return f"{self.code} — {self.name}"
+        return f"{self.enterprise_code} {self.code} — {self.name}"
+
+    @property
+    def enterprise_code(self):
+        from competitions.constants import ENTERPRISE_CODES
+
+        return ENTERPRISE_CODES.get(self.enterprise, "")
+
+    @property
+    def red_exposure_list(self):
+        return [line.strip() for line in self.red_exposure.splitlines() if line.strip()]
 
     @property
     def proposal_count(self):

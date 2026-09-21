@@ -15,6 +15,8 @@ from accounts.roles import BLUE_TEAM, JUDGE, PARTNER, RED_TEAM, user_in_role
 from competitions.models import Competition
 from judging.models import Evaluation
 from services import competition_service as comp
+from services import submission_service
+from services.submission_service import PROPOSAL_TYPES
 from services.audit_service import recent as audit_recent
 from submissions.models import Submission
 
@@ -44,13 +46,15 @@ def main_dashboard(request):
         return redirect("dashboard:red_dashboard")
     if user_in_role(user, JUDGE) or user_in_role(user, PARTNER):
         return redirect("dashboard:insights_dashboard")
-    return render(request, "dashboard/no_role.html")
+    # A competitor with no team yet: their captain's invitation is the way
+    # in (Entry Guide s.6), so send them where it will appear.
+    return redirect("accounts:choose_team")
 
 
 @user_passes_test(lambda u: u.is_active and (u.is_staff or u.is_superuser))
 def admin_dashboard(request):
     """Admin command center — live counts straight off the database."""
-    proposals = Submission.objects.filter(submission_type__name="Proposal")
+    proposals = Submission.objects.filter(submission_type__name__in=PROPOSAL_TYPES)
     pending = Evaluation.objects.filter(
         status__in=Evaluation.IN_PROGRESS_STATUSES
     ).count()
@@ -144,10 +148,11 @@ def _blue_context(request, team, phase):
             "deliverables": [
                 {"name": name, "submission": by_type.get(name)}
                 for name in (
-                    "Proposal",
+                    submission_service.proposal_type_name(team),
                     "Blue Team Documentation",
                     "Supporting Evidence",
                 )
+                if name
             ],
             "submission_requirements": comp.SUBMISSION_REQUIREMENTS,
             "submissions": submissions,

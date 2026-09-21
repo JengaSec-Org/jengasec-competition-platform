@@ -1,0 +1,49 @@
+{% extends "accounts/auth_base.html" %}
+
+{% block title %}Invitation to {{ invitation.team.team_name }} | JengaSec{% endblock %}
+{% block auth_context %}TEAM_INVITATION{% endblock %}
+
+{% block heading %}
+<h1 class="auth-heading">{{ invitation.team.team_name }}</h1>
+<p class="auth-lead">
+  {{ invitation.invited_by.get_full_name|default:invitation.invited_by.username }} has invited
+  <strong>{{ invitation.email }}</strong> to join this {{ invitation.team.get_team_type_display|lower }}
+  {% if invitation.team.track %}({{ invitation.team.track_label }}){% endif %} for {{ invitation.team.competition.name }}.
+</p>
+{% endblock %}
+
+{% block card %}
+{% if not invitation.is_open %}
+  <div class="alert alert-error" role="alert">
+    <span class="alert-tag">[{{ invitation.get_status_display|upper }}]</span>
+    <span>This invitation is no longer open. Ask your captain to send a new one.</span>
+  </div>
+{% elif not verified %}
+  <div class="alert alert-warning" role="alert">
+    <span class="alert-tag">[UNVERIFIED]</span>
+    <span>Verify your email address first — accepting an invitation needs a verified account. <a href="{% url 'accounts:verify_pending' %}">Resend the link</a>.</span>
+  </div>
+{% elif user.email|lower != invitation.email|lower %}
+  <div class="alert alert-warning" role="alert">
+    <span class="alert-tag">[WRONG_ACCOUNT]</span>
+    <span>You are signed in as {{ user.email|default:user.username }}. This invitation was sent to {{ invitation.email }} — sign in with that address to accept it.</span>
+  </div>
+{% else %}
+  <p class="text-muted" style="margin-bottom:1rem;">
+    Accepting puts you on the roster and gives you the {{ invitation.team.get_team_type_display|lower }} dashboard.
+    One person, one team, one side: you cannot also be on another team.
+    Expires {{ invitation.expires_at|date:"j M Y, H:i" }}.
+  </p>
+  <div style="display:flex; gap:0.75rem;">
+    <form method="post" action="{% url 'accounts:invitation_respond' invitation.token 'accept' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary">Accept invitation</button>
+    </form>
+    <form method="post" action="{% url 'accounts:invitation_respond' invitation.token 'decline' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-ghost">Decline</button>
+    </form>
+  </div>
+{% endif %}
+<p class="auth-alt"><a href="{% url 'dashboard:main_dashboard' %}">Back to dashboard</a></p>
+{% endblock %}

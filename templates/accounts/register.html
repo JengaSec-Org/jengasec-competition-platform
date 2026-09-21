@@ -1,55 +1,33 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Register | JengaSec Evaluation Platform</title>
-<meta name="theme-color" content="#007A3D">
-<link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/variables.css' %}">
-<link rel="stylesheet" href="{% static 'css/reset.css' %}">
-<link rel="stylesheet" href="{% static 'css/typography.css' %}">
-<link rel="stylesheet" href="{% static 'css/buttons.css' %}">
-<link rel="stylesheet" href="{% static 'css/forms.css' %}">
-<link rel="stylesheet" href="{% static 'css/components.css' %}">
-</head>
-<body>
-<div class="btn">
-  <a href="{% url 'landing' %}" class="back-link">
-    <span class="back-link-icon">←</span>
-    <span class="back-link-text">Back to Home</span>
-  </a>
-</div>
-<div class="auth-shell">
-  <div class="auth-card">
-    <div class="auth-brand">Jenga<em>Sec</em></div>
-    <div class="auth-sub">// EVALUATION_PLATFORM :: REGISTER</div>
+{% extends "accounts/auth_base.html" %}
 
-    {% if form.non_field_errors %}
-      <div class="alert alert-error" role="alert">
-        <span class="alert-tag">[ERR]</span>
-        <span>{{ form.non_field_errors.0 }}</span>
-      </div>
-    {% endif %}
+{% block title %}Register | JengaSec Evaluation Platform{% endblock %}
+{% block auth_context %}REGISTER :: COMPETITORS{% endblock %}
 
-    <form method="post">
-      {% csrf_token %}
-      {% include "components/input.html" with name="first_name" label="First Name" required=True value=form.first_name.value error=form.first_name.errors.0 %}
-      {% include "components/input.html" with name="last_name" label="Last Name" required=True value=form.last_name.value error=form.last_name.errors.0 %}
-      {% include "components/input.html" with name="username" label="Username" required=True value=form.username.value error=form.username.errors.0 %}
-      {% include "components/input.html" with name="email" label="Email Address" type="email" required=True value=form.email.value error=form.email.errors.0 %}
+{% block heading %}
+<h1 class="auth-heading">Create your account</h1>
+<p class="auth-lead">For team members and captains. Use your institutional address if you have one — it is recognised automatically. You'll verify it by email, then create a team or accept an invitation.</p>
+{% endblock %}
 
-      {% include "components/input.html" with name="password1" label="Password" type="password" required=True error=form.password1.errors.0 %}
-      {% include "components/input.html" with name="password2" label="Confirm Password" type="password" required=True error=form.password2.errors.0 %}
-      <button type="submit" class="btn btn-primary btn-block">Create Account</button>
-    </form>
-
-    <p class="auth-alt">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+{% block card %}
+{% if form.non_field_errors %}
+  <div class="alert alert-error" role="alert">
+    <span class="alert-tag">[ERR]</span>
+    <span>{{ form.non_field_errors.0 }}</span>
   </div>
-</div>
-</body>
-</html>
+{% endif %}
+
+<form method="post">
+  {% csrf_token %}
+  <div class="auth-row">
+    {% include "components/input.html" with name="first_name" label="First Name" required=True value=form.first_name.value error=form.first_name.errors.0 %}
+    {% include "components/input.html" with name="last_name" label="Last Name" required=True value=form.last_name.value error=form.last_name.errors.0 %}
+  </div>
+  {% include "components/input.html" with name="username" label="Username" required=True value=form.username.value error=form.username.errors.0 %}
+  {% include "components/input.html" with name="email" label="Email Address" type="email" required=True value=form.email.value error=form.email.errors.0 %}
+  {% include "components/input.html" with name="password1" label="Password" type="password" required=True error=form.password1.errors.0 %}
+  {% include "components/input.html" with name="password2" label="Confirm Password" type="password" required=True error=form.password2.errors.0 %}
+  <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+</form>
+
+<p class="auth-alt">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+{% endblock %}

@@ -1,8 +1,8 @@
 """Competition model helpers for the team dashboards.
 
-Everything here comes from the JengaSec Final Competition Overview
-(Aug 2026): two enterprises, three tracks, specialised blue and red
-teams, evidence-based scoring.
+Everything here comes from the JengaSec Entry Guide v1.0 (JengaBank
+edition): two JengaBank enterprises, two specialisations x two sides,
+evidence-based scoring. The Cloud track is not offered this edition.
 
 Static per-track copy lives here rather than in the database — it is
 competition documentation, not data teams edit.
@@ -17,36 +17,6 @@ from competitions.constants import Track
 # §2 (what each blue track does), §6 (JengaSec provides / teams provide),
 # §17 (the per-team Competition Specification), §3 (red attack surfaces).
 TRACK_SPECS = {
-    Track.CLOUD: {
-        "summary": (
-            "You own the cloud portion of the enterprise. You build and "
-            "configure the cloud environment — you do not build the "
-            "applications that run on it."
-        ),
-        "provided": [
-            "Cloud account or project",
-            "IAM starting configuration",
-            "Networking requirements",
-            "Enterprise requirements",
-            "Monitoring and logging foundation",
-        ],
-        "required": [
-            "Deploy the required cloud services",
-            "IAM and access boundaries",
-            "Network security controls",
-            "Monitoring and alerting",
-            "Security hardening of workloads",
-        ],
-        "red_exposure": "Cloud attacks — IAM, configuration, exposed services, storage",
-        "attack_surface": [
-            "IAM and privilege escalation",
-            "Cloud configuration",
-            "Exposed services",
-            "Storage",
-            "Network controls",
-            "Cloud workloads",
-        ],
-    },
     Track.APPLICATION: {
         "summary": (
             "You build one application or service that plugs into a "
@@ -355,8 +325,10 @@ def proposal_for(team):
 
     if not team:
         return None
+    from services.submission_service import PROPOSAL_TYPES
+
     return (
-        Submission.objects.filter(team=team, submission_type__name="Proposal")
+        Submission.objects.filter(team=team, submission_type__name__in=PROPOSAL_TYPES)
         .select_related("application_brief", "submission_type")
         .first()
     )

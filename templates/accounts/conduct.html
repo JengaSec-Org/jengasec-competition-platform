@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Code of Conduct | JengaSec{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="CODE_OF_CONDUCT" title=version.title|default:"Code of Conduct" %}
+
+{% if not version %}
+  <div class="card">
+    <p class="text-muted">No code of conduct has been published yet. There is nothing to accept until the organisers publish one.</p>
+  </div>
+{% else %}
+<div class="chart-grid" style="align-items:start;">
+  <div class="card">
+    <span class="tlabel">// VERSION {{ version.version }}{% if version.published_at %} &middot; PUBLISHED {{ version.published_at|date:"j M Y" }}{% endif %}</span>
+    {% if version.summary %}<p class="text-muted" style="margin:0.5rem 0 1rem;">{{ version.summary }}</p>{% endif %}
+    <div class="policy-body" style="white-space:pre-wrap; line-height:1.6;">{{ version.body }}</div>
+  </div>
+
+  <div class="card">
+    <span class="tlabel">// ACCEPTANCE</span>
+    {% if accepted %}
+      <h3 class="card-title">Accepted</h3>
+      <p class="text-muted">You accepted version {{ version.version }} on {{ acceptance.accepted_at|date:"j M Y, H:i" }}.</p>
+      <p style="margin-top:0.75rem;">{% url 'accounts:team_requests' as team_url %}{% include "components/button.html" with label="My Team" href=team_url variant="ghost" size="sm" %}</p>
+    {% else %}
+      <h3 class="card-title">Your acceptance is required</h3>
+      <p class="text-muted" style="margin-bottom:1rem;">Every member must accept the current version before the team's registration can be submitted. A new version means accepting again.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.GET.next }}">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.accept.id_for_label }}">
+            <input type="checkbox" name="{{ form.accept.html_name }}" id="{{ form.accept.id_for_label }}" required>
+            {{ form.accept.label }}
+          </label>
+          {% for error in form.accept.errors %}<div class="form-error">// {{ error }}</div>{% endfor %}
+        </div>
+        {% include "components/button.html" with label="Accept" variant="primary" type="submit" %}
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

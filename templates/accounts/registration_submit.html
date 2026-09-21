@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Submit registration | {{ team.team_name }}{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="MY_TEAM :: SUBMIT" title="Submit registration" %}
+
+<p class="text-muted" style="margin-bottom:1.5rem;">
+  {{ team.team_name }} &middot; {{ team.get_team_type_display }} &middot; {{ team.competition.name }}.
+  Once submitted the roster and these details are locked while organisers review them.
+</p>
+
+{% if blockers %}
+<div class="card" style="margin-bottom:1.5rem; border-left:4px solid var(--danger);">
+  <span class="tlabel">// NOT_READY</span>
+  <h3 class="card-title">{{ blockers|length }} item{{ blockers|length|pluralize }} must be cleared first</h3>
+  <ul style="margin:0.5rem 0 0 1.25rem;">
+    {% for member, item in blockers %}
+      <li>{% if member %}<strong>{{ member.student_name }}</strong>: {% endif %}{{ item }}</li>
+    {% endfor %}
+  </ul>
+  <p style="margin-top:1rem;">{% url 'accounts:team_requests' as team_url %}{% include "components/button.html" with label="← Back to My Team" href=team_url variant="ghost" size="sm" %}</p>
+</div>
+{% endif %}
+
+<div class="card">
+  <span class="tlabel">// DECLARATION</span>
+  <h3 class="card-title">Preferences and skills</h3>
+  {% if form.non_field_errors %}
+    <div class="alert alert-error" role="alert"><span class="alert-tag">[ERR]</span><span>{{ form.non_field_errors.0 }}</span></div>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="auth-row">
+      {% include "components/form_field.html" with field=form.first_track %}
+      {% include "components/form_field.html" with field=form.second_track %}
+    </div>
+    {% include "components/form_field.html" with field=form.enterprise_preference %}
+    {% include "components/form_field.html" with field=form.skills_declaration %}
+
+    <span class="tlabel" style="display:block; margin:1.5rem 0 0.75rem;">// MENTOR (OPTIONAL)</span>
+    <div class="auth-row">
+      {% include "components/form_field.html" with field=form.mentor_name %}
+      {% include "components/form_field.html" with field=form.mentor_email %}
+    </div>
+    <div class="auth-row">
+      {% include "components/form_field.html" with field=form.mentor_phone %}
+      {% include "components/form_field.html" with field=form.mentor_institution %}
+    </div>
+
+    <div class="form-group" style="margin-top:1.5rem;">
+      <label class="form-label" for="{{ form.confirm.id_for_label }}">
+        <input type="checkbox" name="{{ form.confirm.html_name }}" id="{{ form.confirm.id_for_label }}">
+        {{ form.confirm.label }}
+      </label>
+      {% for error in form.confirm.errors %}<div class="form-error">// {{ error }}</div>{% endfor %}
+    </div>
+    {% if blockers %}
+      <p class="form-help">// Clear the items above, then submit.</p>
+      <button type="submit" class="btn btn-primary" disabled>Submit registration</button>
+    {% else %}
+      {% include "components/button.html" with label="Submit registration" variant="primary" type="submit" %}
+    {% endif %}
+  </form>
+</div>
+{% endblock %}

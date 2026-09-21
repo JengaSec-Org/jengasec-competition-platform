@@ -31,13 +31,12 @@ REVIEW_WINDOW = "3 working days"
 
 
 def registration_reference(team):
-    """Stable human-quotable receipt number, e.g. REG-01-0042.
+    """The team identifier, e.g. JS26-B-014 (Entry Guide section 10).
 
-    Derived rather than stored: it has to appear in an email, a support
-    conversation and a spreadsheet, and deriving it means it cannot drift
-    from the row it identifies.
+    Issued at approval; before that the receipt quotes a provisional
+    reference derived from the row so it can still be traced.
     """
-    return f"REG-{team.competition_id:02d}-{team.pk:04d}"
+    return team.team_identifier or f"REG-{team.competition_id:02d}-{team.pk:04d}"
 
 
 # ===========================================================================
@@ -86,11 +85,11 @@ def email_verified(user):
 
 
 def invitation_sent(email, team, captain, accept_url, expires_days=7, invitee_user=None):
-    """A captain invited somebody to a team.
+    """A captain invited somebody to a team (Entry Guide section 6, step 6).
 
-    The invitee usually has no account yet, so this is addressed to an email
-    address, not a user. Pass `invitee_user` when the address already belongs
-    to one and they get an in-app copy too.
+    Addressed to an email, because the invitee usually has no account yet.
+    With no account the email is sent directly from here; with one
+    (`invitee_user`) the normal in-app + queued-email path is used.
     """
     captain_name = captain.get_full_name() or captain.username if captain else "The captain"
     body = (
@@ -111,12 +110,17 @@ def invitation_sent(email, team, captain, accept_url, expires_days=7, invitee_us
             send_email=True,
             dedupe_key="",  # a re-invitation is deliberate
         )
-    # No account: hand the caller the rendered message to send directly.
-    return {
-        "to": email,
-        "subject": f"You have been invited to {team.team_name}",
-        "body": body,
-    }
+    # No account yet: nothing to attach an in-app row to, so send directly.
+    from django.core.mail import send_mail
+
+    send_mail(
+        subject=f"You have been invited to {team.team_name}",
+        message=body + "\n\n--\nJengaSec Evaluation Platform",
+        from_email=None,
+        recipient_list=[email],
+        fail_silently=True,
+    )
+    return {"to": email, "subject": f"You have been invited to {team.team_name}", "body": body}
 
 
 def invitation_accepted(team, member, outstanding=()):
@@ -160,38 +164,19 @@ def policy_updated(users, version, summary, accept_url):
     )
 
 
-def registration_waitlisted(team, position, note=""):
-    """Approved on merit, but no cell free. Tell the captain where they stand."""
-    if not team.captain:
-        return 0
-    body = (
-        f"{team.team_name} has been approved but every cell in "
-        f"{team.competition.name} is currently allocated.\n\n"
-        f"You are number {position} on the waiting list. If a cell frees up -- "
-        f"a team withdrawing, or an allocation lapsing -- the next team on the "
-        f"list is assigned it and told immediately. No further action is "
-        f"needed from you in the meantime."
-    )
-    if note:
-        body += f"\n\n{note}"
-    return ns.notify_user(
-        team.captain,
-        subject=f"{team.team_name}: approved, waiting for a cell",
-        body=body,
-        link=reverse("dashboard:main_dashboard"),
-        notification_type=Type.REGISTRATION_WAITLISTED,
-        send_email=True,
-        dedupe_key=f"team:{team.pk}:waitlisted:{position}",
-    )
-
-
 # ===========================================================================
 # Wired -- driven by signals and commands in this module
 # ===========================================================================
 
 def registration_submitted(team):
-    """Receipt for a registration, to everyone on the team."""
+    """Receipt for a submitted registration, to everyone on the team.
+
+    Keyed on the submission time, so a registration corrected and
+    resubmitted after a rejection gets a fresh receipt.
+    """
     members = ", ".join(m.student_name for m in team.members.all()) or "no members yet"
+    prefs = ", ".join(team.track_preference_labels) or team.track_label or "not set"
+    stamp = team.submitted_at.isoformat(timespec="microseconds") if team.submitted_at else "draft"
     return ns.notify_team(
         team,
         subject=f"Registration received: {team.team_name}",
@@ -199,15 +184,15 @@ def registration_submitted(team):
             f"Reference {registration_reference(team)}\n\n"
             f"Registered for: {team.competition.name}\n"
             f"Team: {team.team_name} ({team.get_team_type_display()})\n"
-            f"Track: {team.track_label or 'not set'}\n"
+            f"Track preference: {prefs}\n"
             f"Institution: {team.institution or 'not set'}\n"
             f"Members: {members}\n\n"
-            f"Organisers review registrations within {REVIEW_WINDOW}. You will "
-            f"be told the outcome either way. Quote the reference above in any "
-            f"correspondence."
+            f"The registration is now locked while organisers review it -- "
+            f"within {REVIEW_WINDOW}. You will be told the outcome either way. "
+            f"Quote the reference above in any correspondence."
         ),
         notification_type=Type.REGISTRATION_SUBMITTED,
-        dedupe_key=f"team:{team.pk}:registration_submitted",
+        dedupe_key=f"team:{team.pk}:registration_submitted:{stamp}",
     )
 
 
@@ -221,13 +206,28 @@ def registration_approved(team, assignment=None, resources=()):
         f"{team.team_name} is approved for {team.competition.name}.",
         "",
         f"Team identifier: {registration_reference(team)}",
-        f"Cell: {team.cell_id or 'to be assigned'}",
         f"Track: {team.track_label or 'not set'}",
     ]
-    if team.responsibility:
+    if team.cell_id:
+        lines.append(f"Cell: {team.cell_label}")
+    elif team.submits_proposal:
+        lines.append(
+            "Cell: assigned when your proposal is selected. Places are limited "
+            "and awarded competitively; submitting a proposal is not a place."
+        )
+    if team.application_brief_id:
+        lines.append(f"Brief: {team.application_brief.code} -- {team.application_brief.name}")
+    elif team.responsibility:
         lines.append(f"Your component: {team.responsibility}")
-    if team.enterprise:
+    if team.enterprise and not team.cell_id:
         lines.append(f"Enterprise: {team.get_enterprise_display()}")
+
+    if team.repository_url or team.namespace:
+        lines += ["", "Welcome pack:"]
+        if team.repository_url:
+            lines.append(f"  Repository: {team.repository_url}")
+        if team.namespace:
+            lines.append(f"  Namespace: {team.namespace}")
 
     if resources:
         lines += ["", "Provided for your track:"] + [f"  - {r}" for r in resources]

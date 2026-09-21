@@ -935,7 +935,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
   <a href="#faq" onclick="cm()">FAQ</a>
   <a href="#contact" onclick="cm()">Contact</a>
   <a href="#contact" onclick="cm()" style="color:var(--gold)">Partner With Us →</a>
-  <a href="mailto:sucybersec@strathmore.edu?subject=JengaSec%202026%20Team%20Registration" style="color:var(--gl)">Register Your Team →</a>
+  <a href="{% url 'accounts:register' %}" style="color:var(--gl)">Register Your Team →</a>
   <div class="mmenu-login">
     <span>Already registered or an active party?</span>
     <a href="{% url 'login' %}">Login →</a>
@@ -1002,7 +1002,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
     <div class="hero-ctas">
       <!-- Registration is by email for now; swap for the platform's
            online team registration page when Pair 1 ships it. -->
-      <a href="mailto:sucybersec@strathmore.edu?subject=JengaSec%202026%20Team%20Registration" class="btn-green magnetic">Register Your Team</a>
+      <a href="{% url 'accounts:register' %}" class="btn-green magnetic">Register Your Team</a>
       <a href="#contact" class="btn-red magnetic">Partner With Us</a>
       <a href="#how" class="btn-ghost magnetic">How It Works</a>
     </div>
@@ -1088,14 +1088,14 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
 
 <div class="ticker" aria-hidden="true">
   <div class="ticker-track">
-    <span class="ti g">APT_SIMULATION</span><span class="ti">CLOUD_SECURITY</span><span class="ti g">RED_VS_BLUE</span><span class="ti">SOCIAL_ENGINEERING</span><span class="ti g">PRIVILEGE_ESCALATION</span><span class="ti">KIKAO_PANEL</span><span class="ti g">MAARIFA_SESSIONS</span><span class="ti">MORANI_HUNTING_GROUNDS</span><span class="ti g">JENGABANK</span><span class="ti">INSIDER_THREAT</span><span class="ti g">350+_PARTICIPANTS</span><span class="ti">FREE_ENTRY</span><span class="ti g">KENYA_PROVING_GROUND</span>
-    <span class="ti g">APT_SIMULATION</span><span class="ti">CLOUD_SECURITY</span><span class="ti g">RED_VS_BLUE</span><span class="ti">SOCIAL_ENGINEERING</span><span class="ti g">PRIVILEGE_ESCALATION</span><span class="ti">KIKAO_PANEL</span><span class="ti g">MAARIFA_SESSIONS</span><span class="ti">MORANI_HUNTING_GROUNDS</span><span class="ti g">JENGABANK</span><span class="ti">INSIDER_THREAT</span><span class="ti g">350+_PARTICIPANTS</span><span class="ti">FREE_ENTRY</span><span class="ti g">KENYA_PROVING_GROUND</span>
+    <span class="ti g">APT_SIMULATION</span><span class="ti">APPLICATION_SECURITY</span><span class="ti g">RED_VS_BLUE</span><span class="ti">SOCIAL_ENGINEERING</span><span class="ti g">PRIVILEGE_ESCALATION</span><span class="ti">KIKAO_PANEL</span><span class="ti g">MAARIFA_SESSIONS</span><span class="ti">MORANI_HUNTING_GROUNDS</span><span class="ti g">JENGABANK</span><span class="ti">INSIDER_THREAT</span><span class="ti g">350+_PARTICIPANTS</span><span class="ti">FREE_ENTRY</span><span class="ti g">KENYA_PROVING_GROUND</span>
+    <span class="ti g">APT_SIMULATION</span><span class="ti">APPLICATION_SECURITY</span><span class="ti g">RED_VS_BLUE</span><span class="ti">SOCIAL_ENGINEERING</span><span class="ti g">PRIVILEGE_ESCALATION</span><span class="ti">KIKAO_PANEL</span><span class="ti g">MAARIFA_SESSIONS</span><span class="ti">MORANI_HUNTING_GROUNDS</span><span class="ti g">JENGABANK</span><span class="ti">INSIDER_THREAT</span><span class="ti g">350+_PARTICIPANTS</span><span class="ti">FREE_ENTRY</span><span class="ti g">KENYA_PROVING_GROUND</span>
   </div>
 </div>
 <div class="ticker" aria-hidden="true">
   <div class="ticker-track rev">
-    <span class="ti au">SQL_INJECTION</span><span class="ti">LATERAL_MOVEMENT</span><span class="ti au">CLOUD_EXPLOITATION</span><span class="ti">AI_ASSISTED_HYBRID</span><span class="ti au">SERIKALI_SYSTEMS</span><span class="ti">CASCADING_DEPENDENCIES</span><span class="ti au">EXECUTIVE_REVIEW</span><span class="ti">STRATHMORE_NAIROBI</span><span class="ti au">BUILD_ATTACK_DEFEND</span><span class="ti">OCT_2026</span>
-    <span class="ti au">SQL_INJECTION</span><span class="ti">LATERAL_MOVEMENT</span><span class="ti au">CLOUD_EXPLOITATION</span><span class="ti">AI_ASSISTED_HYBRID</span><span class="ti au">SERIKALI_SYSTEMS</span><span class="ti">CASCADING_DEPENDENCIES</span><span class="ti au">EXECUTIVE_REVIEW</span><span class="ti">STRATHMORE_NAIROBI</span><span class="ti au">BUILD_ATTACK_DEFEND</span><span class="ti">OCT_2026</span>
+    <span class="ti au">SQL_INJECTION</span><span class="ti">LATERAL_MOVEMENT</span><span class="ti au">AI_DEFENCE</span><span class="ti">AI_ASSISTED_HYBRID</span><span class="ti au">SERIKALI_SYSTEMS</span><span class="ti">CASCADING_DEPENDENCIES</span><span class="ti au">EXECUTIVE_REVIEW</span><span class="ti">STRATHMORE_NAIROBI</span><span class="ti au">BUILD_ATTACK_DEFEND</span><span class="ti">OCT_2026</span>
+    <span class="ti au">SQL_INJECTION</span><span class="ti">LATERAL_MOVEMENT</span><span class="ti au">AI_DEFENCE</span><span class="ti">AI_ASSISTED_HYBRID</span><span class="ti au">SERIKALI_SYSTEMS</span><span class="ti">CASCADING_DEPENDENCIES</span><span class="ti au">EXECUTIVE_REVIEW</span><span class="ti">STRATHMORE_NAIROBI</span><span class="ti au">BUILD_ATTACK_DEFEND</span><span class="ti">OCT_2026</span>
   </div>
 </div>
 
@@ -1149,7 +1149,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
       <img src="{% static 'icons/Morani hunting.png' %}" alt="Morani Hunting Grounds" class="how-icon">
       <div class="how-name">Morani Hunting Grounds</div>
       <div class="how-swahili">// Mastery_Under_Pressure</div>
-      <p class="how-desc">Red teams execute APT-style attacks on systems they did not build: social engineering, cloud exploitation, SQL injection, privilege escalation, lateral movement. Blue teams defend in real time. AI assists both sides, but human judgment is what gets scored.</p>
+      <p class="how-desc">Red teams execute APT-style attacks on systems they did not build: social engineering, SQL injection, privilege escalation, lateral movement, and attacks on the AI defence agent itself. Blue teams defend in real time. AI assists both sides, but human judgment is what gets scored.</p>
     </div>
 
     <!-- Phase 04 — Kikao (During Event) -->
@@ -1191,7 +1191,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
       <div class="road-dot"></div>
       <div class="road-when">// Pre-Event</div>
       <div class="road-what">Build <em>phase</em></div>
-      <p class="road-note">Blue teams construct their enterprise: logins, APIs, databases, cloud layer. What you build is what gets attacked.</p>
+      <p class="road-note">Blue teams build one JengaBank service each — logins, APIs, payments, ledgers — or the AI agent that defends the whole bank. What you build is what gets attacked.</p>
     </div>
     <div class="road-item">
       <div class="road-dot"></div>
@@ -1592,7 +1592,7 @@ if(termBody){
     ['au','[KIKAO]','documentation snapshot committed'],
     ['au','[AUDIT]','attack chain entry appended :: step {N}'],
     ['dim','[SYS]','cascading dependency check :: serikali.gov.sim'],
-    ['dim','[SYS]','cloud env heartbeat :: OK'],
+    ['dim','[SYS]','enterprise heartbeat :: OK'],
     ['dim','[AI]','agent assist invoked :: human review pending']
   ];
   function rnd(n){return Math.floor(Math.random()*n)}

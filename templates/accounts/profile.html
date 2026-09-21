@@ -1,107 +1,109 @@
 {% extends "base.html" %}
-{% load static %}
 
-{% block title %}My Profile{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
-{% endblock %}
+{% block title %}My Profile | JengaSec{% endblock %}
 
 {% block content %}
+{% include "components/page_header.html" with tag="ACCOUNT" title="My Profile" %}
 
-<div class="page-header">
-
-<div class="page-title">
-<h1>My Profile</h1>
-<p>View and manage your account information.</p>
+{% if outstanding %}
+<div class="card" style="margin-bottom:1.5rem; border-left:4px solid var(--gold);">
+  <span class="tlabel">// OUTSTANDING</span>
+  <h3 class="card-title">Still needed for your place on {{ team.team_name }}</h3>
+  <ul style="margin:0.5rem 0 0 1.25rem;">{% for item in outstanding %}<li>{{ item }}</li>{% endfor %}</ul>
 </div>
+{% endif %}
 
-{% include "components/button.html" with label="Edit Profile" href="/accounts/user-form/" variant="gold" %}
+<div class="chart-grid" style="align-items:start;">
+  <div class="card">
+    <span class="tlabel">// DETAILS</span>
+    <h3 class="card-title">{{ user.username }}</h3>
+    {% if form.non_field_errors %}
+      <div class="alert alert-warning" role="alert"><span class="alert-tag">[NOTE]</span><span>{{ form.non_field_errors.0 }}</span></div>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="auth-row">
+        {% include "components/form_field.html" with field=form.first_name %}
+        {% include "components/form_field.html" with field=form.last_name %}
+      </div>
+      {% include "components/form_field.html" with field=form.email %}
+      {% include "components/form_field.html" with field=form.institution %}
 
+      <span class="tlabel" style="display:block; margin:1.5rem 0 0.75rem;">// ELIGIBILITY</span>
+      <div class="auth-row">
+        {% include "components/form_field.html" with field=form.date_of_birth %}
+        {% include "components/form_field.html" with field=form.phone %}
+      </div>
+      <div class="auth-row">
+        {% include "components/form_field.html" with field=form.student_number %}
+        {% include "components/form_field.html" with field=form.year_of_study %}
+      </div>
+      {% include "components/form_field.html" with field=form.programme %}
+      {% include "components/form_field.html" with field=form.repo_handle %}
+
+      <span class="tlabel" style="display:block; margin:1.5rem 0 0.75rem;">// IDENTITY_DOCUMENT</span>
+      {% if profile.identity_document %}
+        <p class="text-muted" style="margin-bottom:0.75rem;">
+          {% include "components/badge.html" with label="Uploaded" color="green" %}
+          {{ profile.identity_uploaded_at|date:"j M Y, H:i" }} &middot; upload again to replace it.
+        </p>
+      {% endif %}
+      {% include "components/form_field.html" with field=form.identity_document %}
+
+      {% include "components/button.html" with label="Save" variant="primary" type="submit" %}
+    </form>
+  </div>
+
+  <div>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <span class="tlabel">// VERIFICATION</span>
+      <h3 class="card-title">
+        {% if profile.is_email_verified %}Email verified{% else %}Email not verified{% endif %}
+      </h3>
+      {% if profile.is_email_verified %}
+        <p class="text-muted">{{ user.email }}{% if profile.email_verified_at %} &middot; confirmed {{ profile.email_verified_at|date:"j M Y" }}{% endif %}</p>
+      {% else %}
+        <p class="text-muted">Your account is inactive for team flows until {{ user.email }} is confirmed.</p>
+        <p style="margin-top:0.75rem;">{% url 'accounts:verify_pending' as verify_url %}{% include "components/button.html" with label="Verify now" href=verify_url variant="gold" size="sm" %}</p>
+      {% endif %}
+      {% if profile.manual_verification_required %}
+        <p class="text-muted" style="margin-top:0.75rem;">
+          {% if profile.manual_verified_at %}
+            {% include "components/badge.html" with label="Student status confirmed" color="green" %}
+          {% else %}
+            {% include "components/badge.html" with label="Awaiting organiser check" color="gold" %}
+            <span class="form-help">Your address is not at a recognised institution; an organiser confirms your student status from your ID.</span>
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
+
+    <div class="card" style="margin-bottom:1.5rem;">
+      <span class="tlabel">// CODE_OF_CONDUCT</span>
+      <h3 class="card-title">{% if policy %}{% if policy_accepted %}Accepted v{{ policy.version }}{% else %}Not yet accepted{% endif %}{% else %}Not published yet{% endif %}</h3>
+      {% if policy %}
+        <p style="margin-top:0.75rem;">{% url 'accounts:conduct' as conduct_url %}{% include "components/button.html" with label="Read the code of conduct" href=conduct_url variant="ghost" size="sm" %}</p>
+      {% endif %}
+    </div>
+
+    <div class="card" style="margin-bottom:1.5rem;">
+      <span class="tlabel">// ROLE</span>
+      <h3 class="card-title">
+        {% if user.is_staff or user.is_superuser %}Admin{% else %}{{ profile.get_role_display|default:"No role yet" }}{% endif %}
+      </h3>
+      {% if team %}
+        <p class="text-muted">{{ team.team_name }} &middot; {{ team.get_team_type_display }}{% if team.captain_id == user.pk %} &middot; you are captain{% endif %}</p>
+        <p style="margin-top:0.75rem;">{% url 'accounts:team_requests' as team_url %}{% include "components/button.html" with label="My Team" href=team_url variant="ghost" size="sm" %}</p>
+      {% else %}
+        <p class="text-muted">Roles are assigned by organisers or when you create or join a team.</p>
+      {% endif %}
+    </div>
+    <div class="card">
+      <span class="tlabel">// SECURITY</span>
+      <h3 class="card-title">Password</h3>
+      <p class="text-muted">Change it through the reset link — it is emailed to {{ user.email }}.</p>
+      <p style="margin-top:0.75rem;">{% url 'accounts:password_reset' as reset_url %}{% include "components/button.html" with label="Send reset link" href=reset_url variant="ghost" size="sm" %}</p>
+    </div>
+  </div>
 </div>
-
-<div class="profile-grid">
-
-<div class="card profile-card">
-
-<div class="profile-avatar">
-
-ZM
-
-</div>
-
-<h2>Zamzam Farah</h2>
-
-<p class="profile-role">Administrator</p>
-
-<hr>
-
-<p><strong>Email</strong></p>
-<p>zamzam@jengasec.org</p>
-
-<p><strong>Phone</strong></p>
-<p>+254712345678</p>
-
-<p><strong>Status</strong></p>
-
-<span class="badge badge-success">Active</span>
-
-</div>
-
-<div class="card">
-
-<h2>Account Information</h2>
-
-<table class="table">
-
-<tr>
-
-<th>Username</th>
-
-<td>zamzam</td>
-
-</tr>
-
-<tr>
-
-<th>Role</th>
-
-<td>Administrator</td>
-
-</tr>
-
-<tr>
-
-<th>Team</th>
-
-<td>Platform Management</td>
-
-</tr>
-
-<tr>
-
-<th>Last Login</th>
-
-<td>Today 08:35 AM</td>
-
-</tr>
-
-<tr>
-
-<th>Account Created</th>
-
-<td>15 Jan 2026</td>
-
-</tr>
-
-</table>
-
-<br>
-
-{% include "components/button.html" with label="Change Password" variant="primary" %}
-
-</div>
-
-</div>
-
 {% endblock %}

@@ -1,9 +1,11 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 from django.db import transaction, IntegrityError
 from django.db.models import Max
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+
+from accounts.roles import JUDGE, user_in_role
 from django.db.models import Avg
 from django.http import Http404
 from django.shortcuts import render, redirect, get_object_or_404
@@ -15,6 +17,17 @@ from .models import Evaluation
 from . import mock_data
 
 
+def _judge_or_staff(user):
+    """Rubrics and scoring configuration are judging tools: judges and
+    organisers only. Anonymous POSTs used to be able to create rubrics."""
+    return user.is_authenticated and (user.is_staff or user.is_superuser or user_in_role(user, JUDGE))
+
+
+judging_staff_required = user_passes_test(_judge_or_staff)
+
+
+@login_required
+@judging_staff_required
 def rubric_builder(request):
     """
     Screen 1: Rubric Builder.
@@ -202,6 +215,8 @@ def ai_evaluation_detail(request, eval_id):
     }
     return render(request, "judging/ai_evaluation_detail.html", context)
 
+@login_required
+@judging_staff_required
 def scoring_configuration(request):
     """
     Screen 3: Scoring Configuration.

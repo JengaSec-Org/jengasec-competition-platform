@@ -1,0 +1,27 @@
+{% extends "accounts/auth_base.html" %}
+
+{% block title %}Verify your email | JengaSec{% endblock %}
+{% block auth_context %}ONBOARDING :: VERIFY_EMAIL{% endblock %}
+
+{% block heading %}
+<h1 class="auth-heading">Check your inbox</h1>
+<p class="auth-lead">We sent a verification link to <strong>{{ user.email }}</strong>. It is valid for 24 hours. Your account cannot create or join a team until the address is confirmed.</p>
+{% endblock %}
+
+{% block card %}
+{% if profile.manual_verification_required %}
+  <div class="alert alert-info" role="alert" style="display:block;">
+    <span class="alert-tag">[NOTE]</span>
+    <span>{{ user.email }} is not at an institution we recognise. You can still verify it and take part; an organiser will confirm your student status from the ID you upload to your profile.</span>
+  </div>
+{% endif %}
+<p class="text-muted" style="margin-bottom:1rem;">Nothing arrived? Look in spam first, then request a new link — only the newest link works.</p>
+<form method="post">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-primary btn-block">Send a new link</button>
+</form>
+<p class="auth-alt">
+  Wrong address? <a href="{% url 'accounts:profile' %}">Change it on your profile</a>
+  &middot; <a href="{% url 'logout' %}">Sign out</a>
+</p>
+{% endblock %}

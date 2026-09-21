@@ -1,0 +1,18 @@
+{% extends "accounts/auth_base.html" %}
+
+{% block title %}Resend verification | JengaSec{% endblock %}
+{% block auth_context %}VERIFY_EMAIL{% endblock %}
+
+{% block heading %}
+<h1 class="auth-heading">Resend the verification link</h1>
+<p class="auth-lead">Enter the address you registered with. If it has an unverified account, a fresh 24-hour link is sent.</p>
+{% endblock %}
+
+{% block card %}
+<form method="post">
+  {% csrf_token %}
+  {% include "components/input.html" with name="email" label="Email Address" type="email" required=True value=form.email.value error=form.email.errors.0 %}
+  <button type="submit" class="btn btn-primary btn-block">Send link</button>
+</form>
+<p class="auth-alt"><a href="{% url 'login' %}">Back to log in</a></p>
+{% endblock %}
