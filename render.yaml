@@ -42,6 +42,8 @@ services:
         sync: false
       - key: JENGASEC_DB_HOST
         sync: false                 # the -pooler hostname from the Neon dashboard
+      - key: JENGASEC_DB_URL
+        sync: false
       - key: JENGASEC_DB_PORT
         value: "5432"
       - key: JENGASEC_DB_SSLMODE
