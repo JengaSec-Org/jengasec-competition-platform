@@ -63,6 +63,13 @@ services:
         sync: false                 # the 16-character Gmail app password
       - key: DJANGO_SITE_URL
         sync: false                 # https://<your-service>.onrender.com -- links inside emails
+      - key: DJANGO_DEFAULT_FROM_EMAIL
+        sync: false                 # optional, defaults to "JengaSec <sucybersec@strathmore.edu>"
+        value: "JengaSec <sucybersec@strathmore.edu>"
+      - key: DJANGO_EMAIL_HOST
+        value: smtp.gmail.com
+      - key: DJANGO_EMAIL_PORT
+        value: 587
 
       # ── Uploads → S3-compatible bucket (Backblaze B2) ─────────────────────
       # Render's filesystem is wiped on every deploy, so submissions live in a
