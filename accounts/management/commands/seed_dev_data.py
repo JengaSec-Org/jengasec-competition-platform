@@ -162,6 +162,7 @@ class Command(BaseCommand):
         from services import account_service
 
         profile = user.profile
+        profile.refresh_from_db()  # the cached instance predates user() setting the institution
         if username in UNVERIFIED:
             profile.email_verified_at = None
         elif profile.email_verified_at is None:

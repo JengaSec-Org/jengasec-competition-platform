@@ -34,20 +34,14 @@ services:
         value: ""
 
       # ── Neon ──────────────────────────────────────────────────────────────
-      - key: JENGASEC_DB_NAME
-        sync: false
-      - key: JENGASEC_DB_USER
-        sync: false
-      - key: JENGASEC_DB_PASSWORD
-        sync: false
-      - key: JENGASEC_DB_HOST
-        sync: false                 # the -pooler hostname from the Neon dashboard
+      # ONE value: the full connection string from Neon → Connect (Pooled
+      # connection ON). Looks like
+      #   postgresql://neondb_owner:npg_...@ep-...-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require
+      # It carries host, user, password, database and TLS in one paste, so
+      # there is nothing to split up or get wrong. (The individual JENGASEC_DB_*
+      # variables still work as an alternative — see config/settings.py.)
       - key: JENGASEC_DB_URL
         sync: false
-      - key: JENGASEC_DB_PORT
-        value: "5432"
-      - key: JENGASEC_DB_SSLMODE
-        value: require              # Neon refuses plaintext connections
 
       # ── First admin account (build.sh → ensure_superuser) ─────────────────
       - key: DJANGO_SUPERUSER_USERNAME

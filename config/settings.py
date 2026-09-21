@@ -108,9 +108,29 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
 # Default: SQLite so anyone can run the project immediately.
-# For the shared test DB (Neon) or production PostgreSQL, set the
-# JENGASEC_DB_* environment variables.
-if os.environ.get("JENGASEC_DB_NAME"):
+# For the shared test DB (Neon) or production PostgreSQL, EITHER set
+# JENGASEC_DB_URL to the whole connection string a provider hands you —
+#   postgresql://user:password@host/dbname?sslmode=require
+# — OR set the individual JENGASEC_DB_* variables. The URL wins if both exist.
+if os.environ.get("JENGASEC_DB_URL"):
+    from urllib.parse import parse_qs, unquote, urlparse
+
+    _db = urlparse(os.environ["JENGASEC_DB_URL"])
+    _db_query = {k: v[0] for k, v in parse_qs(_db.query).items()}
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": _db.path.lstrip("/"),
+            "USER": unquote(_db.username or ""),
+            "PASSWORD": unquote(_db.password or ""),
+            "HOST": _db.hostname or "localhost",
+            "PORT": str(_db.port or 5432),
+            # Hosted Postgres is always reached over the internet: require TLS
+            # unless the URL itself says otherwise.
+            "OPTIONS": {"sslmode": _db_query.get("sslmode", "require")},
+        }
+    }
+elif os.environ.get("JENGASEC_DB_NAME"):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
