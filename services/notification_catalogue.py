@@ -385,6 +385,36 @@ def membership_changed(team, member_name, member_user=None, withdrew=False):
     return sent
 
 
+def submission_returned_incomplete(submission, check):
+    """The structure check found mandatory front matter missing (Guide
+    section 9): the proposal goes back to the team with the list."""
+    missing = "\n".join(f"  - {name}" for name in check.missing_front_matter)
+    sections = [s["name"] for s in check.missing_sections]
+    extra = ""
+    if sections:
+        extra = (
+            "\n\nAlso not found (each scores zero for its criterion unless added):\n"
+            + "\n".join(f"  - {name}" for name in sections)
+        )
+    deadline = submission.competition.settings.submission_deadline
+    window = (
+        f"Upload a corrected version and submit again before "
+        f"{deadline:%d %b %Y at %H:%M}." if deadline else "Upload a corrected version and submit again."
+    )
+    return ns.notify_team(
+        submission.team,
+        subject=f"Returned incomplete: {submission.submission_type.name}",
+        body=(
+            f"Version {submission.current_version} of your {submission.submission_type.name} "
+            f"is missing mandatory front matter and has not been queued for review:\n\n"
+            f"{missing}{extra}\n\n{window}"
+        ),
+        link=reverse("submissions:detail", args=[submission.pk]),
+        notification_type=Type.SUBMISSION_CONFIRMED,
+        dedupe_key=f"submission:{submission.pk}:v{submission.current_version}:returned",
+    )
+
+
 def _today():
     from django.utils import timezone
 

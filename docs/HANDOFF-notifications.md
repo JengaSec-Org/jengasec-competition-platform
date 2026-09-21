@@ -35,13 +35,15 @@ underlying state changes:
 
 | Event | Trigger |
 |---|---|
-| Registration submitted | `Team` created |
+| Registration submitted | `team_service.submit_registration()` (captain's submit step; keyed per submission so a resubmission after rejection gets a fresh receipt) |
 | Approved and assigned | `Team.status` becomes `approved` |
 | Rejected | `Team.status` becomes `rejected` (reads `Team.rejection_reason`) |
 | Registration closing | `send_registration_reminders`, at 7d / 2d / 12h |
 | Member removed or withdrew | `TeamMember` deleted |
 | Invitation sent / accepted | `accounts/views.py` (`team_requests`, `invitation_respond`) |
 | Account created (staff-issued) | `services/account_service.issue_account()` |
+| Account created (self-registered) / Email verified | `services/account_service.register_competitor()`, `send_verification()`, `confirm_verification()` |
+| Policy updated | `services/account_service.publish_policy()` (also the *Publish* admin action on `PolicyVersion`) |
 | Outstanding items | `send_outstanding_digest`, daily |
 | Submission uploaded / evaluated / results published / appeal filed / appeal resolved | submissions and judging signals |
 

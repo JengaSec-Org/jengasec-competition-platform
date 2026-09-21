@@ -51,6 +51,19 @@ services:
       - key: DJANGO_SUPERUSER_PASSWORD
         sync: false
 
+      # ── Email (Gmail SMTP with an app password) ───────────────────────────
+      # Without these the console backend is used and nothing is ever sent.
+      # Queued mail is delivered right after each request commits, and the
+      # queue can also be drained with `manage.py send_notification_emails`.
+      - key: DJANGO_EMAIL_BACKEND
+        value: django.core.mail.backends.smtp.EmailBackend
+      - key: DJANGO_EMAIL_HOST_USER
+        value: sucybersec@strathmore.edu
+      - key: DJANGO_EMAIL_HOST_PASSWORD
+        sync: false                 # the 16-character Gmail app password
+      - key: DJANGO_SITE_URL
+        sync: false                 # https://<your-service>.onrender.com -- links inside emails
+
       # ── Uploads → S3-compatible bucket (Backblaze B2) ─────────────────────
       # Render's filesystem is wiped on every deploy, so submissions live in a
       # bucket instead. Backblaze B2: 10 GB free, no card needed, S3 API.

@@ -1,9 +1,12 @@
 """Creating and delivering notifications.
 
 Two channels, one record. Every notification is an in-app row; those owed
-an email carry `send_email=True` and are picked up later by the
-`send_notification_emails` command -- creating a notification never blocks
-on SMTP, and a mail server outage never fails a submission.
+an email carry `send_email=True`. They are delivered as soon as the
+surrounding transaction commits (`deliver_after_commit`), off the request
+thread when a real SMTP backend is configured, and anything that fails
+stays queued for the `send_notification_emails` command to retry --
+creating a notification never blocks on SMTP, and a mail server outage
+never fails a submission.
 
 Views and signal handlers should not build `Notification` rows by hand:
 recipient resolution and duplicate suppression live here.
@@ -13,11 +16,12 @@ Roles come from `accounts.UserProfile.role`, the declared source of truth
 works right up until someone renames a group.
 """
 import logging
+import threading
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import EmailMessage, get_connection
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, close_old_connections, transaction
 from django.db.models import Q
 from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
@@ -32,6 +36,9 @@ User = get_user_model()
 # Give up on an address after this many failed sends, so one dead mailbox
 # does not make every drain run slower than the last.
 MAX_SEND_ATTEMPTS = 5
+
+# Backends that cost nothing to call: deliver inline rather than on a thread.
+_INLINE_BACKENDS = ("console", "locmem", "dummy", "filebased")
 
 
 # ---------------------------------------------------------------------------
@@ -97,7 +104,7 @@ def notify_user(
     try:
         # Savepoint, so a duplicate does not poison an enclosing transaction.
         with transaction.atomic():
-            return Notification.objects.create(
+            notification = Notification.objects.create(
                 user=user,
                 subject=subject,
                 body=body,
@@ -109,6 +116,9 @@ def notify_user(
     except IntegrityError:
         logger.debug("Duplicate notification suppressed: %s / %s", user, dedupe_key)
         return None
+    if send_email:
+        deliver_after_commit([notification.pk])
+    return notification
 
 
 def notify_users(
@@ -141,6 +151,14 @@ def notify_users(
     if not rows:
         return 0
     Notification.objects.bulk_create(rows, ignore_conflicts=True)
+    if send_email:
+        # bulk_create with ignore_conflicts returns no pks on every backend,
+        # so deliver by key: whatever of this batch is still unsent.
+        deliver_after_commit(
+            dedupe_key=dedupe_key,
+            user_ids=[u.pk for u in recipients] if not dedupe_key else None,
+            subject=subject if not dedupe_key else None,
+        )
     return len(rows)
 
 
@@ -245,14 +263,57 @@ def pending_email_queryset():
     )
 
 
-def send_pending_emails(limit=None, dry_run=False):
+def deliver_after_commit(pks=None, *, dedupe_key=None, user_ids=None, subject=None):
+    """Send the emails just queued, once the enclosing transaction commits.
+
+    Without this the queue only drains when the cron command runs -- which
+    on a laptop, or a host with no scheduler, is never. Verification links
+    and invitations cannot wait for that. With a real SMTP backend the send
+    happens on a daemon thread so the request returns at once; console and
+    in-memory backends are called inline. Failures are logged and left in
+    the queue for the cron retry, exactly as before.
+
+    Disabled with `NOTIFICATION_EMAIL_ON_COMMIT = False` (pure cron mode).
+    """
+    if not getattr(settings, "NOTIFICATION_EMAIL_ON_COMMIT", True):
+        return
+    filters = {}
+    if pks:
+        filters["pk__in"] = list(pks)
+    elif dedupe_key:
+        filters["dedupe_key"] = dedupe_key
+    elif user_ids:
+        filters["user_id__in"] = list(user_ids)
+        if subject:
+            filters["subject"] = subject
+    else:
+        return
+
+    def _send():
+        try:
+            send_pending_emails(queryset=pending_email_queryset().filter(**filters))
+        except Exception:  # noqa: BLE001 -- never let delivery break a request
+            logger.exception("Post-commit email delivery failed")
+        finally:
+            close_old_connections()
+
+    def _on_commit():
+        if any(name in settings.EMAIL_BACKEND for name in _INLINE_BACKENDS):
+            _send()
+        else:
+            threading.Thread(target=_send, name="notification-email", daemon=True).start()
+
+    transaction.on_commit(_on_commit)
+
+
+def send_pending_emails(limit=None, dry_run=False, queryset=None):
     """Send queued notification emails. Returns (sent, failed, skipped).
 
     One SMTP connection for the whole batch. A single bad address is
     counted and left for the next run rather than aborting the batch --
     `send_attempts` eventually retires it.
     """
-    queue = pending_email_queryset()
+    queue = pending_email_queryset() if queryset is None else queryset
     if limit:
         queue = queue[:limit]
     notifications = list(queue)
