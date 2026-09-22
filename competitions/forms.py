@@ -70,7 +70,12 @@ class CompetitionSettingsForm(forms.ModelForm):
             "max_proposals_per_team",
             "default_proposal_cap",
             "appeal_window_days",
+            "enforcement_level",
         ]
+        help_texts = {
+            "enforcement_level": "How the penalty table is applied (Guide s.10). Set after "
+                                 "registration closes; teams see it before the window opens.",
+        }
         widgets = {
             "registration_deadline": forms.DateTimeInput(
                 attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"

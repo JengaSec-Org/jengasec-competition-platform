@@ -65,6 +65,11 @@ class SubmissionTypeForm(forms.ModelForm):
 class SubmissionFileForm(forms.ModelForm):
     """Upload a new version of a submission document.
 
+    With `submission` given, the Entry Guide's per-type rules apply on top
+    of the generic checks (services.document_rules): proposals are PDF,
+    25 MB, unencrypted, text-extractable, within the page band and named
+    exactly; evidence bundles are ZIP, 50 MB. Each failure quotes the rule.
+
     The view is responsible for assigning `version` (submission.current_version + 1)
     and for stamping filename / size / mime type / checksum via `populate_metadata`.
     """
@@ -72,6 +77,11 @@ class SubmissionFileForm(forms.ModelForm):
     class Meta:
         model = SubmissionFile
         fields = ["file"]
+
+    def __init__(self, *args, submission=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.submission = submission
+        self.facts = {}
 
     def clean_file(self):
         upload = self.cleaned_data["file"]
@@ -95,6 +105,27 @@ class SubmissionFileForm(forms.ModelForm):
                 "Check you uploaded the right file."
             )
         self._sniffed_extension = extension
+
+        if self.submission is not None:
+            from services.document_rules import RuleViolation, validate_upload
+
+            def load():
+                upload.seek(0)
+                data = upload.read()
+                upload.seek(0)
+                return data
+
+            try:
+                self.facts = validate_upload(
+                    upload_name=safe_filename(upload.name),
+                    size=upload.size,
+                    head=head,
+                    data_loader=load,
+                    submission=self.submission,
+                    next_version=self.submission.current_version + 1,
+                )
+            except RuleViolation as exc:
+                raise forms.ValidationError(str(exc)) from exc
         return upload
 
     def populate_metadata(self, instance, uploaded_by=None):

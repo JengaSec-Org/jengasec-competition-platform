@@ -30,9 +30,10 @@ from submissions.models import Submission
 # Hours before the deadline at which a reminder goes out, most distant
 # first. Only the most urgent *due* threshold fires on any given run, so
 # starting the cron late sends one warning rather than a backlog of them.
-THRESHOLDS_HOURS = (72, 24)
+THRESHOLDS_HOURS = (168, 48, 12)  # 7 days, 2 days, 12 hours -- as for registration
 
-# A team that has reached one of these has submitted something real.
+# A team that has reached one of these has submitted something real. A
+# proposal returned incomplete has not, and its team needs the reminder.
 FINALISED = (
     Submission.Status.SUBMITTED,
     Submission.Status.UNDER_REVIEW,

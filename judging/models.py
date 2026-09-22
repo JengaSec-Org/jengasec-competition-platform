@@ -65,7 +65,13 @@ class Evaluation(models.Model):
         return f"Evaluation #{self.pk} :: {self.submission} :: {judge}"
 
     def recalculate_total(self, save=True):
-        """Weighted total = sum(final_score / max_score * weight) across criteria."""
+        """Weighted total = sum(final_score / max_score * weight) across criteria.
+
+        Two Guide rules apply here (sections 9 and 10): a criterion whose
+        required section is missing from the proposal scores zero, and the
+        result is reduced by the penalties recorded on the submission.
+        """
+        zeroed = self.zeroed_criterion_keywords()
         total = Decimal("0")
         for score in self.criterion_scores.select_related("criterion"):
             if score.final_score is None:
@@ -73,11 +79,22 @@ class Evaluation(models.Model):
             criterion = score.criterion
             if not criterion.max_score:
                 continue
+            name = criterion.criterion.lower()
+            if any(keyword in name for keyword in zeroed):
+                continue
             total += (score.final_score / criterion.max_score) * criterion.weight
+        penalty = Decimal(self.submission.penalty_percent) / Decimal(100)
+        if penalty:
+            total = total * (Decimal(1) - min(penalty, Decimal(1)))
         self.weighted_total = total.quantize(Decimal("0.01"))
         if save:
             self.save(update_fields=["weighted_total", "updated_at"])
         return self.weighted_total
+
+    def zeroed_criterion_keywords(self):
+        """Criterion keywords zeroed by the structure check of the scored file."""
+        check = self.submission.latest_check
+        return check.zeroed_criteria if check else []
 
 
 class CriterionScore(models.Model):
@@ -185,13 +202,33 @@ class Appeal(models.Model):
         REJECTED = "rejected", "Rejected"
         WITHDRAWN = "withdrawn", "Withdrawn"
 
+    class Grounds(models.TextChoices):
+        """Procedural grounds only (Guide section 10): judgement calls on
+        the merits of the work are not appealable."""
+
+        RUBRIC_MISAPPLIED = "rubric_misapplied", "The rubric was not applied as published"
+        WRONG_DOCUMENT = "wrong_document", "The wrong version or document was scored"
+        PENALTY_MISAPPLIED = "penalty_misapplied", "A penalty was applied in error"
+        ARITHMETIC = "arithmetic", "Scores were totalled incorrectly"
+        CONFLICT = "conflict", "The judge had an undeclared conflict of interest"
+        PROCESS = "process", "Another departure from the published process"
+
     submission = models.ForeignKey(
         "submissions.Submission", on_delete=models.CASCADE, related_name="appeals"
     )
     team = models.ForeignKey(
         "accounts.Team", on_delete=models.CASCADE, related_name="appeals"
     )
+    grounds = models.CharField(max_length=30, choices=Grounds.choices, default=Grounds.PROCESS)
     reason = models.TextField(help_text="Grounds for appeal")
+    # A judge who did not score the submission reviews the appeal.
+    second_judge = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="appeals_reviewing",
+    )
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.OPEN
     )

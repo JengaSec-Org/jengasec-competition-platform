@@ -9,21 +9,34 @@ Business rules live in services/submission_service.py, not here.
 """
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.http import FileResponse, Http404, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
+from services import appeal_service
 from services import competition_service as comp_svc
 from services import submission_service as svc
 from services import team_service
 
 from accounts.roles import JUDGE, user_in_role
 from audit.models import AuditLog
+from competitions.constants import proposal_file_pattern
 from competitions.models import ApplicationBrief, Competition
+from judging.models import Appeal
 from services.audit_service import record as audit
 
 from .forms import MAX_UPLOAD_BYTES, SubmissionFileForm
-from .models import DocumentImage, Submission, SubmissionFile, SubmissionType
+from .models import (
+    DocumentImage,
+    PenaltySchedule,
+    Submission,
+    SubmissionFile,
+    SubmissionPenalty,
+    SubmissionType,
+)
 
 WIZARD_SESSION_KEY = "submission_wizard"
 
@@ -84,6 +97,8 @@ def submission_detail(request, pk):
         raise Http404("Submission not found")
     latest = submission.latest_file
     parsed = getattr(latest, "parsed", None) if latest else None
+    is_captain = submission.team.captain_id == request.user.pk
+    appeal_open, appeal_closes_at = appeal_service.appeal_window(submission)
     return render(
         request,
         "submissions/submission_detail.html",
@@ -96,8 +111,116 @@ def submission_detail(request, pk):
             "tables": parsed.tables if parsed else [],
             "can_change_marking": request.user.is_staff
             or user_in_role(request.user, JUDGE),
+            "check": submission.latest_check,
+            "deadline_passed": svc.deadline_passed(submission),
+            "penalties": submission.penalties.select_related("breach", "applied_by"),
+            "penalty_percent": submission.penalty_percent,
+            "schedule": PenaltySchedule.objects.all() if request.user.is_staff else [],
+            "enforcement_level": submission.competition.settings.get_enforcement_level_display(),
+            "feedback": appeal_service.feedback_report(submission),
+            "appeals": submission.appeals.select_related("second_judge", "created_by"),
+            "appeal_grounds": Appeal.Grounds.choices,
+            "appeal_open": appeal_open and is_captain,
+            "appeal_closes_at": appeal_closes_at,
+            "second_judges": (
+                appeal_service.eligible_second_judges(submission) if request.user.is_staff else []
+            ),
+            "is_staff": request.user.is_staff,
         },
     )
+
+
+@login_required
+def accept_late(request, pk):
+    """Organiser accepts a platform-fault claim: one upload after the close."""
+    _require_staff(request.user)
+    submission = get_object_or_404(Submission, pk=pk)
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    evidence_at = parse_datetime(request.POST.get("evidence_at") or "")
+    if evidence_at is None:
+        messages.error(request, "Give the date and time of the captain's email.")
+        return redirect("submissions:detail", pk=pk)
+    if timezone.is_naive(evidence_at):
+        evidence_at = timezone.make_aware(evidence_at)
+    svc.accept_late_upload(submission, request.user, evidence_at, note=request.POST.get("note", ""))
+    messages.success(request, "Late upload accepted: the team may upload one more version.")
+    return redirect("submissions:detail", pk=pk)
+
+
+@login_required
+def apply_penalty(request, pk):
+    """Organiser records a breach from the schedule against this submission."""
+    _require_staff(request.user)
+    submission = get_object_or_404(Submission, pk=pk)
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    breach = get_object_or_404(PenaltySchedule, pk=_safe_int(request.POST.get("breach")))
+    percent = _safe_int(request.POST.get("percent"))
+    penalty = svc.apply_penalty(
+        submission, breach, request.user, note=request.POST.get("note", ""),
+        percent=percent if percent is not None and 0 <= percent <= 100 else None,
+    )
+    audit(
+        AuditLog.Action.MARKING_CHANGED,
+        request=request,
+        target=submission,
+        description=f"Penalty {breach.code} applied: -{penalty.percent}%",
+        note=penalty.note,
+    )
+    messages.success(request, f"{breach.code}: {penalty.percent}% deducted.")
+    return redirect("submissions:detail", pk=pk)
+
+
+@login_required
+def remove_penalty(request, pk, penalty_id):
+    _require_staff(request.user)
+    submission = get_object_or_404(Submission, pk=pk)
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    penalty = get_object_or_404(SubmissionPenalty, pk=penalty_id, submission=submission)
+    code = penalty.breach.code
+    penalty.delete()
+    for evaluation in submission.evaluations.all():
+        evaluation.recalculate_total()
+    messages.info(request, f"Penalty {code} removed.")
+    return redirect("submissions:detail", pk=pk)
+
+
+@login_required
+def file_appeal(request, pk):
+    """Captain files a procedural appeal inside the 72-hour window."""
+    submission = get_object_or_404(Submission.objects.select_related("team", "competition"), pk=pk)
+    if not svc.can_view(request.user, submission):
+        raise Http404("Submission not found")
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    try:
+        appeal_service.file_appeal(
+            submission, request.user, request.POST.get("grounds", ""), request.POST.get("reason", "")
+        )
+    except appeal_service.AppealError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, "Appeal filed. You will hear the outcome from the organisers.")
+    return redirect("submissions:detail", pk=pk)
+
+
+@login_required
+def assign_second_judge(request, pk, appeal_id):
+    _require_staff(request.user)
+    submission = get_object_or_404(Submission, pk=pk)
+    appeal = get_object_or_404(Appeal, pk=appeal_id, submission=submission)
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    judge = get_object_or_404(User, pk=_safe_int(request.POST.get("judge")))
+    try:
+        appeal_service.assign_second_judge(appeal, judge, by=request.user)
+    except appeal_service.AppealError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, f"{judge.get_full_name() or judge.username} assigned to the appeal.")
+    return redirect("submissions:detail", pk=pk)
 
 
 @login_required
@@ -261,7 +384,7 @@ def wizard_step2(request):
         messages.error(request, "That file is larger than the 50 MB limit.")
         return redirect("submissions:wizard_step2")
 
-    form = SubmissionFileForm(request.POST or None, request.FILES or None)
+    form = SubmissionFileForm(request.POST or None, request.FILES or None, submission=submission)
     if request.method == "POST":
         if not svc.can_upload(request.user, submission):
             messages.error(request, "You cannot upload to this submission.")
@@ -289,7 +412,17 @@ def wizard_step2(request):
             "team": team,
             "competition": competition,
             "submission_type": submission_type,
+            "expected_name": _expected_name(submission),
         },
+    )
+
+
+def _expected_name(submission):
+    """The mandatory proposal file name for the next version, or ''."""
+    if not svc.is_proposal(submission):
+        return ""
+    return proposal_file_pattern(
+        submission.team, submission.submission_type.name, submission.current_version + 1
     )
 
 
@@ -342,7 +475,7 @@ def upload_new_version(request, pk):
         messages.error(request, "That file is larger than the 50 MB limit.")
         return redirect("submissions:new_version", pk=submission.pk)
 
-    form = SubmissionFileForm(request.POST or None, request.FILES or None)
+    form = SubmissionFileForm(request.POST or None, request.FILES or None, submission=submission)
     if request.method == "POST" and form.is_valid():
         try:
             uploaded = svc.add_version(submission, form, request.user)
@@ -369,6 +502,7 @@ def upload_new_version(request, pk):
             "competition": submission.competition,
             "submission_type": submission.submission_type,
             "is_new_version": True,
+            "expected_name": _expected_name(submission),
         },
     )
 

@@ -29,6 +29,10 @@ class Submission(models.Model):
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
         SUBMITTED = "submitted", "Submitted"
+        # Structure check found mandatory front matter missing (Guide s.9):
+        # sent back to the team with the list; a corrected version can be
+        # uploaded and finalised again before the deadline.
+        RETURNED_INCOMPLETE = "returned_incomplete", "Returned incomplete"
         UNDER_REVIEW = "under_review", "Under Review"
         COMPLETED = "completed", "Completed"
 
@@ -73,10 +77,25 @@ class Submission(models.Model):
     )
     submitted_at = models.DateTimeField(null=True, blank=True)
 
-    # Late submissions are accepted, recorded, and left to organisers and
-    # judges to decide on — the platform never silently refuses work.
+    # The deadline is a hard close (Guide section 7). `is_late` is only
+    # ever set on the organiser-accepted platform-fault path below: an
+    # organiser records the captain's email (its timestamp is the evidence)
+    # and that unlocks exactly one more upload.
     is_late = models.BooleanField(default=False)
     late_by = models.DurationField(null=True, blank=True)
+    late_accepted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="late_submissions_accepted",
+    )
+    late_accepted_at = models.DateTimeField(null=True, blank=True)
+    # When the captain's email reporting the platform fault was sent.
+    late_evidence_at = models.DateTimeField(null=True, blank=True)
+    late_accepted_note = models.CharField(max_length=300, blank=True)
+    # Set once the allowed late upload has been used.
+    late_upload_used_at = models.DateTimeField(null=True, blank=True)
     marking_excluded = models.BooleanField(
         default=False, help_text="Judges have declined to mark this submission."
     )
@@ -103,6 +122,22 @@ class Submission(models.Model):
     @property
     def latest_file(self):
         return self.files.order_by("-version").first()
+
+    @property
+    def late_upload_open(self):
+        """An organiser accepted a platform-fault claim and the one extra
+        upload it buys has not been used yet."""
+        return self.late_accepted_at is not None and self.late_upload_used_at is None
+
+    @property
+    def latest_check(self):
+        latest = self.latest_file
+        return getattr(latest, "structure_check", None) if latest else None
+
+    @property
+    def penalty_percent(self):
+        """Total percentage deducted at evaluation (Guide section 10)."""
+        return sum((p.percent for p in self.penalties.all()), 0)
 
 
 class SubmissionFile(models.Model):
@@ -209,6 +244,94 @@ class ParsedDocument(models.Model):
     @property
     def warnings(self):
         return (self.content or {}).get("warnings", [])
+
+
+class ProposalCheck(models.Model):
+    """Structure check over a parsed proposal (Guide section 9).
+
+    Front matter (cover, declaration, AI-use statement) is mandatory:
+    missing any returns the submission as incomplete. Body sections are
+    reported one by one with the rubric criterion each maps to, so a
+    missing section scores zero for that criterion automatically.
+    """
+
+    class Status(models.TextChoices):
+        OK = "ok", "Complete"
+        INCOMPLETE = "incomplete", "Front matter missing"
+        NOT_CHECKED = "not_checked", "Not checked"
+
+    submission_file = models.OneToOneField(
+        SubmissionFile, on_delete=models.CASCADE, related_name="structure_check"
+    )
+    status = models.CharField(max_length=15, choices=Status.choices, default=Status.NOT_CHECKED)
+    # [{"key", "name", "present", "heading"}] for the front matter.
+    front_matter = models.JSONField(default=list, blank=True)
+    # [{"key", "name", "present", "heading", "criterion"}] per required section.
+    sections = models.JSONField(default=list, blank=True)
+    body_pages = models.PositiveIntegerField(null=True, blank=True)
+    checked_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Check of {self.submission_file.filename} ({self.get_status_display()})"
+
+    @property
+    def missing_front_matter(self):
+        return [item["name"] for item in self.front_matter if not item["present"]]
+
+    @property
+    def missing_sections(self):
+        return [item for item in self.sections if not item["present"]]
+
+    @property
+    def zeroed_criteria(self):
+        """Rubric-criterion keywords that score zero for missing sections."""
+        return sorted({item["criterion"] for item in self.missing_sections if item.get("criterion")})
+
+
+class PenaltySchedule(models.Model):
+    """The Guide's penalty table (section 10), one row per breach.
+
+    The percentage applied depends on the competition's enforcement level,
+    set after registration closes and shown to teams before the window opens.
+    """
+
+    code = models.CharField(max_length=30, unique=True)
+    breach = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    percent_strict = models.PositiveSmallIntegerField(default=0)
+    percent_standard = models.PositiveSmallIntegerField(default=0)
+    percent_relaxed = models.PositiveSmallIntegerField(default=0)
+    display_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["display_order", "code"]
+
+    def __str__(self):
+        return f"{self.code}: {self.breach}"
+
+    def percent_for(self, level):
+        return getattr(self, f"percent_{level}", self.percent_standard)
+
+
+class SubmissionPenalty(models.Model):
+    """A breach recorded against one submission; reduces its weighted total."""
+
+    submission = models.ForeignKey(
+        Submission, on_delete=models.CASCADE, related_name="penalties"
+    )
+    breach = models.ForeignKey(PenaltySchedule, on_delete=models.PROTECT, related_name="applications")
+    percent = models.PositiveSmallIntegerField()
+    applied_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    note = models.CharField(max_length=300, blank=True)
+    applied_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-applied_at"]
+
+    def __str__(self):
+        return f"-{self.percent}% {self.breach.code} on {self.submission}"
 
 
 class DocumentImage(models.Model):

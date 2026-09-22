@@ -51,16 +51,17 @@ services:
       - key: DJANGO_SUPERUSER_PASSWORD
         sync: false
 
-      # ── Email (Gmail SMTP with an app password) ───────────────────────────
-      # Without these the console backend is used and nothing is ever sent.
-      # Queued mail is delivered right after each request commits, and the
-      # queue can also be drained with `manage.py send_notification_emails`.
-      - key: DJANGO_EMAIL_BACKEND
-        value: django.core.mail.backends.smtp.EmailBackend
+      # ── Email (Brevo over HTTPS) ──────────────────────────────────────────
+      # Render blocks outbound SMTP on free instances ("Network is unreachable"
+      # on port 587), so Gmail app passwords cannot work here. Brevo's free
+      # tier (300 mails/day, no card) sends over HTTPS instead:
+      #   brevo.com → sign up → Senders: add + verify the address below →
+      #   SMTP & API → API keys → Generate → paste as BREVO_API_KEY.
+      # Setting the key selects config.email_backends.BrevoAPIBackend.
+      - key: BREVO_API_KEY
+        sync: false
       - key: DJANGO_EMAIL_HOST_USER
-        value: sucybersec@strathmore.edu
-      - key: DJANGO_EMAIL_HOST_PASSWORD
-        sync: false                 # the 16-character Gmail app password
+        value: sucybersec@strathmore.edu   # the verified sender; also the From address
       - key: DJANGO_SITE_URL
         sync: false                 # https://<your-service>.onrender.com -- links inside emails
       - key: DJANGO_DEFAULT_FROM_EMAIL

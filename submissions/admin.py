@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import ParsedDocument, Submission, SubmissionFile, SubmissionType
+from .models import (
+    ParsedDocument,
+    PenaltySchedule,
+    ProposalCheck,
+    Submission,
+    SubmissionFile,
+    SubmissionPenalty,
+    SubmissionType,
+)
 
 
 @admin.register(SubmissionType)
@@ -85,3 +93,23 @@ class ParsedDocumentAdmin(admin.ModelAdmin):
         for parsed in queryset.select_related("submission_file"):
             submission_service.parse_file(parsed.submission_file, force=True)
         self.message_user(request, f"Re-parsed {queryset.count()} document(s).")
+
+
+@admin.register(PenaltySchedule)
+class PenaltyScheduleAdmin(admin.ModelAdmin):
+    """The Guide's penalty table; edit the percentages here if it differs."""
+
+    list_display = ("code", "breach", "percent_strict", "percent_standard", "percent_relaxed", "display_order")
+    list_editable = ("percent_strict", "percent_standard", "percent_relaxed", "display_order")
+
+
+@admin.register(SubmissionPenalty)
+class SubmissionPenaltyAdmin(admin.ModelAdmin):
+    list_display = ("submission", "breach", "percent", "applied_by", "applied_at")
+    list_filter = ("breach",)
+
+
+@admin.register(ProposalCheck)
+class ProposalCheckAdmin(admin.ModelAdmin):
+    list_display = ("submission_file", "status", "body_pages", "checked_at")
+    list_filter = ("status",)

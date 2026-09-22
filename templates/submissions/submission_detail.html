@@ -26,6 +26,20 @@
             {% endif %}
           </td>
         </tr>
+        {% if penalty_percent %}
+        <tr><td class="cell-mono">PENALTIES</td><td><span class="badge badge-red">-{{ penalty_percent }}%</span> at {{ enforcement_level|lower }} enforcement</td></tr>
+        {% endif %}
+        {% if submission.late_accepted_at %}
+        <tr>
+          <td class="cell-mono">LATE_PATH</td>
+          <td>
+            Platform fault accepted by {{ submission.late_accepted_by.username|default:"organiser" }}
+            ({{ submission.late_accepted_at|date:"j M H:i" }}); captain's email {{ submission.late_evidence_at|date:"j M Y H:i" }}.
+            {% if submission.late_upload_open %}{% include "components/badge.html" with label="One upload open" color="gold" %}{% else %}{% include "components/badge.html" with label="Used" color="muted" %}{% endif %}
+            {% if submission.late_accepted_note %}<div class="text-muted">{{ submission.late_accepted_note }}</div>{% endif %}
+          </td>
+        </tr>
+        {% endif %}
         {% if submission.is_late %}
         <tr>
           <td class="cell-mono">MARKING</td>
@@ -47,6 +61,15 @@
     <div style="margin-top:1rem;">
       <a href="{% url 'submissions:new_version' submission.pk %}" class="btn btn-primary btn-sm">Upload New Version</a>
     </div>
+    {% endif %}
+    {% if is_staff and deadline_passed and not submission.late_upload_open %}
+    <form method="post" action="{% url 'submissions:accept_late' submission.pk %}" class="lifecycle-form" style="margin-top:1rem; flex-wrap:wrap;">
+      {% csrf_token %}
+      <span class="tlabel" style="width:100%;">// PLATFORM_FAULT_PATH (Guide s.7)</span>
+      <input class="input" type="datetime-local" name="evidence_at" required title="When the captain's email was sent">
+      <input class="input" type="text" name="note" maxlength="300" placeholder="What the captain reported">
+      <button type="submit" class="btn btn-gold btn-sm">Accept one late upload</button>
+    </form>
     {% endif %}
     {% if can_change_marking and submission.is_late %}
     <form method="post" action="{% url 'submissions:toggle_marking' submission.pk %}"
@@ -139,6 +162,133 @@
     </div>
     {% if table.page %}<p class="form-help">// page {{ table.page }}</p>{% endif %}
   {% endfor %}
+</div>
+{% endif %}
+
+{% if check %}
+<div class="card card-flat" style="margin-bottom:1.25rem;{% if check.status == 'incomplete' %} border-left:4px solid var(--danger);{% endif %}">
+  <span class="tlabel">// STRUCTURE_CHECK (Guide s.9)</span>
+  <h3 class="card-title">
+    {% if check.status == "ok" %}Front matter complete{% elif check.status == "incomplete" %}Returned incomplete{% else %}Not checked{% endif %}
+    {% if check.body_pages %}<span class="text-muted" style="font-size:13px;">&middot; {{ check.body_pages }} body pages</span>{% endif %}
+  </h3>
+  <div class="chart-grid" style="align-items:start;">
+    <div>
+      <p class="form-help">// Mandatory front matter</p>
+      <ul style="margin:0.35rem 0 0 1.25rem;">
+        {% for item in check.front_matter %}
+          <li>{% if item.present %}{% include "components/badge.html" with label="found" color="green" %}{% else %}{% include "components/badge.html" with label="missing" color="red" %}{% endif %} {{ item.name }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div>
+      <p class="form-help">// Required sections → rubric criterion (missing = scores zero)</p>
+      <ul style="margin:0.35rem 0 0 1.25rem;">
+        {% for item in check.sections %}
+          <li>{% if item.present %}{% include "components/badge.html" with label="found" color="green" %}{% else %}{% include "components/badge.html" with label="missing" color="gold" %}{% endif %}
+            {{ item.name }} <span class="text-muted">→ “{{ item.criterion }}”</span>{% if item.heading %} <span class="form-help">({{ item.heading|truncatechars:40 }})</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if feedback %}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// FEEDBACK_REPORT</span>
+  <h3 class="card-title">Scores and feedback</h3>
+  {% for entry in feedback %}
+    <p class="text-muted" style="margin:0.5rem 0;">
+      {{ entry.evaluation.rubric.title }} &middot; judge {{ entry.evaluation.judge.get_full_name|default:entry.evaluation.judge.username|default:"AI first pass" }}
+      &middot; weighted total <strong>{{ entry.evaluation.weighted_total|default:"—" }}</strong>{% if penalty_percent %} (after {{ penalty_percent }}% penalties){% endif %}
+    </p>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Criterion</th><th>Score</th><th>Weight</th><th>Comments</th><th>Evidence</th></tr></thead>
+        <tbody>
+          {% for row in entry.rows %}
+            <tr>
+              <td>{{ row.criterion }}{% if row.zeroed %} {% include "components/badge.html" with label="section missing — 0" color="red" %}{% endif %}</td>
+              <td class="cell-mono">{% if row.zeroed %}0{% else %}{{ row.score|default:"—" }}{% endif %} / {{ row.max_score }}</td>
+              <td class="cell-mono">{{ row.weight }}</td>
+              <td>{{ row.comments|default:row.reasoning|default:"—" }}</td>
+              <td class="text-muted">{{ row.evidence|default:"—"|truncatechars:200 }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if penalties or is_staff %}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// PENALTIES (Guide s.10 &middot; {{ enforcement_level }} enforcement)</span>
+  <h3 class="card-title">{% if penalty_percent %}{{ penalty_percent }}% deducted{% else %}No penalties{% endif %}</h3>
+  {% if penalties %}
+    <ul style="margin:0.35rem 0 0.75rem 1.25rem;">
+      {% for p in penalties %}
+        <li>-{{ p.percent }}% <strong>{{ p.breach.code }}</strong> {{ p.breach.breach }}{% if p.note %} — {{ p.note }}{% endif %}
+          <span class="form-help">{{ p.applied_at|date:"j M H:i" }}{% if p.applied_by %} by {{ p.applied_by.username }}{% endif %}</span>
+          {% if is_staff %}<form method="post" action="{% url 'submissions:remove_penalty' submission.pk p.pk %}" style="display:inline">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">remove</button></form>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if is_staff %}
+    <form method="post" action="{% url 'submissions:apply_penalty' submission.pk %}" class="lifecycle-form" style="flex-wrap:wrap;">
+      {% csrf_token %}
+      <select class="select" name="breach" required style="max-width:420px;">
+        {% for row in schedule %}<option value="{{ row.pk }}">{{ row.code }} — {{ row.breach }} ({{ row.percent_strict }}/{{ row.percent_standard }}/{{ row.percent_relaxed }}%)</option>{% endfor %}
+      </select>
+      <input class="input" type="number" name="percent" min="0" max="100" placeholder="% (blank = schedule)" style="max-width:160px;">
+      <input class="input" type="text" name="note" maxlength="300" placeholder="Note">
+      <button type="submit" class="btn btn-danger btn-sm">Apply penalty</button>
+    </form>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if appeals or appeal_open %}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// APPEALS (Guide s.10 &middot; procedural grounds, 72 h)</span>
+  <h3 class="card-title">{% if appeals %}{{ appeals|length }} appeal{{ appeals|length|pluralize }}{% else %}Appeal this result{% endif %}</h3>
+  {% for a in appeals %}
+    <div style="margin:0.5rem 0 1rem;">
+      <strong>{{ a.get_grounds_display }}</strong> &middot; {{ a.get_status_display }} &middot; filed {{ a.created_at|date:"j M Y H:i" }}
+      {% if a.second_judge %}&middot; reviewer {{ a.second_judge.get_full_name|default:a.second_judge.username }}{% endif %}
+      <div class="text-muted" style="white-space:pre-wrap; margin-top:0.25rem;">{{ a.reason }}</div>
+      {% if a.resolution %}<div style="margin-top:0.35rem;"><em>Resolution:</em> {{ a.resolution }}</div>{% endif %}
+      {% if is_staff and a.status == "open" or is_staff and a.status == "under_review" %}
+        <form method="post" action="{% url 'submissions:assign_second_judge' submission.pk a.pk %}" class="lifecycle-form" style="margin-top:0.5rem;">
+          {% csrf_token %}
+          <select class="select" name="judge" required style="max-width:320px;">
+            {% for j in second_judges %}<option value="{{ j.pk }}">{{ j.get_full_name|default:j.username }}</option>{% empty %}<option value="">No eligible judge</option>{% endfor %}
+          </select>
+          <button type="submit" class="btn btn-ghost btn-sm">Assign second judge</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endfor %}
+  {% if appeal_open %}
+    <p class="form-help">// Window closes {{ appeal_closes_at|date:"j M Y, H:i" }}. Only how the process was applied can be appealed, not the judges' assessment of the work.</p>
+    <form method="post" action="{% url 'submissions:file_appeal' submission.pk %}" style="margin-top:0.5rem;">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label" for="id_grounds">Grounds</label>
+        <select class="select" name="grounds" id="id_grounds" required>
+          {% for value, label in appeal_grounds %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_reason">What went wrong</label>
+        <textarea class="textarea" name="reason" id="id_reason" rows="4" minlength="50" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">File appeal</button>
+    </form>
+  {% endif %}
 </div>
 {% endif %}
 

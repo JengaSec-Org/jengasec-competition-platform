@@ -30,7 +30,14 @@
         {{ field }}
         {% for error in field.errors %}<div class="form-error">// {{ error }}</div>{% endfor %}
       {% endfor %}
-      <div class="upload-hint">PDF, DOCX or ZIP &middot; maximum 50 MB</div>
+      {% if expected_name %}
+        <div class="upload-hint">PDF only &middot; maximum 25 MB &middot; no password &middot; text must be extractable</div>
+        <div class="upload-hint">Name the file exactly: <code style="font-family:var(--font-mono);">{{ expected_name }}</code></div>
+      {% elif submission_type.name == "Supporting Evidence" %}
+        <div class="upload-hint">ZIP bundle only &middot; maximum 50 MB</div>
+      {% else %}
+        <div class="upload-hint">PDF or DOCX &middot; maximum 50 MB</div>
+      {% endif %}
     </div>
 
     <p class="form-help" style="margin-top:1rem;">

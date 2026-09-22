@@ -143,6 +143,21 @@ class CompetitionSettings(models.Model):
         default=False, help_text="Teams can see final scores and feedback."
     )
 
+    # Stamped the first time results are published: the 72-hour appeal
+    # window (Guide section 10) counts from here.
+    results_published_at = models.DateTimeField(null=True, blank=True)
+
+    # How the penalty table is applied this edition (Guide section 10). Set
+    # after registration closes; shown to teams before the window opens.
+    class Enforcement(models.TextChoices):
+        STRICT = "strict", "Strict"
+        STANDARD = "standard", "Standard"
+        RELAXED = "relaxed", "Relaxed"
+
+    enforcement_level = models.CharField(
+        max_length=10, choices=Enforcement.choices, default=Enforcement.STANDARD
+    )
+
     # Timelines.
     registration_deadline = models.DateTimeField(null=True, blank=True)
     build_deadline = models.DateTimeField(null=True, blank=True)
@@ -167,6 +182,23 @@ class CompetitionSettings(models.Model):
 
     def __str__(self):
         return f"Settings for {self.competition.name}"
+
+    def save(self, *args, **kwargs):
+        if self.results_published and self.results_published_at is None:
+            from django.utils import timezone
+
+            self.results_published_at = timezone.now()
+            if "update_fields" in kwargs and kwargs["update_fields"] is not None:
+                kwargs["update_fields"] = list(kwargs["update_fields"]) + ["results_published_at"]
+        super().save(*args, **kwargs)
+
+    @property
+    def appeal_window_closes_at(self):
+        if self.results_published_at is None:
+            return None
+        from datetime import timedelta
+
+        return self.results_published_at + timedelta(days=self.appeal_window_days)
 
 
 class CompetitionCategory(models.Model):

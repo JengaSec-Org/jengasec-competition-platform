@@ -236,10 +236,22 @@ LOGOUT_REDIRECT_URL = "login"
 
 # Email — console backend in dev (password reset emails print to the
 # runserver terminal). Swap for SMTP settings in production.
-EMAIL_BACKEND = os.environ.get(
-    "DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+# Render's free instances cannot open outbound SMTP at all ("Network is
+# unreachable" on port 587), so production sends over HTTPS through Brevo
+# (config/email_backends.py). Setting BREVO_API_KEY is enough to select it;
+# DJANGO_EMAIL_BACKEND still overrides everything.
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
+EMAIL_BACKEND = os.environ.get("DJANGO_EMAIL_BACKEND") or (
+    "config.email_backends.BrevoAPIBackend"
+    if BREVO_API_KEY
+    else "django.core.mail.backends.console.EmailBackend"
 )
-DEFAULT_FROM_EMAIL = "JengaSec <sucybersec@strathmore.edu>"
+# The From address follows the SMTP account (Gmail rewrites anything else),
+# so a different sending mailbox only needs DJANGO_EMAIL_HOST_USER changed.
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DJANGO_DEFAULT_FROM_EMAIL",
+    f"JengaSec <{os.environ.get('DJANGO_EMAIL_HOST_USER', 'sucybersec@strathmore.edu')}>",
+)
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # SMTP, used once DJANGO_EMAIL_BACKEND selects the SMTP backend. Gmail with

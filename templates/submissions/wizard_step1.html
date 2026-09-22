@@ -40,7 +40,7 @@
       </select>
       {% with first=competitions.0 %}
         {% if first.settings.submission_deadline %}
-          <div class="form-help">Submission window closes {{ first.settings.submission_deadline|date:"F j, Y, H:i" }} EAT for {{ first.name }} — enforced by the platform clock.</div>
+          <div class="form-help">Submission window closes {{ first.settings.submission_deadline|date:"F j, Y, H:i" }} EAT for {{ first.name }} — a hard close enforced by the platform clock. Penalty enforcement this edition: <strong>{{ first.settings.get_enforcement_level_display|lower }}</strong>.</div>
         {% else %}
           <div class="form-help">No submission deadline published yet for {{ first.name }}.</div>
         {% endif %}

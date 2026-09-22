@@ -118,6 +118,8 @@
         <tr><td class="cell-mono">PROPOSALS / TEAM</td><td>{{ settings.max_proposals_per_team }}</td></tr>
         <tr><td class="cell-mono">DEFAULT CAP</td><td>{{ settings.default_proposal_cap }}</td></tr>
         <tr><td class="cell-mono">APPEAL WINDOW</td><td>{{ settings.appeal_window_days }} day{{ settings.appeal_window_days|pluralize }}</td></tr>
+        <tr><td class="cell-mono">ENFORCEMENT</td><td>{{ settings.get_enforcement_level_display }} (penalty table, Guide s.10)</td></tr>
+        {% if settings.results_published_at %}<tr><td class="cell-mono">RESULTS OUT</td><td>{{ settings.results_published_at|date:"Y-m-d H:i" }} &middot; appeals close {{ settings.appeal_window_closes_at|date:"Y-m-d H:i" }}</td></tr>{% endif %}
       </tbody>
     </table>
     <div style="margin-top:1rem;">
