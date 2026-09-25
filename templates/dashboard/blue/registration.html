@@ -84,11 +84,14 @@
       </div>
       <h4>{{ brief.name }}</h4>
       {% if brief.summary %}<p class="text-muted">{{ brief.summary }}</p>{% endif %}
-      {% if brief.requirement_list %}
-        <h5>Requirements</h5>
+      {% if brief.requirement_preview %}
+        <h5>Security focus</h5>
         <ul class="spec-list">
-          {% for requirement in brief.requirement_list %}<li>{{ requirement }}</li>{% endfor %}
+          {% for requirement in brief.requirement_preview %}<li>{{ requirement }}</li>{% endfor %}
         </ul>
+        {% if brief.requirements_hidden %}
+          <p class="form-help">// +{{ brief.requirements_hidden }} more in the full specification</p>
+        {% endif %}
       {% endif %}
       <div style="margin-top:1rem;">
         {% if read_only or not registration_open %}

@@ -1,0 +1,1361 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-side="blue">
+<head>
+<script>
+/* Resolve visual mode before first paint. */
+const motionParam=new URLSearchParams(location.search).get('motion');
+if(motionParam==='reduced')document.documentElement.classList.add('motion-reduced');
+else document.documentElement.classList.add('motion-full','force-motion');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Defence Blue :: JengaSec 2026</title>
+<meta name="description" content="AI Defence Blue at JengaSec 2026: build an autonomous defence agent that reads the enterprise's telemetry, decides what is happening, and acts through a permitted-action gateway. The brief, the rules, and the proposal.">
+<meta name="author" content="Strathmore Cybersecurity Club">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#007A3D">
+<link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
+<link rel="canonical" href="https://www.jengasec.com/tracks/ai-defence-blue/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.jengasec.com/tracks/ai-defence-blue/">
+<meta property="og:title" content="AI Defence Blue :: JengaSec 2026">
+<meta property="og:description" content="AI Defence Blue at JengaSec 2026: build an autonomous defence agent that reads the enterprise's telemetry, decides what is happening, and acts through a permitted-action gateway. The brief, the rules, and the proposal.">
+<meta property="og:image" content="https://www.jengasec.com/static/images/Jengasec.jpg">
+<meta property="og:site_name" content="JengaSec">
+<meta property="og:locale" content="en_KE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@sucybersec">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#007A3D;--gd:#004D26;--gl:#00C853;
+  --red:#B3000C;--gold:#C9960A;--gold2:#E8B020;
+  --black:#080C08;--white:#F8FAF8;--off:#EEF1EE;
+  --muted:#5A6A5A;--border:#CDD8CD;--card:#FFFFFF;
+  --dg:#0A2416;--mg:#0D3020;
+  --accent:var(--g);--accent-l:var(--gl);--accent-d:var(--gd);--accent-rgb:0,200,83;--accent-tint:rgba(0,200,80,0.10);
+}
+html[data-side="red"]{--accent:#B3000C;--accent-l:#FF3B47;--accent-d:#5E0008;--accent-rgb:255,59,71;--accent-tint:rgba(179,0,12,0.10);--dg:#240A0C;--mg:#30100F}
+html{scroll-behavior:smooth}
+html,body{overflow-x:hidden;max-width:100%}
+body{background:var(--white);color:var(--black);font-family:'DM Sans',sans-serif}
+img{max-width:100%;height:auto}
+
+/* ============ SKIP LINK ============ */
+.skip-link{position:absolute;left:-9999px;top:0;z-index:10001;
+  padding:0.75rem 1.5rem;background:var(--g);color:var(--white);
+  font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.08em;text-decoration:none}
+.skip-link:focus{left:0}
+
+/* ============ FILM GRAIN ============ */
+#grain{position:fixed;inset:-100px;z-index:9998;pointer-events:none;opacity:0.032;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain 0.9s steps(4) infinite}
+@keyframes grain{
+  0%{transform:translate(0,0)}25%{transform:translate(-38px,22px)}
+  50%{transform:translate(26px,-30px)}75%{transform:translate(-14px,-18px)}100%{transform:translate(0,0)}
+}
+
+/* ============ SCROLL PROGRESS ============ */
+#prog{position:fixed;top:0;left:0;height:2px;width:0%;z-index:9999;
+  background:linear-gradient(90deg,var(--red) 0%,var(--gold) 40%,var(--g) 100%);
+  transition:width 0.08s linear;pointer-events:none;box-shadow:0 0 10px rgba(0,200,80,0.5)}
+
+/* ============ CUSTOM CURSOR ============ */
+@media(pointer:fine){
+  body.cursor-on,body.cursor-on a,body.cursor-on button{cursor:none}
+}
+#cur-dot,#cur-ring{position:fixed;top:0;left:0;pointer-events:none;z-index:9999;
+  border-radius:50%;transform:translate(-50%,-50%);display:none}
+body.cursor-on #cur-dot,body.cursor-on #cur-ring{display:block}
+#cur-dot{width:6px;height:6px;background:var(--gl);
+  box-shadow:0 0 10px rgba(0,200,80,0.9)}
+#cur-ring{width:34px;height:34px;border:1px solid rgba(0,200,80,0.5);
+  transition:width 0.25s,height 0.25s,border-color 0.25s,background 0.25s}
+#cur-ring.hovering{width:56px;height:56px;border-color:var(--gold2);
+  background:rgba(0,200,80,0.06)}
+
+/* ============ AMBIENT ORBS ============ */
+.orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(70px);opacity:0.5;z-index:0}
+.orb-g{background:radial-gradient(circle,rgba(0,122,61,0.35),transparent 70%)}
+.orb-au{background:radial-gradient(circle,rgba(201,150,10,0.22),transparent 70%)}
+.orb1{width:420px;height:420px;top:-10%;left:-8%;animation:orbf1 18s ease-in-out infinite}
+.orb2{width:340px;height:340px;bottom:-14%;right:-6%;animation:orbf2 22s ease-in-out infinite}
+@keyframes orbf1{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,40px)}}
+@keyframes orbf2{0%,100%{transform:translate(0,0)}50%{transform:translate(-50px,-55px)}}
+.sec-dark{position:relative;overflow:hidden}
+@media(max-width:768px){.orb{display:none}}
+
+/* ============ NAV ============ */
+nav{position:fixed;top:2px;left:0;right:0;z-index:9999;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.1rem 5%;background:rgba(8,12,8,0.9);border-bottom:1px solid transparent;
+  backdrop-filter:blur(14px);
+  transition:background 0.35s,border-color 0.35s,padding 0.35s}
+nav.scrolled{padding:0.85rem 5%;background:rgba(248,250,248,0.97);
+  backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nl{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.1em;
+  color:var(--white);display:flex;align-items:center;gap:0.7rem;text-decoration:none;
+  transition:color 0.35s}
+nav.scrolled .nl{color:var(--black)}
+.nl-spear{width:22px;height:22px;object-fit:contain;flex-shrink:0}
+.nl .wm-sec{position:relative;display:inline-block;color:var(--gold)}
+.nl .wm-sec.wm-glitch{animation:navglitch 0.4s steps(2) 1}
+@keyframes navglitch{
+  0%{transform:translateX(0);text-shadow:none}
+  25%{transform:translateX(-2px);text-shadow:2px 0 var(--red),-2px 0 var(--gl)}
+  50%{transform:translateX(2px);text-shadow:-2px 0 var(--red),2px 0 var(--gl)}
+  75%{transform:translateX(-1px);text-shadow:1px 0 var(--red),-1px 0 var(--gl)}
+  100%{transform:translateX(0);text-shadow:none}
+}
+.nav-links{display:flex;gap:2rem;list-style:none}
+.nav-links a{font-family:'Space Mono',monospace;font-size:12px;font-weight:500;letter-spacing:0.04em;
+  color:rgba(255,255,255,0.7);text-decoration:none;transition:color 0.2s;
+  position:relative;padding-bottom:3px}
+nav.scrolled .nav-links a{color:var(--muted)}
+.nav-links a::after{content:'';position:absolute;left:0;bottom:0;height:2px;width:0;
+  background:var(--g);transition:width 0.25s}
+.nav-links a:hover{color:var(--gl)}
+nav.scrolled .nav-links a:hover{color:var(--g)}
+.nav-links a.active{color:var(--gl)}
+nav.scrolled .nav-links a.active{color:var(--g)}
+.nav-links a.active::after{width:100%}
+.nav-cta{padding:0.5rem 1.4rem;background:var(--g);color:var(--white);
+  font-size:12px;font-weight:600;letter-spacing:0.06em;
+  text-decoration:none;border:2px solid var(--g);transition:all 0.2s;
+  font-family:'Space Mono',monospace;display:inline-block}
+.nav-cta:hover{background:transparent;color:var(--gl)}
+nav.scrolled .nav-cta:hover{color:var(--g)}
+.hamburger{display:none;flex-direction:column;gap:5px;
+  cursor:pointer;padding:4px;background:none;border:none}
+.hamburger span{display:block;width:22px;height:2px;background:var(--white);transition:all 0.3s}
+nav.scrolled .hamburger span{background:var(--black)}
+
+/* ============ MOBILE MENU ============ */
+.mmenu{display:none;position:fixed;inset:0;z-index:10000;
+  background:rgba(8,12,8,0.98);flex-direction:column;
+  align-items:center;justify-content:center;gap:2rem;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.mmenu.open{display:flex}
+.mmenu a{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;
+  letter-spacing:0.1em;color:var(--white);text-decoration:none}
+.mmenu a:hover,.mmenu a.active{color:var(--gold)}
+.mclose{position:absolute;top:1.5rem;right:5%;font-size:1.1rem;
+  cursor:pointer;background:none;border:none;
+  font-family:'Space Mono',monospace;color:rgba(255,255,255,0.35);letter-spacing:0.1em}
+body.menu-open{overflow:hidden}
+@media(max-width:768px){
+  .mmenu{justify-content:flex-start;gap:1.35rem;padding:5.25rem 5% 2rem}
+  .mmenu a{font-size:clamp(1.75rem,8vw,2.2rem);line-height:1}
+  .mclose{position:fixed}
+}
+
+/* ============ GLITCH ============ */
+.glitch{color:rgba(255,255,255,0.42);display:block;position:relative;cursor:default}
+.glitch::before,.glitch::after{content:attr(data-text);position:absolute;top:0;left:0;
+  font-family:'Bebas Neue',sans-serif;font-size:1em;line-height:0.85;
+  color:rgba(255,255,255,0.42);overflow:hidden;opacity:0;pointer-events:none}
+.glitch::before{text-shadow:-2px 0 var(--red);
+  clip-path:polygon(0 25%,100% 25%,100% 52%,0 52%)}
+.glitch::after{text-shadow:2px 0 var(--gl);
+  clip-path:polygon(0 58%,100% 58%,100% 84%,0 84%)}
+.glitch.glitching::before{animation:gt 0.55s steps(3) 1}
+.glitch.glitching::after{animation:gb 0.55s steps(3) 1}
+@keyframes gt{
+  0%{transform:translateX(0);opacity:0}
+  15%{transform:translateX(-5px) skewX(-3deg);opacity:1}
+  35%{transform:translateX(5px);opacity:1}
+  55%{transform:translateX(-3px) skewX(2deg);opacity:1}
+  75%{transform:translateX(2px);opacity:1}
+  100%{transform:translateX(0);opacity:0}
+}
+@keyframes gb{
+  0%{transform:translateX(0);opacity:0}
+  18%{transform:translateX(5px) skewX(3deg);opacity:1}
+  38%{transform:translateX(-5px);opacity:1}
+  58%{transform:translateX(3px) skewX(-2deg);opacity:1}
+  78%{transform:translateX(-2px);opacity:1}
+  100%{transform:translateX(0);opacity:0}
+}
+.glitch:hover{color:rgba(255,255,255,0.5)}
+.glitch:hover::before{opacity:1;animation:rgbT 0.28s steps(2) infinite}
+.glitch:hover::after{opacity:1;animation:rgbB 0.28s steps(2) infinite}
+@keyframes rgbT{0%,100%{transform:translateX(-4px)}50%{transform:translateX(3px)}}
+@keyframes rgbB{0%,100%{transform:translateX(4px)}50%{transform:translateX(-3px)}}
+
+/* ============ BUTTONS ============ */
+.btn-red,.btn-ghost,.btn-green{position:relative;overflow:hidden}
+.btn-red::after,.btn-green::after{content:'';position:absolute;top:0;bottom:0;width:36%;left:-50%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,0.22),transparent);
+  transform:skewX(-20deg);transition:left 0.55s ease}
+.btn-red:hover::after,.btn-green:hover::after{left:130%}
+.btn-red{padding:0.85rem 2.2rem;background:var(--red);color:var(--white);
+  font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  text-decoration:none;border:2px solid var(--red);font-family:'Space Mono',monospace;
+  transition:background 0.2s,color 0.2s,border-color 0.2s,box-shadow 0.2s;display:inline-block}
+.btn-red:hover{background:transparent;color:var(--white);border-color:rgba(255,255,255,0.6);
+  box-shadow:0 0 24px rgba(179,0,12,0.35)}
+.btn-ghost{padding:0.85rem 2.2rem;border:2px solid rgba(255,255,255,0.2);
+  color:rgba(255,255,255,0.6);font-size:12px;font-weight:500;letter-spacing:0.08em;
+  text-transform:uppercase;text-decoration:none;font-family:'Space Mono',monospace;
+  transition:border-color 0.2s,color 0.2s,box-shadow 0.2s;display:inline-block}
+.btn-ghost:hover{border-color:var(--gl);color:var(--white);
+  box-shadow:0 0 24px rgba(0,200,80,0.2),inset 0 0 18px rgba(0,200,80,0.06)}
+.btn-green{padding:1rem 3rem;background:var(--g);color:var(--white);
+  font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  text-decoration:none;border:2px solid var(--g);font-family:'Space Mono',monospace;
+  transition:background 0.25s,color 0.25s,border-color 0.25s;display:inline-block}
+.btn-green:hover{background:transparent;color:var(--gl);border-color:var(--gl);
+  box-shadow:0 0 28px rgba(0,200,80,0.25)}
+/* nav right group: login (hint + button) then CTA, hamburger */
+.nav-right{display:flex;align-items:center;gap:1rem;flex-shrink:0;
+  position:relative;z-index:1}
+.nav-login{display:flex;align-items:center;gap:0.75rem;text-decoration:none}
+.nav-login-hint{font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:0.04em;white-space:nowrap;color:rgba(255,255,255,0.45);
+  transition:color 0.35s}
+nav.scrolled .nav-login-hint{color:var(--muted)}
+.nav-login:hover .nav-login-hint{color:rgba(255,255,255,0.7)}
+nav.scrolled .nav-login:hover .nav-login-hint{color:var(--black)}
+.nav-login-btn{padding:0.5rem 1.4rem;border:2px solid rgba(255,255,255,0.25);
+  color:rgba(255,255,255,0.75);font-size:12px;font-weight:600;letter-spacing:0.06em;
+  font-family:'Space Mono',monospace;display:inline-block;transition:all 0.2s}
+.nav-login:hover .nav-login-btn{border-color:var(--gl);color:var(--gl)}
+nav.scrolled .nav-login-btn{color:var(--muted);border-color:var(--border)}
+nav.scrolled .nav-login:hover .nav-login-btn{color:var(--g);border-color:var(--g)}
+@media(max-width:1380px){.nav-login-hint{display:none}}
+/* the Login block needs the room the links were using: collapse them
+   into the hamburger earlier than the page's own 768px breakpoint */
+@media(max-width:1024px){
+  .nav-links,.nav-cta{display:none}
+  .hamburger{display:flex}
+}
+@media(max-width:900px){.nav-right{gap:0.75rem}
+  .nav-login-btn{padding:0.4rem 1rem;font-size:11px}}
+/* mobile menu login block */
+.mmenu-login{display:flex;flex-direction:column;align-items:center;gap:0.7rem;
+  margin-top:0.8rem;position:relative;z-index:1}
+.mmenu-login span{font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.4);
+  text-align:center;padding:0 1.5rem}
+.mmenu .mmenu-login a{font-size:2rem;color:var(--gl);
+  border:2px solid rgba(0,200,80,0.45);padding:0.15rem 2.4rem}
+.mmenu .mmenu-login a:hover{color:var(--white);border-color:var(--gl);
+  box-shadow:0 0 24px rgba(0,200,80,0.25)}
+/* while the menu is open its CLOSE button owns the top bar */
+.mmenu.open ~ nav .nav-login,
+.mmenu.open ~ nav .hamburger{visibility:hidden;pointer-events:none}
+.magnetic{will-change:transform}
+
+/* ============ HERO ============ */
+.hero{min-height:80vh;display:flex;align-items:center;
+  padding:9rem 5% 4rem;position:relative;overflow:hidden;
+  background:linear-gradient(160deg,#04140A 0%,#0A2416 55%,#071A0F 100%)}
+.hero-img{position:absolute;inset:-4%;
+  background-image:url('{% static 'images/Jengasec.jpg' %}');
+  background-size:cover;background-position:center 40%;
+  background-repeat:no-repeat;background-color:transparent;
+  will-change:transform;transition:transform 0.18s ease-out}
+.hero-overlay{position:absolute;inset:0;
+  background:linear-gradient(100deg,rgba(4,14,7,0.97) 0%,rgba(4,20,10,0.9) 38%,rgba(0,40,18,0.55) 68%,rgba(0,20,8,0.5) 100%)}
+.hero-tint{position:absolute;inset:0;background:rgba(0,77,38,0.35);mix-blend-mode:multiply}
+.hero-scan{position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,
+    rgba(0,200,80,0.022) 2px,rgba(0,200,80,0.022) 4px)}
+#rain,#particles{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#rain{z-index:1;opacity:0.5}
+#particles{z-index:1}
+.hero-beam{position:absolute;left:0;right:0;height:120px;z-index:2;pointer-events:none;
+  background:linear-gradient(to bottom,transparent,rgba(0,200,80,0.05),transparent);
+  animation:beam 9s cubic-bezier(0.45,0,0.55,1) infinite}
+@keyframes beam{0%{top:-15%}55%{top:105%}100%{top:105%}}
+.hero-content{position:relative;z-index:3;max-width:1240px;margin:0 auto;width:100%;
+  display:grid;grid-template-columns:1fr;gap:2.5rem}
+.hero-left{max-width:620px}
+.hero-right{display:flex;align-items:center;justify-content:center}
+@media(min-width:1024px){
+  .hero-content{grid-template-columns:620px 1fr;align-items:center;gap:3rem}
+}
+.hero-badge{display:inline-flex;align-items:center;gap:0.55rem;
+  padding:0.4rem 1rem;margin-bottom:1.6rem;
+  border:1px solid rgba(0,200,80,0.28);background:rgba(0,20,8,0.55);
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.15em;
+  text-transform:uppercase;color:rgba(160,255,190,0.72)}
+.bdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;
+  background:var(--gl);box-shadow:0 0 8px rgba(0,200,80,0.8);
+  animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(1.5)}}
+.badge-cursor{display:inline-block;width:6px;height:11px;
+  background:var(--gl);margin-left:2px;animation:blink 0.9s step-end infinite;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.prep-h1{font-family:'Bebas Neue',sans-serif;color:var(--white);
+  font-size:clamp(2.4rem,6.4vw,4.7rem);line-height:1.05;letter-spacing:0.02em}
+.prep-h1 .glitch{font-size:1em;color:var(--gl)}
+.prep-h1 .glitch::before,.prep-h1 .glitch::after{color:var(--gl)}
+.prep-h1 .glitch:hover{color:var(--gl)}
+.prep-sub{margin-top:1.5rem;font-size:15px;font-weight:300;line-height:1.9;
+  color:rgba(255,255,255,0.62);max-width:560px;
+  border-left:2px solid var(--gold);padding-left:1rem}
+.hero-ctas{display:flex;gap:1rem;margin-top:2rem;flex-wrap:wrap}
+.hero-chips{display:flex;flex-wrap:wrap;gap:0.6rem;align-items:center;margin-top:1.5rem}
+.hero-chip-status{display:inline-flex;align-items:center;gap:0.45rem;
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--gl);
+  border:1px solid rgba(0,200,80,0.35);padding:0.4rem 0.8rem}
+.hero-chip-status .ember{width:8px;height:8px;border-radius:50%;flex-shrink:0;
+  background:radial-gradient(circle at 35% 30%,#fff,rgba(0,200,83,1) 45%,transparent 78%);
+  box-shadow:0 0 6px rgba(0,200,83,.9),0 0 14px rgba(0,200,83,.5);
+  animation:emberPulse 1.9s ease-in-out infinite}
+@keyframes emberPulse{0%,100%{opacity:1}50%{opacity:.45}}
+.hero-chip-gold{display:inline-block;font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--gold2);border:1px solid rgba(232,176,32,0.4);padding:0.4rem 0.8rem}
+
+/* Hero terminal */
+.prep-term{width:min(420px,100%);
+  background:rgba(4,14,7,0.82);border:1px solid rgba(0,200,80,0.22);
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  font-family:'Space Mono',monospace;overflow:hidden;position:relative;z-index:3}
+.term-head{display:flex;align-items:center;gap:0.6rem;
+  padding:0.55rem 0.9rem;border-bottom:1px solid rgba(0,200,80,0.15);
+  background:rgba(0,25,10,0.7)}
+.term-dots{display:flex;gap:5px}
+.term-dots span{width:8px;height:8px;border-radius:50%;display:block}
+.term-dots span:nth-child(1){background:var(--red)}
+.term-dots span:nth-child(2){background:var(--gold)}
+.term-dots span:nth-child(3){background:var(--gl)}
+.term-title{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35)}
+.term-live{margin-left:auto;font-size:8px;letter-spacing:0.16em;color:var(--gl);
+  display:flex;align-items:center;gap:0.35rem}
+.term-live::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--gl);
+  box-shadow:0 0 6px rgba(0,200,80,0.9);animation:pulse 1.4s ease infinite}
+.term-head,.term-body{position:relative;z-index:1}
+.term-body{min-height:112px;padding:0.9rem 0.9rem;display:flex;flex-direction:column;gap:0.55rem;justify-content:center}
+.boot-line{min-height:1.4em;font-size:11px;letter-spacing:0.05em;color:rgba(0,200,80,0.85)}
+.boot-line .ok{color:var(--gold2)}
+.term-boot-bar{margin:0.4rem 0.9rem 0.9rem;height:3px;background:rgba(0,200,80,0.12);position:relative;overflow:hidden;z-index:1}
+.term-boot-bar i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);
+  background:linear-gradient(90deg,var(--g),var(--gl));transition:transform 0.3s linear}
+.term-boot-label{margin:0 0.9rem 0.75rem;font-size:9px;letter-spacing:0.14em;color:rgba(255,255,255,0.3);
+  text-transform:uppercase;position:relative;z-index:1}
+
+@media(prefers-reduced-motion:reduce){
+  html:not(.force-motion) .bdot,html:not(.force-motion) .badge-cursor,html:not(.force-motion) .term-live::before{animation:none}
+  html:not(.force-motion) .hero-beam{animation:none;opacity:0}
+  html:not(.force-motion) .hero-chip-status .ember{animation:none;opacity:0.9}
+}
+@media(max-width:768px){
+  .hero{min-height:100svh;align-items:flex-start;padding-top:7rem}
+  .hero-ctas{flex-direction:column}
+  .hero-ctas a{width:100%;text-align:center}
+}
+
+/* ============ BREADCRUMB ============ */
+.breadcrumb{position:relative;z-index:4;max-width:1240px;margin:0 auto;width:100%;
+  padding:0 5%;margin-top:-2rem;margin-bottom:0;
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--muted)}
+.breadcrumb a{color:var(--gl);text-decoration:none;transition:color 0.2s}
+.breadcrumb a:hover{color:var(--gold)}
+.breadcrumb .sep{color:var(--muted);margin:0 0.4rem}
+.breadcrumb .current{color:var(--muted)}
+@media(max-width:768px){.breadcrumb{display:none}}
+
+/* ============ SECTION SCAFFOLD ============ */
+.sec{padding:6rem 5%}
+@media(min-width:1600px){.sec{padding-left:calc(50% - 620px);padding-right:calc(50% - 620px)}}
+.sec-dark{background:var(--black);color:var(--white)}
+.sec-off{background:var(--off)}
+.sh{margin-bottom:3rem;position:relative;z-index:1}
+.sh-eye{display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem}
+.sh-line{width:0;height:2px;background:var(--g);transition:width 0.6s cubic-bezier(0.22,1,0.36,1) 0.15s}
+.sh.visible .sh-line{width:16px}
+.sh-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.18em;
+  text-transform:uppercase;color:var(--g)}
+.sh-title{font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2rem,4.5vw,3.5rem);line-height:1;letter-spacing:0.03em;
+  clip-path:inset(0 100% 0 0);transition:clip-path 0.85s cubic-bezier(0.22,1,0.36,1) 0.1s}
+.sh.visible .sh-title{clip-path:inset(0 0% 0 0)}
+.sh::after{content:'';position:absolute;top:0;bottom:0;width:3px;left:0;
+  background:linear-gradient(to bottom,transparent,var(--gl),transparent);
+  opacity:0;pointer-events:none}
+.sh.visible::after{animation:shsweep 0.85s cubic-bezier(0.22,1,0.36,1) 0.1s 1}
+@keyframes shsweep{0%{left:0;opacity:1}90%{opacity:1}100%{left:min(100%,560px);opacity:0}}
+.outline-g{color:var(--g)}
+.sec-dark .sh-title{color:var(--white)}
+.pp-lead{font-size:15px;line-height:1.85;color:var(--muted);max-width:640px;margin-bottom:2.5rem}
+.sec-dark .pp-lead{color:rgba(255,255,255,0.55)}
+.pp-section-note{margin-top:2rem;font-size:13px;line-height:1.8;color:var(--muted);
+  border-left:2px solid var(--gold);padding-left:1rem;max-width:680px}
+.sec-dark .pp-section-note{color:rgba(255,255,255,0.5)}
+
+/* entrances */
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity 0.65s,transform 0.65s}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.slide-l{opacity:0;transform:translateX(-44px);transition:opacity 0.7s cubic-bezier(0.22,1,0.36,1),transform 0.7s cubic-bezier(0.22,1,0.36,1)}
+.slide-r{opacity:0;transform:translateX(44px);transition:opacity 0.7s cubic-bezier(0.22,1,0.36,1),transform 0.7s cubic-bezier(0.22,1,0.36,1)}
+.slide-l.visible,.slide-r.visible{opacity:1;transform:translateX(0)}
+@media(prefers-reduced-motion:reduce){
+  html:not(.force-motion) .fade-up,html:not(.force-motion) .slide-l,html:not(.force-motion) .slide-r,html:not(.force-motion) .sh-title,html:not(.force-motion) .sh-line{transition:none}
+  html:not(.force-motion) .slide-l,html:not(.force-motion) .slide-r{transform:translateY(0)}
+}
+
+/* ============ CORNER BRACKETS ============ */
+.cnr{position:absolute;width:22px;height:22px;pointer-events:none;z-index:2;opacity:0;
+  transition:opacity 0.3s,transform 0.35s cubic-bezier(0.22,1,0.36,1)}
+.cnr-tl{top:8px;left:8px;border-top:2px solid var(--gl);border-left:2px solid var(--gl);
+  transform:translate(6px,6px)}
+.cnr-br{bottom:8px;right:8px;border-bottom:2px solid var(--gl);border-right:2px solid var(--gl);
+  transform:translate(-6px,-6px)}
+
+/* ============ SHARED TERMINAL STYLES ============ */
+.term-sweep{position:absolute;left:0;right:0;height:1px;z-index:2;pointer-events:none;
+  background:var(--gl);opacity:0.08;box-shadow:0 0 6px rgba(0,200,83,0.3);
+  animation:termSweepMove 7s linear infinite}
+@keyframes termSweepMove{0%{top:0%}100%{top:100%}}
+@media(prefers-reduced-motion:reduce){html:not(.force-motion) .term-sweep{animation:none;display:none}}
+.term-rain{position:absolute;inset:0;z-index:0;pointer-events:none}
+
+/* ============ STAT ROW ============ */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  background:var(--border);max-width:900px;margin-top:2rem}
+.stat-item{background:var(--off);padding:1.25rem 1.5rem;
+  font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.06em;
+  text-transform:uppercase;color:var(--g);line-height:1.7}
+@media(max-width:768px){.stat-row{grid-template-columns:1fr}}
+
+/* ============ REQUIREMENT GRID (brief section) ============ */
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  background:rgba(255,255,255,0.06);max-width:900px}
+.req-row{background:var(--black);padding:1.5rem;display:flex;gap:1rem;align-items:flex-start}
+.req-num{font-family:'Space Mono',monospace;font-size:12px;color:var(--gl);
+  flex-shrink:0;min-width:24px;padding-top:0.15rem}
+.req-text{font-size:13.5px;line-height:1.8;color:rgba(255,255,255,0.7)}
+@media(max-width:768px){.req-grid{grid-template-columns:1fr}}
+
+/* ============ TICK LIST (rules, additional sections, ready checklist) ============ */
+.tick-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 3rem;max-width:900px}
+.tick-row{display:flex;gap:1rem;align-items:flex-start;padding:1.1rem 0;
+  border-bottom:1px solid var(--border)}
+.tick-row:last-child{border-bottom:none}
+.tick-mark{flex-shrink:0;width:24px;height:24px;border:1.5px solid var(--g);color:var(--g);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-family:'Space Mono',monospace;margin-top:0.1rem}
+.tick-row p{font-size:13.5px;line-height:1.8;color:var(--black)}
+.sec-dark .tick-row{border-bottom-color:rgba(255,255,255,0.08)}
+.sec-dark .tick-row p{color:rgba(255,255,255,0.7)}
+.sec-dark .tick-mark{border-color:var(--gl);color:var(--gl)}
+@media(max-width:768px){.tick-grid{grid-template-columns:1fr}}
+
+/* ready checklist (read-only) */
+.ready-list{max-width:820px}
+.ready-row{display:flex;gap:0.85rem;align-items:flex-start;padding:0.8rem 0;
+  border-bottom:1px solid var(--border)}
+.ready-row:last-child{border-bottom:none}
+.ready-check{flex-shrink:0;width:20px;height:20px;border:1.5px solid var(--g);
+  margin-top:0.15rem;display:flex;align-items:center;justify-content:center;
+  color:var(--g);font-size:13px}
+.ready-text{font-family:'Space Mono',monospace;font-size:12.5px;line-height:1.7;color:var(--black)}
+
+/* ============ PROPOSAL LOADOUT ============ */
+.pp-loadout-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 3rem;max-width:900px}
+.pp-loadout-row{display:flex;gap:1rem;align-items:flex-start;padding:1rem 0;border-bottom:1px solid rgba(255,255,255,0.08)}
+.pp-loadout-row:last-child{border-bottom:none}
+.pp-loadout-n{flex-shrink:0;font-family:'Space Mono',monospace;font-size:12px;color:var(--gl);
+  width:24px;padding-top:0.15rem}
+.pp-loadout-body{flex:1;min-width:0}
+.pp-loadout-name{font-weight:600;font-size:14px;color:var(--white);margin-bottom:0.15rem}
+.pp-loadout-desc{font-size:13px;line-height:1.7;color:rgba(255,255,255,0.55)}
+.pp-weight{display:inline-block;margin-left:0.5rem;font-family:'Space Mono',monospace;font-size:10px;
+  color:var(--gold);border:1px solid rgba(201,150,10,0.4);padding:0.15rem 0.5rem;vertical-align:middle}
+@media(max-width:768px){.pp-loadout-grid{grid-template-columns:1fr}}
+
+/* ============ CALLOUTS ============ */
+.pp-callout-mono{max-width:820px;margin-bottom:2rem;padding:1.25rem 1.5rem;
+  border-left:3px solid var(--g);background:rgba(0,122,61,0.05)}
+.pp-callout-mono p{font-family:'Space Mono',monospace;font-size:12.5px;line-height:1.9;color:var(--black)}
+.pp-callout-mono strong{color:var(--g)}
+.sec-dark .pp-callout-mono{background:rgba(0,200,80,0.05);border-left-color:var(--gl)}
+.sec-dark .pp-callout-mono p{color:rgba(255,255,255,0.75)}
+.sec-dark .pp-callout-mono strong{color:var(--gl)}
+.pp-callout-gold{max-width:820px;padding:1.5rem 1.75rem;
+  border-left:3px solid var(--gold2);background:rgba(232,176,32,0.06);
+  font-size:13.5px;line-height:1.85;margin-bottom:1.25rem}
+.pp-callout-gold p{color:rgba(255,255,255,0.75)}
+
+/* ============ CTA SECTION ============ */
+.sec-cta{background:var(--dg);padding:6.5rem 5%;position:relative;overflow:hidden}
+.pp-cta-inner{max-width:760px;position:relative;z-index:1}
+.pp-cta-copy{margin-top:1.25rem;font-size:15px;line-height:1.9;color:rgba(255,255,255,0.55);max-width:600px}
+.pp-cta-term{margin-top:2.25rem;background:var(--black);border:1px solid rgba(0,200,80,0.25);
+  position:relative;overflow:hidden;
+  padding:1.5rem 1.75rem;font-family:'Space Mono',monospace;font-size:clamp(0.85rem,1.8vw,1.05rem);
+  color:var(--gl)}
+.pp-cta-btns{display:flex;gap:1rem;margin-top:2rem;flex-wrap:wrap}
+
+/* ============ FOOTER ============ */
+footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
+  padding:2.5rem 5%;display:flex;justify-content:space-between;
+  align-items:center;flex-wrap:wrap;gap:1.5rem}
+.ft-brand{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.1em;color:var(--white)}
+.ft-brand em{color:var(--gold);font-style:normal}
+.ft-sub{font-family:'Space Mono',monospace;font-size:10px;color:rgba(255,255,255,0.18);
+  margin-top:0.3rem;letter-spacing:0.04em}
+.ft-right{text-align:right}
+.ft-right a{font-family:'Space Mono',monospace;font-size:12px;color:var(--gl);text-decoration:none}
+.ft-right p{font-family:'Space Mono',monospace;font-size:10px;color:rgba(255,255,255,0.14);
+  margin-top:0.3rem;letter-spacing:0.04em}
+
+/* ============ RESPONSIVE ============ */
+@media(max-width:768px){
+  nav{padding:1rem 4%}
+  nav.scrolled{padding:0.85rem 4%}
+  .nav-links{display:none}
+  .nav-cta{display:none}
+  .hamburger{display:flex}
+  .sec,.sec-cta,footer{padding-left:4%;padding-right:4%}
+  .hero{padding:8rem 4% 3rem}
+  footer{text-align:center;justify-content:center}
+  .ft-right{text-align:center}
+  .pp-cta-btns{flex-direction:column}
+  .pp-cta-btns a{width:100%;text-align:center}
+}
+@media(prefers-reduced-motion:reduce){
+  html:not(.force-motion) #grain{animation:none}
+}
+</style>
+<style>
+.motion-toggle{padding:.75rem 1rem;border:1px solid rgba(232,176,32,.4);background:rgba(8,12,8,.38);color:var(--gold2);font:10px 'Space Mono',monospace;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+html.motion-reduced .hero-grid,html.motion-reduced .hero-beam,html.motion-reduced .hero-logo-wm,html.motion-reduced .term-sweep,html.motion-reduced .bdot,html.motion-reduced .badge-cursor,html.motion-reduced .term-live::before{animation:none!important}
+html.motion-reduced .hero-beam{opacity:0}
+</style>
+<style>
+@media(max-width:768px){
+  .hero{min-height:100svh;padding:7rem 4% 3rem;align-items:flex-start}
+  .hero-img{inset:0;background-size:cover;background-position:center center}
+  .hero-content{grid-template-columns:minmax(0,1fr);gap:2rem;width:100%;min-width:0}
+  .hero-left,.hero-right{width:100%;max-width:none;min-width:0}
+  .prep-term{width:100%;max-width:100%}
+  .hero-logo-wm{width:min(78vw,360px);max-width:100%;height:auto}
+}
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="grain" aria-hidden="true"></div>
+<div id="cur-dot" aria-hidden="true"></div>
+<div id="cur-ring" aria-hidden="true"></div>
+<div id="prog" aria-hidden="true"></div>
+
+<div class="mmenu" id="mm" aria-hidden="true">
+  <button class="mclose" id="mc" aria-label="Close menu">CLOSE &#10005;</button>
+  <a href="{% url 'landing' %}#home" onclick="cm()">Home</a>
+  <a href="{% url 'landing' %}#how" onclick="cm()">How It Works</a>
+  <a href="{% url 'landing' %}#road" onclick="cm()">Timeline</a>
+  <a href="{% url 'landing' %}#speakers" onclick="cm()">Speakers</a>
+  <a href="{% url 'landing' %}#numbers" onclick="cm()">Numbers</a>
+  <a href="{% url 'landing' %}#faq" onclick="cm()">FAQ</a>
+  <a href="{% url 'prepare' %}" onclick="cm()" class="active" aria-current="page" style="color:var(--gl)">Prepare</a>
+  <a href="{% url 'landing' %}#contact" onclick="cm()">Contact</a>
+  <div class="mmenu-login">
+    <span>Already registered or an active party?</span>
+    <a href="{% url 'login' %}" onclick="cm()">Login</a>
+  </div>
+</div>
+
+<nav id="nav" aria-label="Main navigation">
+  <a class="nl" href="{% url 'landing' %}#home" id="wordmark">
+    <img src="{% static 'images/logo.png' %}" alt="JengaSec spear logo" class="nl-spear">
+    Jenga<span class="wm-sec" id="wmsec">Sec</span>
+  </a>
+  <ul class="nav-links" id="navlinks">
+    <li><a href="{% url 'landing' %}#home" data-txt="Home">Home</a></li>
+    <li><a href="{% url 'landing' %}#how" data-txt="How It Works">How It Works</a></li>
+    <li><a href="{% url 'landing' %}#road" data-txt="Timeline">Timeline</a></li>
+    <li><a href="{% url 'landing' %}#speakers" data-txt="Speakers">Speakers</a></li>
+    <li><a href="{% url 'landing' %}#numbers" data-txt="Numbers">Numbers</a></li>
+    <li><a href="{% url 'landing' %}#faq" data-txt="FAQ">FAQ</a></li>
+    <li><a href="{% url 'prepare' %}" data-txt="Prepare" class="active" aria-current="page">Prepare</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="{% url 'login' %}" class="nav-login magnetic">
+      <span class="nav-login-hint">Already registered or an active party?</span>
+      <span class="nav-login-btn">Login</span>
+    </a>
+    <a href="{% url 'landing' %}#contact" class="nav-cta magnetic">Talk To Us</a>
+    <button class="hamburger" id="mb" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+  </div>
+</nav>
+
+<main id="main">
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="home">
+  <div class="hero-img" id="heroimg" aria-hidden="true"></div>
+  <div class="hero-overlay" aria-hidden="true"></div>
+  <div class="hero-tint" aria-hidden="true"></div>
+  <canvas id="rain" aria-hidden="true"></canvas>
+  <canvas id="particles" aria-hidden="true"></canvas>
+  <div class="hero-scan" aria-hidden="true"></div>
+  <div class="hero-beam" aria-hidden="true"></div>
+  <div class="hero-content">
+    <div class="hero-left">
+      <div class="hero-badge"><span class="bdot"></span>// TRACK_02 :: BLUE_SIDE<span class="badge-cursor"></span></div>
+      <h1 class="prep-h1">
+        WATCH THE WHOLE BANK.<br>
+        <span class="glitch" id="pglitch" data-text="DECIDE. THEN ACT.">DECIDE. THEN ACT.</span>
+      </h1>
+      <p class="prep-sub">Your agent consumes every cell's telemetry, recognises one incident as one incident, and acts only through the JengaSec Action API with a hard blast-radius cap and a kill switch. Blocking a legitimate customer is scored as damage.</p>
+
+      <div class="hero-chips">
+        <span class="hero-chip-status"><span class="ember"></span>LIT</span>
+        <span class="hero-chip-gold">PROPOSAL REQUIRED</span>
+      </div>
+
+      <div class="hero-ctas">
+        <a href="#brief" class="btn-green magnetic">What You Build</a>
+        <a href="#proposal" class="btn-ghost magnetic">Your Proposal</a>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <aside class="prep-term" aria-label="AI Defence Blue terminal">
+        <div class="term-sweep" aria-hidden="true"></div>
+        <canvas class="term-rain" id="readinessRain" aria-hidden="true"></canvas>
+        <div class="term-head">
+          <div class="term-dots"><span></span><span></span><span></span></div>
+          <span class="term-title">ai-defence-blue.sh</span>
+          <span class="term-live">LIVE</span>
+        </div>
+        <div class="term-body">
+          <div class="boot-line" id="rl0"></div>
+          <div class="boot-line" id="rl1"></div>
+          <div class="boot-line" id="rl2"></div>
+          <div class="boot-line" id="rl3"></div>
+        </div>
+        <div class="term-boot-bar"><i id="heroBbar"></i></div>
+        <div class="term-boot-label" id="heroBlabel">DEFENCE_AGENT :: LOADING</div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BREADCRUMB ============ -->
+<div class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{% url 'prepare' %}">PREPARE</a><span class="sep">/</span><a href="{% url 'prepare' %}#tracks">BLUE_SIDE</a><span class="sep">/</span><span class="current">AI DEFENCE BLUE</span>
+</div>
+
+<!-- ============ S1 MISSION ============ -->
+<section class="sec sec-off" id="mission">
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line"></div><span class="sh-label">// Your_Mission</span></div>
+    <h2 class="sh-title">Two to three agents.<br><span class="outline-g">Per enterprise.</span></h2>
+  </div>
+
+  <p class="pp-lead">Build an autonomous defence agent that reads the enterprise's telemetry, decides what is happening, and acts through a permitted-action gateway.</p>
+
+  <div class="stat-row fade-up">
+    <div class="stat-item">2 TO 3 DEFENCE CELLS PER ENTERPRISE</div>
+    <div class="stat-item">4 TO 6 TEAMS ADVANCE IN TOTAL</div>
+    <div class="stat-item">~3 RED TEAMS PER DEFENDER</div>
+  </div>
+</section>
+
+<!-- ============ S2 BRIEF ============ -->
+<section class="sec sec-dark" id="brief">
+  <div class="orb orb-g orb1" aria-hidden="true"></div>
+  <div class="orb orb-au orb2" aria-hidden="true"></div>
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line" style="background:var(--gl)"></div><span class="sh-label" style="color:var(--gl)">// The_Defence_Brief</span></div>
+    <h2 class="sh-title">Prompt-in, verdict-out<br><span style="color:var(--gl)">is not enough.</span></h2>
+  </div>
+
+  <div class="req-grid fade-up">
+    <div class="req-row">
+      <span class="req-num">01</span>
+      <p class="req-text">Consume the enterprise's full telemetry stream.</p>
+    </div>
+    <div class="req-row">
+      <span class="req-num">02</span>
+      <p class="req-text">Combine deterministic analytics with model-based reasoning: prompt-in, verdict-out is not sufficient and scores poorly on technical complexity.</p>
+    </div>
+    <div class="req-row">
+      <span class="req-num">03</span>
+      <p class="req-text">Map detections to MITRE ATT&amp;CK and state the coverage gap honestly.</p>
+    </div>
+    <div class="req-row">
+      <span class="req-num">04</span>
+      <p class="req-text">Correlate across cells so that one incident is recognised as one incident rather than five alerts.</p>
+    </div>
+    <div class="req-row">
+      <span class="req-num">05</span>
+      <p class="req-text">Publish an action policy binding severity and confidence to alert, recommend or act.</p>
+    </div>
+    <div class="req-row">
+      <span class="req-num">06</span>
+      <p class="req-text">Act only through the JengaSec Action API, with a hard blast-radius cap, per-window action budgets, and a reversal path for every action.</p>
+    </div>
+    <div class="req-row">
+      <span class="req-num">07</span>
+      <p class="req-text">A kill switch that halts autonomy without halting detection.</p>
+    </div>
+    <div class="req-row">
+      <span class="req-num">08</span>
+      <p class="req-text">Treat every telemetry field as attacker-controlled text.</p>
+    </div>
+    <div class="req-row">
+      <span class="req-num">09</span>
+      <p class="req-text">Keep false positives low: blocking a legitimate customer is scored as damage.</p>
+    </div>
+    <div class="req-row">
+      <span class="req-num">10</span>
+      <p class="req-text">Emit a decision log for every alert, recommendation and action, complete enough for a judge to reconstruct the reasoning after the fact.</p>
+    </div>
+  </div>
+
+  <div class="pp-callout-gold fade-up" style="margin-top:2.5rem">
+    <p>Treat every telemetry field as attacker-controlled text. Your agent is the target of the AI Red track.</p>
+  </div>
+</section>
+
+<!-- ============ S3 RULES ============ -->
+<section class="sec" id="rules">
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line"></div><span class="sh-label">// Every_Blue_Cell</span></div>
+    <h2 class="sh-title">Eight rules.<br><span class="outline-g">No exceptions.</span></h2>
+  </div>
+
+  <div class="tick-grid">
+    <div class="tick-row fade-up">
+      <span class="tick-mark">&#10003;</span>
+      <p>One container image per service, built by the provided pipeline, running as a non-root user with no privileged mode and no host mounts.</p>
+    </div>
+    <div class="tick-row fade-up">
+      <span class="tick-mark">&#10003;</span>
+      <p>A single HTTP port from the PORT environment variable, with GET /healthz, GET /readyz, and a machine-readable GET /openapi.json that matches the implementation.</p>
+    </div>
+    <div class="tick-row fade-up">
+      <span class="tick-mark">&#10003;</span>
+      <p>Configuration from environment variables and mounted secrets. A credential in the repository is an automatic finding, whether or not a Red Team discovers it.</p>
+    </div>
+    <div class="tick-row fade-up">
+      <span class="tick-mark">&#10003;</span>
+      <p>Stateless services: all persistent state in the provided database or bucket: with idempotent migrations applied on deploy.</p>
+    </div>
+    <div class="tick-row fade-up">
+      <span class="tick-mark">&#10003;</span>
+      <p>Transport security everywhere. Authorisation evaluated server-side on every request against the acting principal, never inferred from a client-supplied role.</p>
+    </div>
+    <div class="tick-row fade-up">
+      <span class="tick-mark">&#10003;</span>
+      <p>Input validated against an explicit schema at the boundary, with unknown fields rejected rather than ignored. Errors must not disclose stack traces, queries, versions or internal hostnames.</p>
+    </div>
+    <div class="tick-row fade-up">
+      <span class="tick-mark">&#10003;</span>
+      <p>Dependencies pinned and scanned, free of known critical vulnerabilities at submission. Rate limiting on authentication, search, export and any expensive operation.</p>
+    </div>
+    <div class="tick-row fade-up">
+      <span class="tick-mark">&#10003;</span>
+      <p>Telemetry in the common envelope, emitted within five seconds of the action. Missing telemetry is scored as a missing security control, not as a documentation gap.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ S4 PROPOSAL ============ -->
+<section class="sec sec-dark" id="proposal">
+  <div class="orb orb-au orb1" aria-hidden="true"></div>
+  <div class="orb orb-g orb2" aria-hidden="true"></div>
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line" style="background:var(--gl)"></div><span class="sh-label" style="color:var(--gl)">// Your_Proposal</span></div>
+    <h2 class="sh-title">Twelve core sections.<br><span style="color:var(--gl)">Plus ten for this track.</span></h2>
+  </div>
+
+  <div class="pp-callout-mono fade-up" style="margin-bottom:2.5rem">
+    <p><strong>HEADINGS ARE NOT OPTIONAL ::</strong> Use the section numbers and titles below as your document headings, in order, exactly as written, for example 08 Threat Model. The platform reads headings to locate each section before a judge opens the file. A section under a different title, or merged into another, can be read as missing and scored as missing.</p>
+  </div>
+
+  <div class="pp-loadout-grid">
+    <div class="pp-loadout-row fade-up">
+      <span class="pp-loadout-n">01</span>
+      <div class="pp-loadout-body">
+        <div class="pp-loadout-name">Executive Summary <span class="pp-weight">FRAMING</span></div>
+        <p class="pp-loadout-desc">One page. What the team is building, for which brief, why it matters, and what will exist at the end of the build phase.</p>
+      </div>
+    </div>
+    <div class="pp-loadout-row fade-up">
+      <span class="pp-loadout-n">02</span>
+      <div class="pp-loadout-body">
+        <div class="pp-loadout-name">Problem Statement <span class="pp-weight">10%</span></div>
+        <p class="pp-loadout-desc">The specific security problem this component exists to solve, in its enterprise context. Not "cyber attacks are increasing".</p>
+      </div>
+    </div>
+    <div class="pp-loadout-row fade-up">
+      <span class="pp-loadout-n">03</span>
+      <div class="pp-loadout-body">
+        <div class="pp-loadout-name">Objectives</div>
+        <p class="pp-loadout-desc">Three to six objectives, each specific and verifiable. "Implement MFA with recovery" is an objective; "improve security" is not.</p>
+      </div>
+    </div>
+    <div class="pp-loadout-row fade-up">
+      <span class="pp-loadout-n">04</span>
+      <div class="pp-loadout-body">
+        <div class="pp-loadout-name">Proposed System <span class="pp-weight">15%</span></div>
+        <p class="pp-loadout-desc">What the service does, its main flows, and its boundaries: including what it deliberately does not do.</p>
+      </div>
+    </div>
+    <div class="pp-loadout-row fade-up">
+      <span class="pp-loadout-n">05</span>
+      <div class="pp-loadout-body">
+        <div class="pp-loadout-name">System Significance <span class="pp-weight">15%</span></div>
+        <p class="pp-loadout-desc">Why this component failing would matter to JengaBank, and what an attacker gains by compromising it.</p>
+      </div>
+    </div>
+    <div class="pp-loadout-row fade-up">
+      <span class="pp-loadout-n">06</span>
+      <div class="pp-loadout-body">
+        <div class="pp-loadout-name">Functional Requirements <span class="pp-weight">15%</span></div>
+        <p class="pp-loadout-desc">A numbered, testable list covering every mandatory capability in the brief, plus the team's own additions marked as such. Must include a compliance table mapping every mandatory capability and every mandatory endpoint to the requirement that covers it.</p>
+      </div>
+    </div>
+    <div class="pp-loadout-row fade-up">
+      <span class="pp-loadout-n">07</span>
+      <div class="pp-loadout-body">
+        <div class="pp-loadout-name">Non-functional Requirements <span class="pp-weight">15%</span></div>
+        <p class="pp-loadout-desc">Performance, availability, scalability, maintainability and operability targets, with numbers attached.</p>
+      </div>
+    </div>
+    <div class="pp-loadout-row fade-up">
+      <span class="pp-loadout-n">08</span>
+      <div class="pp-loadout-body">
+        <div class="pp-loadout-name">Threat Model <span class="pp-weight">20%</span></div>
+        <p class="pp-loadout-desc">Assets, trust boundaries, actors, attack surface, threats enumerated using a named method (STRIDE, attack trees or equivalent), and the risks accepted.</p>
+      </div>
+    </div>
+    <div class="pp-loadout-row fade-up">
+      <span class="pp-loadout-n">09</span>
+      <div class="pp-loadout-body">
+        <div class="pp-loadout-name">Security Objectives <span class="pp-weight">20%</span></div>
+        <p class="pp-loadout-desc">The controls that answer the threat model, each traced to the threat it mitigates and to a recognised framework reference.</p>
+      </div>
+    </div>
+    <div class="pp-loadout-row fade-up">
+      <span class="pp-loadout-n">10</span>
+      <div class="pp-loadout-body">
+        <div class="pp-loadout-name">Proposed Architecture Diagram <span class="pp-weight">15%</span></div>
+        <p class="pp-loadout-desc">At least one component diagram and one data-flow diagram with trust boundaries marked, embedded as legible images, each with a text description beneath it.</p>
+      </div>
+    </div>
+    <div class="pp-loadout-row fade-up">
+      <span class="pp-loadout-n">11</span>
+      <div class="pp-loadout-body">
+        <div class="pp-loadout-name">Technology Stack <span class="pp-weight">15%</span></div>
+        <p class="pp-loadout-desc">Languages, frameworks, libraries, data stores and any AI models, with a justification for each significant choice and a note on its security posture.</p>
+      </div>
+    </div>
+    <div class="pp-loadout-row fade-up">
+      <span class="pp-loadout-n">12</span>
+      <div class="pp-loadout-body">
+        <div class="pp-loadout-name">Development Timeline <span class="pp-weight">10%</span></div>
+        <p class="pp-loadout-desc">Week-by-week plan across the build window, with named owners, dependencies and milestones. Must include time for testing and documentation.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Additional for this track -->
+  <div style="margin-top:3.5rem">
+    <div class="sh-eye" style="margin-bottom:1.5rem"><div class="sh-line" style="width:16px;height:2px;background:var(--gl)"></div><span class="sh-label" style="color:var(--gl)">// Additional_For_This_Track</span></div>
+
+    <div class="tick-grid">
+      <div class="tick-row fade-up">
+        <span class="tick-mark">&#10003;</span>
+        <p>Agent architecture: the perceive, reason and act stages, what runs where, and what state the agent keeps between events.</p>
+      </div>
+      <div class="tick-row fade-up">
+        <span class="tick-mark">&#10003;</span>
+        <p>Model choice and hosting, with the reason for the choice, where inference runs, and the fallback when the model is unavailable.</p>
+      </div>
+      <div class="tick-row fade-up">
+        <span class="tick-mark">&#10003;</span>
+        <p>Detection design: the deterministic analytics, the model-based reasoning, and how the two combine into a verdict.</p>
+      </div>
+      <div class="tick-row fade-up">
+        <span class="tick-mark">&#10003;</span>
+        <p>MITRE ATT&amp;CK coverage map: the techniques the agent intends to detect, and an honest statement of what it will not cover.</p>
+      </div>
+      <div class="tick-row fade-up">
+        <span class="tick-mark">&#10003;</span>
+        <p>Action policy: the table of severity and confidence bands against alert, recommend and act, with the reasoning for where the autonomy boundary sits.</p>
+      </div>
+      <div class="tick-row fade-up">
+        <span class="tick-mark">&#10003;</span>
+        <p>Safety design: blast-radius cap, action budgets, reversal path for every action, kill switch, and the behaviour when the agent is uncertain.</p>
+      </div>
+      <div class="tick-row fade-up">
+        <span class="tick-mark">&#10003;</span>
+        <p>Adversarial robustness: how attacker-controlled text in telemetry is prevented from becoming instruction, and how the agent behaves under flooding and poisoning.</p>
+      </div>
+      <div class="tick-row fade-up">
+        <span class="tick-mark">&#10003;</span>
+        <p>False-positive management: the expected cost of a wrong action on each action type, and the design that keeps it low.</p>
+      </div>
+      <div class="tick-row fade-up">
+        <span class="tick-mark">&#10003;</span>
+        <p>The decision-log schema the agent will emit, with a worked example entry.</p>
+      </div>
+      <div class="tick-row fade-up">
+        <span class="tick-mark">&#10003;</span>
+        <p>Resource budget plan: expected model calls, tokens, compute and wall-clock per hour of engagement: and an evaluation plan stating how detection rate, false-positive rate and time to detect will be measured before the engagement, and on what data.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pp-callout-mono fade-up" style="margin-top:2.5rem;border-left-color:var(--gold);background:rgba(232,176,32,0.06)">
+    <p><strong>UPLOAD FORMAT ::</strong> Attach a cover page, declaration of originality, and AI use statement. Missing any of the three is returned as incomplete. PDF only, selectable text, 12 to 20 pages excluding cover, contents, references and appendices. A4, margins &gt;= 2 cm, body &gt;= 11 pt, spacing &gt;= 1.15, max 25 MB, English, no password or encryption. Filename: JS26_&lt;ENTERPRISE&gt;_&lt;CELL&gt;_&lt;TEAMID&gt;_&lt;TYPE&gt;_v&lt;N&gt;.pdf.</p>
+    <p style="margin-top:0.85rem"><strong>AI USE ::</strong> Editing your own text, diagrams from your own content, and human-verified research assistance are permitted when declared. Generating the threat model or security design without team authorship, unread citations, or undeclared use is not permitted.</p>
+  </div>
+</section>
+
+<!-- ============ S5 READY ============ -->
+<section class="sec" id="ready">
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line"></div><span class="sh-label">// Before_You_Register</span></div>
+    <h2 class="sh-title">Ready in thirty minutes.<br><span class="outline-g">Or losing days.</span></h2>
+  </div>
+
+  <div class="ready-list">
+    <div class="ready-row fade-up"><span class="ready-check">&#10003;</span><span class="ready-text">Full legal name of every member, exactly as on their identity document.</span></div>
+    <div class="ready-row fade-up"><span class="ready-check">&#10003;</span><span class="ready-text">Identity document per member showing date of birth. PDF, JPG or PNG, under 5 MB, photographed in good light with the whole document in frame.</span></div>
+    <div class="ready-row fade-up"><span class="ready-check">&#10003;</span><span class="ready-text">Email per member, institutional if you have one.</span></div>
+    <div class="ready-row fade-up"><span class="ready-check">&#10003;</span><span class="ready-text">GitHub or GitLab handle per member.</span></div>
+    <div class="ready-row fade-up"><span class="ready-check">&#10003;</span><span class="ready-text">If enrolled: student number, institution, programme and year of study.</span></div>
+    <div class="ready-row fade-up"><span class="ready-check">&#10003;</span><span class="ready-text">Captain and one deputy: phone number in international format, for example +254712345678.</span></div>
+    <div class="ready-row fade-up"><span class="ready-check">&#10003;</span><span class="ready-text">Team name, three to forty characters.</span></div>
+    <div class="ready-row fade-up"><span class="ready-check">&#10003;</span><span class="ready-text">Ranked track preferences for your side.</span></div>
+    <div class="ready-row fade-up"><span class="ready-check">&#10003;</span><span class="ready-text">Skills declaration, 100 to 1500 characters, honestly describing what the team has built before. Overstating it earns you a brief you cannot complete.</span></div>
+  </div>
+
+  <div style="margin-top:2.5rem">
+<a href="#ready" class="btn-green magnetic">Open The Full Checklist</a>
+  </div>
+</section>
+
+<!-- ============ S6 CTA ============ -->
+<section class="sec-cta" id="cta">
+  <div class="orb orb-g orb2" aria-hidden="true"></div>
+  <div class="pp-cta-inner">
+    <div class="sh">
+      <div class="sh-eye"><div class="sh-line" style="background:var(--gold)"></div><span class="sh-label" style="color:rgba(255,255,255,0.3)">// Final_Word</span></div>
+      <h2 class="sh-title" style="color:var(--white);font-size:clamp(2.2rem,5vw,3.5rem)">Design the kill switch first.<br><span style="color:var(--gold)">Then the detection.</span></h2>
+    </div>
+    <div class="pp-cta-term">
+      <canvas class="term-rain" id="ctaRain" aria-hidden="true"></canvas>
+      <div class="term-sweep" aria-hidden="true"></div>
+      <span style="position:relative;z-index:1">&gt; ./register --track=ai-defence-blue --team=4<span class="badge-cursor"></span></span>
+    </div>
+    <div class="pp-cta-btns">
+<a href="#ready" class="btn-green magnetic">How To Register</a>
+      <a href="{% url 'track_ai_red' %}" class="btn-ghost magnetic">See The Other Side</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div>
+    <div class="ft-brand">Jenga<em>Sec</em> 2026</div>
+    <div class="ft-sub">// Strathmore Cybersecurity Club &middot; Nairobi, Kenya &middot; @sucybersec</div>
+  </div>
+  <div class="ft-right">
+    <a href="mailto:sucybersec@strathmore.edu">sucybersec@strathmore.edu</a>
+    <p>// Kenya's proving ground for enterprise-ready technologists</p>
+  </div>
+</footer>
+
+<script>
+'use strict';
+let reduceMotion=document.documentElement.classList.contains('motion-reduced')&&!document.documentElement.classList.contains('motion-full');
+const finePointer = window.matchMedia('(pointer: fine)').matches;
+const CH="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./\\[]{}><_#@!";
+
+const motionToggle=document.createElement('button');
+motionToggle.className='motion-toggle';
+motionToggle.type='button';
+motionToggle.setAttribute('aria-label','Change visual effects mode');
+motionToggle.textContent=reduceMotion?'ENABLE FULL EFFECTS':'USE REDUCED EFFECTS';
+document.querySelector('.hero-ctas')?.appendChild(motionToggle);
+motionToggle.addEventListener('click',()=>{
+  const url=new URL(location.href);
+  url.searchParams.set('motion',reduceMotion?'full':'reduced');
+  location.href=url.href;
+});
+
+{const mode=new URLSearchParams(location.search).get('motion');if(mode)document.querySelectorAll('a[href$=".html"],a[href*=".html#"]').forEach(link=>{const u=new URL(link.href,location.href);if(u.origin===location.origin){u.searchParams.set('motion',mode);link.href=u.href;}});}
+if('scrollRestoration' in history)history.scrollRestoration='manual';
+if(!location.hash)window.scrollTo(0,0);
+
+/* ---------- shared: initRain(canvas) ---------- */
+function initRain(canvas){
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const RCH='01JENGASEC';
+  const TRAIL=5;
+  let rw,rh,cols,drops,raf=null,running=false;
+  function size(){
+    const box=canvas.parentElement;
+    rw=canvas.width=box.clientWidth||1;
+    rh=canvas.height=box.clientHeight||1;
+    const spacing=18+Math.random()*4;
+    cols=Math.max(1,Math.floor(rw/spacing));
+    drops=Array.from({length:cols},(_,i)=>({
+      x:Math.round((i+0.5)*(rw/cols)),
+      y:Math.random()*-40,
+      speed:2+Math.random()*2,
+      chars:[]
+    }));
+  }
+  size();
+  canvas.style.opacity='0.18';
+  function drawFrame(){
+    ctx.clearRect(0,0,rw,rh);
+    ctx.font='11px "Space Mono",monospace';
+    for(const d of drops){
+      d.chars.unshift(RCH[Math.floor(Math.random()*RCH.length)]);
+      if(d.chars.length>TRAIL)d.chars.pop();
+      for(let t=0;t<d.chars.length;t++){
+        ctx.fillStyle=t===0?'rgba(0,200,83,0.9)':'rgba(0,122,61,'+(0.5*(1-t/TRAIL))+')';
+        ctx.fillText(d.chars[t],d.x,d.y-t*13);
+      }
+      d.y+=d.speed;
+      if(d.y-TRAIL*13>rh&&Math.random()>0.96){d.y=Math.random()*-30;d.chars=[];d.speed=2+Math.random()*2;}
+    }
+  }
+  function loop(){if(!running)return;drawFrame();raf=requestAnimationFrame(loop);}
+  if(reduceMotion){
+    ctx.clearRect(0,0,rw,rh);
+    ctx.font='11px "Space Mono",monospace';
+    drops.forEach(d=>{
+      ctx.fillStyle='rgba(0,122,61,0.4)';
+      ctx.fillText(RCH[Math.floor(Math.random()*RCH.length)],d.x,Math.random()*rh);
+    });
+    return;
+  }
+  function start(){if(!running){size();running=true;loop();}}
+  function stop(){running=false;if(raf)cancelAnimationFrame(raf);}
+  const io=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{e.isIntersecting?start():stop();});
+  },{threshold:0});
+  io.observe(canvas);
+  window.addEventListener('resize',size,{passive:true});
+}
+initRain(document.getElementById('ctaRain'));
+initRain(document.getElementById('readinessRain'));
+
+/* ---------- hero background stack: parallax + full rain + particles ---------- */
+(function(){
+  const heroImg=document.getElementById('heroimg');
+  const hero=document.getElementById('home');
+  if(!heroImg||!hero)return;
+  let heroVisible=true;
+  new IntersectionObserver(e=>{heroVisible=e[0].isIntersecting;},{threshold:0}).observe(hero);
+
+  if(!reduceMotion){
+    let px=0,py=0,sy=0;
+    hero.addEventListener('mousemove',e=>{
+      const r=hero.getBoundingClientRect();
+      px=((e.clientX-r.left)/r.width-0.5)*14;
+      py=((e.clientY-r.top)/r.height-0.5)*10;
+      applyParallax();
+    },{passive:true});
+    window.addEventListener('scroll',()=>{
+      sy=Math.min(window.scrollY*0.12,80);
+      applyParallax();
+    },{passive:true});
+    function applyParallax(){
+      heroImg.style.transform='translate3d('+(-px)+'px,'+(-py+sy)+'px,0) scale(1.04)';
+    }
+  }
+
+  const rain=document.getElementById('rain');
+  if(rain&&innerWidth>768){
+    const rctx=rain.getContext('2d');
+    const RCH='01アイウエオカキク>#$%&+=/\\';
+    const TRAIL=9;
+    let rw,rh,cols,drops;
+    function sizeRain(){
+      rw=rain.width=rain.offsetWidth||1;
+      rh=rain.height=rain.offsetHeight||1;
+      cols=Math.floor(rw/26);
+      drops=Array.from({length:cols},()=>({y:Math.random()*-40,chars:[]}));
+    }
+    function drawStaticRain(){
+      rctx.font='12px "Space Mono",monospace';
+      for(let i=0;i<cols;i++){
+        rctx.fillStyle='rgba(0,200,80,0.3)';
+        rctx.fillText(RCH[Math.floor(Math.random()*RCH.length)],i*26,Math.random()*rh);
+      }
+    }
+    function handleRainResize(){sizeRain();if(reduceMotion)drawStaticRain();}
+    sizeRain();
+    addEventListener('load',handleRainResize,{passive:true});
+    addEventListener('resize',handleRainResize,{passive:true});
+    if(reduceMotion){
+      drawStaticRain();
+    }else{
+      setInterval(()=>{
+        if(!heroVisible)return;
+        rctx.clearRect(0,0,rw,rh);
+        rctx.font='12px "Space Mono",monospace';
+        for(let i=0;i<cols;i++){
+          const d=drops[i];
+          d.chars.unshift(RCH[Math.floor(Math.random()*RCH.length)]);
+          if(d.chars.length>TRAIL)d.chars.pop();
+          for(let t=0;t<d.chars.length;t++){
+            const a=t===0?0.5:0.16*(1-t/TRAIL);
+            rctx.fillStyle='rgba(0,200,80,'+a+')';
+            rctx.fillText(d.chars[t],i*26,(d.y-t)*14);
+          }
+          d.y++;
+          if((d.y-TRAIL)*14>rh&&Math.random()>0.96){d.y=Math.random()*-20;d.chars=[];}
+        }
+      },72);
+    }
+  }
+
+  const pcanvas=document.getElementById('particles');
+  if(pcanvas&&!reduceMotion){
+    const ctx=pcanvas.getContext('2d');
+    let W,H,pts=[];
+    let mouse={x:-9999,y:-9999};
+    hero.addEventListener('mousemove',e=>{
+      const r=pcanvas.getBoundingClientRect();
+      mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;
+    },{passive:true});
+    hero.addEventListener('mouseleave',()=>{mouse.x=-9999;mouse.y=-9999;},{passive:true});
+    function sizeCanvas(){W=pcanvas.width=pcanvas.offsetWidth;H=pcanvas.height=pcanvas.offsetHeight;}
+    function seed(){
+      const n=Math.min(Math.floor(W*H/22000),70);
+      pts=Array.from({length:n},()=>({
+        x:Math.random()*W,y:Math.random()*H,
+        vx:(Math.random()-0.5)*0.22,vy:(Math.random()-0.5)*0.22,
+        r:Math.random()*1.4+0.6
+      }));
+    }
+    sizeCanvas();seed();
+    addEventListener('resize',()=>{sizeCanvas();seed();},{passive:true});
+    function frame(){
+      if(heroVisible){
+        ctx.clearRect(0,0,W,H);
+        for(const p of pts){
+          p.x+=p.vx;p.y+=p.vy;
+          if(p.x<0||p.x>W)p.vx*=-1;
+          if(p.y<0||p.y>H)p.vy*=-1;
+          ctx.beginPath();
+          ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+          ctx.fillStyle='rgba(0,200,80,0.32)';
+          ctx.fill();
+        }
+        for(let i=0;i<pts.length;i++){
+          const mdx=pts[i].x-mouse.x,mdy=pts[i].y-mouse.y;
+          const md=mdx*mdx+mdy*mdy;
+          if(md<26000){
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x,pts[i].y);
+            ctx.lineTo(mouse.x,mouse.y);
+            ctx.strokeStyle='rgba(232,176,32,'+(0.16*(1-md/26000))+')';
+            ctx.lineWidth=0.7;
+            ctx.stroke();
+          }
+          for(let j=i+1;j<pts.length;j++){
+            const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y;
+            const d=dx*dx+dy*dy;
+            if(d<12100){
+              ctx.beginPath();
+              ctx.moveTo(pts[i].x,pts[i].y);
+              ctx.lineTo(pts[j].x,pts[j].y);
+              ctx.strokeStyle='rgba(0,200,80,'+(0.11*(1-d/12100))+')';
+              ctx.lineWidth=0.6;
+              ctx.stroke();
+            }
+          }
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+})();
+
+/* ---------- shared: terminal line decode-typer ---------- */
+function terminalTypeLines(lineEls,lines,onProgress,onDone){
+  let li=0;
+  function typeNext(){
+    if(li>=lineEls.length){if(onDone)onDone();return;}
+    const el=lineEls[li];
+    const spec=lines[li];
+    const text=spec.text,suffix=spec.suffix||'';
+    let i=0;
+    const cursor=document.createElement('span');
+    cursor.className='badge-cursor';
+    function step(){
+      const shown=text.split('').map((c,idx)=>{
+        if(c===' ')return ' ';
+        if(idx<i)return text[idx];
+        return CH[Math.floor(Math.random()*CH.length)];
+      }).join('');
+      el.replaceChildren(document.createTextNode(shown));
+      el.appendChild(cursor);
+      if(i>=text.length){
+        el.replaceChildren(document.createTextNode(text));
+        if(suffix){const ok=document.createElement('span');ok.className='ok';ok.textContent=suffix.replace(/<[^>]*>/g,'');el.appendChild(ok);}
+        li++;
+        if(onProgress)onProgress(li/lineEls.length);
+        setTimeout(typeNext,260);
+        return;
+      }
+      i+=0.7;
+      setTimeout(step,22);
+    }
+    step();
+  }
+  typeNext();
+}
+
+/* ---------- custom cursor ---------- */
+if(finePointer){
+  document.body.classList.add('cursor-on');
+  const dot=document.getElementById('cur-dot'),ring=document.getElementById('cur-ring');
+  let mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my;
+  addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;
+    dot.style.left=mx+'px';dot.style.top=my+'px';},{passive:true});
+  (function ringLoop(){
+    rx+=(mx-rx)*0.16;ry+=(my-ry)*0.16;
+    ring.style.left=rx+'px';ring.style.top=ry+'px';
+    requestAnimationFrame(ringLoop);
+  })();
+  document.querySelectorAll('a,button,summary').forEach(el=>{
+    el.addEventListener('mouseenter',()=>ring.classList.add('hovering'));
+    el.addEventListener('mouseleave',()=>ring.classList.remove('hovering'));
+  });
+}
+
+/* ---------- scroll progress + nav weight ---------- */
+const prog=document.getElementById('prog');
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  prog.style.width=((h.scrollTop/(h.scrollHeight-h.clientHeight))*100)+'%';
+  nav.classList.toggle('scrolled',h.scrollTop>40);
+},{passive:true});
+if(document.documentElement.scrollTop>40)nav.classList.add('scrolled');
+
+/* ---------- mobile menu ---------- */
+const mm=document.getElementById('mm');
+document.getElementById('mb').onclick=()=>{mm.classList.add('open');mm.setAttribute('aria-hidden','false');document.body.classList.add('menu-open')};
+document.getElementById('mc').onclick=cm;
+function cm(){mm.classList.remove('open');mm.setAttribute('aria-hidden','true');document.body.classList.remove('menu-open')}
+
+/* ---------- nav wordmark "Sec" glitch on hover ---------- */
+const wmsec=document.getElementById('wmsec');
+if(wmsec){
+  document.getElementById('wordmark').addEventListener('mouseenter',()=>{
+    wmsec.classList.remove('wm-glitch');
+    void wmsec.offsetWidth;
+    wmsec.classList.add('wm-glitch');
+  });
+}
+
+/* ---------- nav link scramble on hover ---------- */
+if(!reduceMotion){
+  document.querySelectorAll('#navlinks a[data-txt]').forEach(a=>{
+    let siv=null;
+    a.addEventListener('mouseenter',()=>{
+      const txt=a.dataset.txt;let i=0;clearInterval(siv);
+      siv=setInterval(()=>{
+        a.textContent=txt.split('').map((c,idx)=>{
+          if(c===' ')return ' ';
+          if(idx<i)return txt[idx];
+          return CH[Math.floor(Math.random()*CH.length)];
+        }).join('');
+        if(i>=txt.length){clearInterval(siv);a.textContent=txt;}
+        i+=0.9;
+      },24);
+    });
+  });
+}
+
+/* ---------- magnetic buttons ---------- */
+if(window.matchMedia('(pointer: fine)').matches && !reduceMotion){
+  document.querySelectorAll('.magnetic').forEach(btn=>{
+    btn.addEventListener('mousemove',e=>{
+      const r=btn.getBoundingClientRect();
+      const x=(e.clientX-r.left-r.width/2)*0.22;
+      const y=(e.clientY-r.top-r.height/2)*0.32;
+      btn.style.transform='translate('+x+'px,'+y+'px)';
+    });
+    btn.addEventListener('mouseleave',()=>{btn.style.transform='translate(0,0)'});
+  });
+}
+
+/* ---------- hero glitch auto-fire ---------- */
+(function(){
+  const el=document.getElementById('pglitch');
+  if(!el||reduceMotion)return;
+  function burst(){
+    el.classList.remove('glitching');void el.offsetWidth;el.classList.add('glitching');
+    setTimeout(()=>el.classList.remove('glitching'),600);
+    setTimeout(burst,4600+Math.random()*1400);
+  }
+  setTimeout(burst,1800);
+})();
+
+/* ---------- hero terminal: decode-type on scroll into view ---------- */
+(function(){
+  const term=document.querySelector('.prep-term');
+  const els=[0,1,2,3].map(i=>document.getElementById('rl'+i)).filter(Boolean);
+  const bbar=document.getElementById('heroBbar');
+  const blabel=document.getElementById('heroBlabel');
+  if(!term||!els.length)return;
+  const lines=[
+    {text:'> jengasec --track=ai-defence-blue',suffix:''},
+    {text:'> subscribing TELEMETRY_STREAM ........ ',suffix:'<span class="ok">[OK]</span>'},
+    {text:'> action_policy :: ALERT | RECOMMEND | ACT',suffix:''},
+    {text:'> status :: LIT',suffix:''}
+  ];
+  function finishBar(progress){
+    if(bbar)bbar.style.transform='scaleX('+progress+')';
+    if(blabel)blabel.textContent=progress>=1?'DEFENCE_AGENT :: LOADED':'DEFENCE_AGENT :: '+Math.round(progress*100)+'%';
+  }
+  if(reduceMotion){
+    els.forEach((el,i)=>{el.replaceChildren(document.createTextNode(lines[i].text));const suffix=lines[i].suffix.replace(/<[^>]*>/g,'');if(suffix){const ok=document.createElement('span');ok.className='ok';ok.textContent=suffix;el.appendChild(ok);}});
+    finishBar(1);
+    return;
+  }
+  let fired=false;
+  const io=new IntersectionObserver(entries=>{
+    if(entries[0].isIntersecting&&!fired){
+      fired=true;
+      finishBar(0);terminalTypeLines(els,lines,finishBar,()=>finishBar(1));
+      io.disconnect();
+    }
+  },{threshold:0.3});
+  io.observe(term);
+  setTimeout(()=>{const r=term.getBoundingClientRect();if(r.top<innerHeight&&r.bottom>0&&!fired){fired=true;finishBar(0);terminalTypeLines(els,lines,finishBar,()=>finishBar(1));io.disconnect();}},500);
+})();
+
+/* ---------- entrance reveals ---------- */
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});
+},{threshold:0.07});
+document.querySelectorAll('.fade-up,.slide-l,.slide-r,.sh').forEach(e=>obs.observe(e));
+</script>
+</body>
+</html>

@@ -1,0 +1,1363 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-side="red">
+<head>
+<script>
+/* Resolve visual mode before first paint. */
+const motionParam=new URLSearchParams(location.search).get('motion');
+if(motionParam==='reduced')document.documentElement.classList.add('motion-reduced');
+else document.documentElement.classList.add('motion-full','force-motion');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Red :: JengaSec 2026</title>
+<meta name="description" content="AI Red at JengaSec 2026: attack the defence agent itself through instruction injection, evasion, budget exhaustion and inducing it to act against legitimate users. The proposal is a safety requirement. Opens 21 September.">
+<meta name="author" content="Strathmore Cybersecurity Club">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#007A3D">
+<link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
+<link rel="canonical" href="https://www.jengasec.com/tracks/ai-red/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.jengasec.com/tracks/ai-red/">
+<meta property="og:title" content="AI Red :: JengaSec 2026">
+<meta property="og:description" content="AI Red at JengaSec 2026: attack the defence agent itself through instruction injection, evasion, budget exhaustion and inducing it to act against legitimate users. The proposal is a safety requirement. Opens 21 September.">
+<meta property="og:image" content="https://www.jengasec.com/static/images/Jengasec.jpg">
+<meta property="og:site_name" content="JengaSec">
+<meta property="og:locale" content="en_KE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@sucybersec">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#007A3D;--gd:#004D26;--gl:#00C853;
+  --red:#B3000C;--gold:#C9960A;--gold2:#E8B020;
+  --black:#080C08;--white:#F8FAF8;--off:#EEF1EE;
+  --muted:#5A6A5A;--border:#CDD8CD;--card:#FFFFFF;
+  --dg:#0A2416;--mg:#0D3020;
+  --accent:var(--g);--accent-l:var(--gl);--accent-d:var(--gd);--accent-rgb:0,200,83;--accent-tint:rgba(0,200,80,0.10);
+}
+html[data-side="red"]{--accent:#B3000C;--accent-l:#FF3B47;--accent-d:#5E0008;--accent-rgb:255,59,71;--accent-tint:rgba(179,0,12,0.10);--dg:#240A0C;--mg:#30100F}
+html{scroll-behavior:smooth}
+html,body{overflow-x:hidden;max-width:100%}
+body{background:var(--white);color:var(--black);font-family:'DM Sans',sans-serif}
+img{max-width:100%;height:auto}
+
+/* ============ SKIP LINK ============ */
+.skip-link{position:absolute;left:-9999px;top:0;z-index:10001;
+  padding:0.75rem 1.5rem;background:var(--g);color:var(--white);
+  font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.08em;text-decoration:none}
+.skip-link:focus{left:0}
+
+/* ============ FILM GRAIN ============ */
+#grain{position:fixed;inset:-100px;z-index:9998;pointer-events:none;opacity:0.032;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain 0.9s steps(4) infinite}
+@keyframes grain{
+  0%{transform:translate(0,0)}25%{transform:translate(-38px,22px)}
+  50%{transform:translate(26px,-30px)}75%{transform:translate(-14px,-18px)}100%{transform:translate(0,0)}
+}
+
+/* ============ SCROLL PROGRESS ============ */
+#prog{position:fixed;top:0;left:0;height:2px;width:0%;z-index:9999;
+  background:linear-gradient(90deg,var(--red) 0%,var(--gold) 40%,var(--g) 100%);
+  transition:width 0.08s linear;pointer-events:none;box-shadow:0 0 10px rgba(0,200,80,0.5)}
+
+/* ============ CUSTOM CURSOR ============ */
+@media(pointer:fine){
+  body.cursor-on,body.cursor-on a,body.cursor-on button{cursor:none}
+}
+#cur-dot,#cur-ring{position:fixed;top:0;left:0;pointer-events:none;z-index:9999;
+  border-radius:50%;transform:translate(-50%,-50%);display:none}
+body.cursor-on #cur-dot,body.cursor-on #cur-ring{display:block}
+#cur-dot{width:6px;height:6px;background:var(--accent-l);
+  box-shadow:0 0 10px rgba(var(--accent-rgb),0.9)}
+#cur-ring{width:34px;height:34px;border:1px solid rgba(var(--accent-rgb),0.5);
+  transition:width 0.25s,height 0.25s,border-color 0.25s,background 0.25s}
+#cur-ring.hovering{width:56px;height:56px;border-color:var(--gold2);
+  background:rgba(var(--accent-rgb),0.06)}
+
+/* ============ AMBIENT ORBS ============ */
+.orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(70px);opacity:0.5;z-index:0}
+.orb-g{background:radial-gradient(circle,rgba(0,122,61,0.35),transparent 70%)}
+.orb-au{background:radial-gradient(circle,rgba(201,150,10,0.22),transparent 70%)}
+.orb-r{background:radial-gradient(circle,rgba(179,0,12,0.30),transparent 70%)}
+.orb1{width:420px;height:420px;top:-10%;left:-8%;animation:orbf1 18s ease-in-out infinite}
+.orb2{width:340px;height:340px;bottom:-14%;right:-6%;animation:orbf2 22s ease-in-out infinite}
+@keyframes orbf1{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,40px)}}
+@keyframes orbf2{0%,100%{transform:translate(0,0)}50%{transform:translate(-50px,-55px)}}
+.sec-dark{position:relative;overflow:hidden}
+@media(max-width:768px){.orb{display:none}}
+
+/* ============ NAV ============ */
+nav{position:fixed;top:2px;left:0;right:0;z-index:9999;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.1rem 5%;background:rgba(8,12,8,0.9);border-bottom:1px solid transparent;
+  backdrop-filter:blur(14px);
+  transition:background 0.35s,border-color 0.35s,padding 0.35s}
+nav.scrolled{padding:0.85rem 5%;background:rgba(248,250,248,0.97);
+  backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nl{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.1em;
+  color:var(--white);display:flex;align-items:center;gap:0.7rem;text-decoration:none;
+  transition:color 0.35s}
+nav.scrolled .nl{color:var(--black)}
+.nl-spear{width:22px;height:22px;object-fit:contain;flex-shrink:0;
+  filter:hue-rotate(-115deg) saturate(1.15)}
+.nl .wm-sec{position:relative;display:inline-block;color:var(--gold)}
+.nl .wm-sec.wm-glitch{animation:navglitch 0.4s steps(2) 1}
+@keyframes navglitch{
+  0%{transform:translateX(0);text-shadow:none}
+  25%{transform:translateX(-2px);text-shadow:2px 0 var(--red),-2px 0 var(--gl)}
+  50%{transform:translateX(2px);text-shadow:-2px 0 var(--red),2px 0 var(--gl)}
+  75%{transform:translateX(-1px);text-shadow:1px 0 var(--red),-1px 0 var(--gl)}
+  100%{transform:translateX(0);text-shadow:none}
+}
+.nav-links{display:flex;gap:2rem;list-style:none}
+.nav-links a{font-family:'Space Mono',monospace;font-size:12px;font-weight:500;letter-spacing:0.04em;
+  color:rgba(255,255,255,0.7);text-decoration:none;transition:color 0.2s;
+  position:relative;padding-bottom:3px}
+nav.scrolled .nav-links a{color:var(--muted)}
+.nav-links a::after{content:'';position:absolute;left:0;bottom:0;height:2px;width:0;
+  background:var(--g);transition:width 0.25s}
+.nav-links a:hover{color:var(--gl)}
+nav.scrolled .nav-links a:hover{color:var(--g)}
+.nav-links a.active{color:var(--gl)}
+nav.scrolled .nav-links a.active{color:var(--g)}
+.nav-links a.active::after{width:100%}
+.nav-cta{padding:0.5rem 1.4rem;background:var(--g);color:var(--white);
+  font-size:12px;font-weight:600;letter-spacing:0.06em;
+  text-decoration:none;border:2px solid var(--g);transition:all 0.2s;
+  font-family:'Space Mono',monospace;display:inline-block}
+.nav-cta:hover{background:transparent;color:var(--gl)}
+nav.scrolled .nav-cta:hover{color:var(--g)}
+.hamburger{display:none;flex-direction:column;gap:5px;
+  cursor:pointer;padding:4px;background:none;border:none}
+.hamburger span{display:block;width:22px;height:2px;background:var(--white);transition:all 0.3s}
+nav.scrolled .hamburger span{background:var(--black)}
+
+/* ============ MOBILE MENU ============ */
+.mmenu{display:none;position:fixed;inset:0;z-index:10000;
+  background:rgba(8,12,8,0.98);flex-direction:column;
+  align-items:center;justify-content:center;gap:2rem;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.mmenu.open{display:flex}
+.mmenu a{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;
+  letter-spacing:0.1em;color:var(--white);text-decoration:none}
+.mmenu a:hover,.mmenu a.active{color:var(--gold)}
+.mclose{position:absolute;top:1.5rem;right:5%;font-size:1.1rem;
+  cursor:pointer;background:none;border:none;
+  font-family:'Space Mono',monospace;color:rgba(255,255,255,0.35);letter-spacing:0.1em}
+body.menu-open{overflow:hidden}
+@media(max-width:768px){
+  .mmenu{justify-content:flex-start;gap:1.35rem;padding:5.25rem 5% 2rem}
+  .mmenu a{font-size:clamp(1.75rem,8vw,2.2rem);line-height:1}
+  .mclose{position:fixed}
+}
+
+/* ============ GLITCH ============ */
+.glitch{color:rgba(255,255,255,0.42);display:block;position:relative;cursor:default}
+.glitch::before,.glitch::after{content:attr(data-text);position:absolute;top:0;left:0;
+  font-family:'Bebas Neue',sans-serif;font-size:1em;line-height:0.85;
+  color:rgba(255,255,255,0.42);overflow:hidden;opacity:0;pointer-events:none}
+.glitch::before{text-shadow:-2px 0 var(--red);
+  clip-path:polygon(0 25%,100% 25%,100% 52%,0 52%)}
+.glitch::after{text-shadow:2px 0 var(--gl);
+  clip-path:polygon(0 58%,100% 58%,100% 84%,0 84%)}
+.glitch.glitching::before{animation:gt 0.55s steps(3) 1}
+.glitch.glitching::after{animation:gb 0.55s steps(3) 1}
+@keyframes gt{
+  0%{transform:translateX(0);opacity:0}
+  15%{transform:translateX(-5px) skewX(-3deg);opacity:1}
+  35%{transform:translateX(5px);opacity:1}
+  55%{transform:translateX(-3px) skewX(2deg);opacity:1}
+  75%{transform:translateX(2px);opacity:1}
+  100%{transform:translateX(0);opacity:0}
+}
+@keyframes gb{
+  0%{transform:translateX(0);opacity:0}
+  18%{transform:translateX(5px) skewX(3deg);opacity:1}
+  38%{transform:translateX(-5px);opacity:1}
+  58%{transform:translateX(3px) skewX(-2deg);opacity:1}
+  78%{transform:translateX(-2px);opacity:1}
+  100%{transform:translateX(0);opacity:0}
+}
+.glitch:hover{color:rgba(255,255,255,0.5)}
+.glitch:hover::before{opacity:1;animation:rgbT 0.28s steps(2) infinite}
+.glitch:hover::after{opacity:1;animation:rgbB 0.28s steps(2) infinite}
+@keyframes rgbT{0%,100%{transform:translateX(-4px)}50%{transform:translateX(3px)}}
+@keyframes rgbB{0%,100%{transform:translateX(4px)}50%{transform:translateX(-3px)}}
+
+/* ============ BUTTONS ============ */
+.btn-red,.btn-ghost,.btn-green,.btn-accent{position:relative;overflow:hidden}
+.btn-red::after,.btn-green::after,.btn-accent::after{content:'';position:absolute;top:0;bottom:0;width:36%;left:-50%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,0.22),transparent);
+  transform:skewX(-20deg);transition:left 0.55s ease}
+.btn-red:hover::after,.btn-green:hover::after,.btn-accent:hover::after{left:130%}
+.btn-accent{padding:0.85rem 2.2rem;background:var(--accent);color:var(--white);
+  font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  text-decoration:none;border:2px solid var(--accent);font-family:'Space Mono',monospace;
+  transition:background 0.2s,color 0.2s,border-color 0.2s,box-shadow 0.2s;display:inline-block}
+.btn-accent:hover{background:transparent;color:var(--white);border-color:rgba(255,255,255,0.6);
+  box-shadow:0 0 24px rgba(var(--accent-rgb),0.35)}
+.btn-ghost{padding:0.85rem 2.2rem;border:2px solid rgba(255,255,255,0.2);
+  color:rgba(255,255,255,0.6);font-size:12px;font-weight:500;letter-spacing:0.08em;
+  text-transform:uppercase;text-decoration:none;font-family:'Space Mono',monospace;
+  transition:border-color 0.2s,color 0.2s,box-shadow 0.2s;display:inline-block}
+.btn-ghost:hover{border-color:var(--accent-l);color:var(--white);
+  box-shadow:0 0 24px rgba(var(--accent-rgb),0.2),inset 0 0 18px rgba(var(--accent-rgb),0.06)}
+.btn-green{padding:1rem 3rem;background:var(--g);color:var(--white);
+  font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  text-decoration:none;border:2px solid var(--g);font-family:'Space Mono',monospace;
+  transition:background 0.25s,color 0.25s,border-color 0.25s;display:inline-block}
+.btn-green:hover{background:transparent;color:var(--gl);border-color:var(--gl);
+  box-shadow:0 0 28px rgba(0,200,80,0.25)}
+/* nav right group: login (hint + button) then CTA, hamburger */
+.nav-right{display:flex;align-items:center;gap:1rem;flex-shrink:0;
+  position:relative;z-index:1}
+.nav-login{display:flex;align-items:center;gap:0.75rem;text-decoration:none}
+.nav-login-hint{font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:0.04em;white-space:nowrap;color:rgba(255,255,255,0.45);
+  transition:color 0.35s}
+nav.scrolled .nav-login-hint{color:var(--muted)}
+.nav-login:hover .nav-login-hint{color:rgba(255,255,255,0.7)}
+nav.scrolled .nav-login:hover .nav-login-hint{color:var(--black)}
+.nav-login-btn{padding:0.5rem 1.4rem;border:2px solid rgba(255,255,255,0.25);
+  color:rgba(255,255,255,0.75);font-size:12px;font-weight:600;letter-spacing:0.06em;
+  font-family:'Space Mono',monospace;display:inline-block;transition:all 0.2s}
+.nav-login:hover .nav-login-btn{border-color:var(--gl);color:var(--gl)}
+nav.scrolled .nav-login-btn{color:var(--muted);border-color:var(--border)}
+nav.scrolled .nav-login:hover .nav-login-btn{color:var(--g);border-color:var(--g)}
+@media(max-width:1380px){.nav-login-hint{display:none}}
+/* the Login block needs the room the links were using: collapse them
+   into the hamburger earlier than the page's own 768px breakpoint */
+@media(max-width:1024px){
+  .nav-links,.nav-cta{display:none}
+  .hamburger{display:flex}
+}
+@media(max-width:900px){.nav-right{gap:0.75rem}
+  .nav-login-btn{padding:0.4rem 1rem;font-size:11px}}
+/* mobile menu login block */
+.mmenu-login{display:flex;flex-direction:column;align-items:center;gap:0.7rem;
+  margin-top:0.8rem;position:relative;z-index:1}
+.mmenu-login span{font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.4);
+  text-align:center;padding:0 1.5rem}
+.mmenu .mmenu-login a{font-size:2rem;color:var(--gl);
+  border:2px solid rgba(0,200,80,0.45);padding:0.15rem 2.4rem}
+.mmenu .mmenu-login a:hover{color:var(--white);border-color:var(--gl);
+  box-shadow:0 0 24px rgba(0,200,80,0.25)}
+/* while the menu is open its CLOSE button owns the top bar */
+.mmenu.open ~ nav .nav-login,
+.mmenu.open ~ nav .hamburger{visibility:hidden;pointer-events:none}
+.magnetic{will-change:transform}
+
+/* ============ BREADCRUMB ============ */
+.breadcrumb{position:fixed;top:54px;left:0;right:0;z-index:9998;
+  padding:0.45rem 5%;font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:0.12em;color:rgba(255,255,255,0.35);
+  background:rgba(8,12,8,0.7);backdrop-filter:blur(10px);
+  transition:background 0.35s,color 0.35s}
+.breadcrumb.scrolled{background:rgba(248,250,248,0.9);color:var(--muted)}
+.breadcrumb a{color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.2s}
+.breadcrumb a:hover{color:var(--accent-l)}
+.breadcrumb.scrolled a{color:var(--muted)}
+.breadcrumb.scrolled a:hover{color:var(--accent)}
+.breadcrumb span{margin:0 0.35rem}
+@media(max-width:768px){.breadcrumb{display:none}}
+
+/* ============ HERO ============ */
+.hero{min-height:80vh;display:flex;align-items:center;
+  padding:9rem 5% 4rem;position:relative;overflow:hidden;
+  background:linear-gradient(160deg,#140406 0%,#240A0C 55%,#1A0709 100%)}
+.hero-img{position:absolute;inset:-4%;
+  background-image:url('{% static 'images/speakers-bg.jpg' %}');
+  background-size:cover;background-position:center 40%;
+  background-repeat:no-repeat;background-color:transparent;
+  will-change:transform;transition:transform 0.18s ease-out}
+.hero-overlay{position:absolute;inset:0;
+  background:linear-gradient(100deg,rgba(14,4,5,0.97) 0%,rgba(20,6,8,0.9) 38%,rgba(94,0,8,0.35) 68%,rgba(20,4,6,0.5) 100%)}
+.hero-tint{position:absolute;inset:0;background:rgba(94,0,8,0.35);mix-blend-mode:multiply}
+.hero-grid{position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(var(--accent-rgb),0.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(var(--accent-rgb),0.035) 1px,transparent 1px);
+  background-size:50px 50px;animation:griddrift 60s linear infinite}
+@keyframes griddrift{from{background-position:0 0,0 0}to{background-position:0 -600px,-600px 0}}
+.hero-scan{position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,
+    rgba(var(--accent-rgb),0.022) 2px,rgba(var(--accent-rgb),0.022) 4px)}
+#rain,#particles{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#rain{z-index:1;opacity:0.5}
+#particles{z-index:1}
+.hero-beam{position:absolute;left:0;right:0;height:120px;z-index:2;pointer-events:none;
+  background:linear-gradient(to bottom,transparent,rgba(var(--accent-rgb),0.05),transparent);
+  animation:beam 9s cubic-bezier(0.45,0,0.55,1) infinite}
+@keyframes beam{0%{top:-15%}55%{top:105%}100%{top:105%}}
+.hero-content{position:relative;z-index:3;max-width:1240px;margin:0 auto;width:100%;
+  display:grid;grid-template-columns:1fr;gap:2.5rem}
+.hero-left{max-width:620px}
+.hero-right{display:flex;align-items:center;justify-content:center}
+@media(min-width:1024px){
+  .hero-content{grid-template-columns:620px 1fr;align-items:center;gap:3rem}
+}
+.hero-badge{display:inline-flex;align-items:center;gap:0.55rem;
+  padding:0.4rem 1rem;margin-bottom:1.6rem;
+  border:1px solid rgba(var(--accent-rgb),0.28);background:rgba(20,4,6,0.55);
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.15em;
+  text-transform:uppercase;color:rgba(255,180,180,0.72)}
+.bdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;
+  background:var(--accent-l);box-shadow:0 0 8px rgba(var(--accent-rgb),0.8);
+  animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(1.5)}}
+.badge-cursor{display:inline-block;width:6px;height:11px;
+  background:var(--accent-l);margin-left:2px;animation:blink 0.9s step-end infinite;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.prep-h1{font-family:'Bebas Neue',sans-serif;color:var(--white);
+  font-size:clamp(2.4rem,6.4vw,4.7rem);line-height:1.05;letter-spacing:0.02em}
+.prep-h1 .glitch{font-size:1em;color:var(--accent-l)}
+.prep-h1 .glitch::before,.prep-h1 .glitch::after{color:var(--accent-l)}
+.prep-h1 .glitch:hover{color:var(--accent-l)}
+.prep-sub{margin-top:1.5rem;font-size:15px;font-weight:300;line-height:1.9;
+  color:rgba(255,255,255,0.62);max-width:560px;
+  border-left:2px solid var(--gold);padding-left:1rem}
+.hero-chips{display:flex;flex-wrap:wrap;gap:0.6rem;margin-top:1.5rem}
+.hero-chip{display:inline-flex;align-items:center;gap:0.5rem;font-family:'Space Mono',monospace;
+  font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
+  padding:0.4rem 0.8rem;border:1px solid currentColor}
+.hero-chip-ember{color:var(--accent-l);border-color:rgba(var(--accent-rgb),0.4)}
+.hero-chip-ember::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;
+  background:var(--accent-l);box-shadow:0 0 6px rgba(var(--accent-rgb),0.9);animation:pulse 2.4s ease infinite}
+.hero-chip-gold{color:var(--gold2);border-color:rgba(232,176,32,0.4)}
+.hero-chip-accent{color:var(--accent-l);border-color:rgba(var(--accent-rgb),0.4)}
+.hero-ctas{display:flex;gap:1rem;margin-top:2rem;flex-wrap:wrap}
+
+.prep-term{width:min(420px,100%);
+  background:rgba(14,4,5,0.82);border:1px solid rgba(var(--accent-rgb),0.22);
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  font-family:'Space Mono',monospace;overflow:hidden;position:relative;z-index:3}
+.term-head{display:flex;align-items:center;gap:0.6rem;
+  padding:0.55rem 0.9rem;border-bottom:1px solid rgba(var(--accent-rgb),0.15);
+  background:rgba(20,4,6,0.7)}
+.term-dots{display:flex;gap:5px}
+.term-dots span{width:8px;height:8px;border-radius:50%;display:block}
+.term-dots span:nth-child(1){background:var(--red)}
+.term-dots span:nth-child(2){background:var(--gold)}
+.term-dots span:nth-child(3){background:var(--gl)}
+.term-title{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35)}
+.term-live{margin-left:auto;font-size:8px;letter-spacing:0.16em;color:var(--accent-l);
+  display:flex;align-items:center;gap:0.35rem}
+.term-live::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent-l);
+  box-shadow:0 0 6px rgba(var(--accent-rgb),0.9);animation:pulse 1.4s ease infinite}
+.term-head,.term-body{position:relative;z-index:1}
+.term-body{min-height:112px;padding:0.9rem 0.9rem;display:flex;flex-direction:column;gap:0.55rem;justify-content:center}
+.boot-line{min-height:1.4em;font-size:11px;letter-spacing:0.05em;color:rgba(var(--accent-rgb),0.85)}
+.boot-line .ok{color:var(--gold2)}
+.term-boot-bar{margin:0.4rem 0.9rem 0.9rem;height:3px;background:rgba(var(--accent-rgb),0.12);position:relative;overflow:hidden;z-index:1}
+.term-boot-bar i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);
+  background:linear-gradient(90deg,var(--accent),var(--accent-l));transition:transform 0.3s linear}
+.term-boot-label{margin:0 0.9rem 0.75rem;font-size:9px;letter-spacing:0.14em;color:rgba(255,255,255,0.3);
+  text-transform:uppercase;position:relative;z-index:1}
+
+/* shared terminal scanline sweep */
+.term-sweep{position:absolute;left:0;right:0;height:1px;z-index:2;pointer-events:none;
+  background:var(--accent-l);opacity:0.08;box-shadow:0 0 6px rgba(var(--accent-rgb),0.3);
+  animation:termSweepMove 7s linear infinite}
+@keyframes termSweepMove{0%{top:0%}100%{top:100%}}
+@media(prefers-reduced-motion:reduce){html:not(.force-motion) .term-sweep{animation:none;display:none}}
+
+/* shared digital rain canvas (inside terminal panels) */
+.term-rain{position:absolute;inset:0;z-index:0;pointer-events:none}
+
+@media(prefers-reduced-motion:reduce){
+  html:not(.force-motion) .hero-grid{animation:none}
+  html:not(.force-motion) .bdot,html:not(.force-motion) .badge-cursor,html:not(.force-motion) .term-live::before,html:not(.force-motion) .hero-chip-ember::before{animation:none}
+  html:not(.force-motion) .hero-beam{animation:none;opacity:0}
+}
+@media(max-width:768px){
+  .hero{min-height:100svh;align-items:flex-start;padding-top:7rem}
+  .hero-ctas{flex-direction:column}
+  .hero-ctas a{width:100%;text-align:center}
+}
+
+/* ============ SECTION SCAFFOLD ============ */
+.sec{padding:6rem 5%}
+@media(min-width:1600px){.sec{padding-left:calc(50% - 620px);padding-right:calc(50% - 620px)}}
+.sec-dark{background:var(--dg);color:var(--white)}
+.sec-off{background:var(--off)}
+.sh{margin-bottom:3rem;position:relative;z-index:1}
+.sh-eye{display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem}
+.sh-line{width:0;height:2px;background:var(--accent);transition:width 0.6s cubic-bezier(0.22,1,0.36,1) 0.15s}
+.sh.visible .sh-line{width:16px}
+.sh-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.18em;
+  text-transform:uppercase;color:var(--accent)}
+.sh-title{font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2rem,4.5vw,3.5rem);line-height:1;letter-spacing:0.03em;
+  clip-path:inset(0 100% 0 0);transition:clip-path 0.85s cubic-bezier(0.22,1,0.36,1) 0.1s}
+.sh.visible .sh-title{clip-path:inset(0 0% 0 0)}
+.sh::after{content:'';position:absolute;top:0;bottom:0;width:3px;left:0;
+  background:linear-gradient(to bottom,transparent,var(--accent-l),transparent);
+  opacity:0;pointer-events:none}
+.sh.visible::after{animation:shsweep 0.85s cubic-bezier(0.22,1,0.36,1) 0.1s 1}
+@keyframes shsweep{0%{left:0;opacity:1}90%{opacity:1}100%{left:min(100%,560px);opacity:0}}
+.outline-a{color:var(--accent-l)}
+.sec-dark .sh-title{color:var(--white)}
+.pp-lead{font-size:15px;line-height:1.85;color:var(--muted);max-width:640px;margin-bottom:2.5rem}
+.sec-dark .pp-lead{color:rgba(255,255,255,0.55)}
+.pp-section-note{margin-top:2rem;font-size:13px;line-height:1.8;color:var(--muted);
+  border-left:2px solid var(--gold);padding-left:1rem;max-width:680px}
+.sec-dark .pp-section-note{color:rgba(255,255,255,0.5)}
+
+/* entrances */
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity 0.65s,transform 0.65s}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.slide-l{opacity:0;transform:translateX(-44px);transition:opacity 0.7s cubic-bezier(0.22,1,0.36,1),transform 0.7s cubic-bezier(0.22,1,0.36,1)}
+.slide-r{opacity:0;transform:translateX(44px);transition:opacity 0.7s cubic-bezier(0.22,1,0.36,1),transform 0.7s cubic-bezier(0.22,1,0.36,1)}
+.slide-l.visible,.slide-r.visible{opacity:1;transform:translateX(0)}
+@media(prefers-reduced-motion:reduce){
+  html:not(.force-motion) .fade-up,html:not(.force-motion) .slide-l,html:not(.force-motion) .slide-r,html:not(.force-motion) .sh-title,html:not(.force-motion) .sh-line{transition:none}
+  html:not(.force-motion) .slide-l,html:not(.force-motion) .slide-r{transform:translateY(0)}
+}
+
+/* ============ CORNER BRACKETS ============ */
+.cnr{position:absolute;width:22px;height:22px;pointer-events:none;z-index:2;opacity:0;
+  transition:opacity 0.3s,transform 0.35s cubic-bezier(0.22,1,0.36,1)}
+.cnr-tl{top:8px;left:8px;border-top:2px solid var(--accent-l);border-left:2px solid var(--accent-l);
+  transform:translate(6px,6px)}
+.cnr-br{bottom:8px;right:8px;border-bottom:2px solid var(--accent-l);border-right:2px solid var(--accent-l);
+  transform:translate(-6px,-6px)}
+
+/* ============ STAT ROW ============ */
+.stat-row{display:flex;flex-wrap:wrap;gap:1.5rem;margin:2rem 0;font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.08em}
+.stat-item{display:flex;align-items:center;gap:0.5rem;color:var(--muted)}
+.stat-dot{width:4px;height:4px;background:var(--accent);border-radius:50%;flex-shrink:0}
+.sec-dark .stat-item{color:rgba(255,255,255,0.55)}
+
+/* ============ BRIEF ROWS (numbered requirement rows) ============ */
+.brief-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;max-width:900px}
+.brief-row{display:flex;gap:1rem;padding:1.5rem;border:1px solid rgba(255,255,255,0.06);
+  position:relative;flex-direction:column}
+.brief-num{font-family:'Space Mono',monospace;font-size:12px;color:var(--accent-l);flex-shrink:0}
+.brief-text{font-size:13.5px;line-height:1.8;color:rgba(255,255,255,0.65)}
+.brief-tag{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--accent-l);margin-top:0.5rem;opacity:0.8}
+@media(max-width:768px){.brief-grid{grid-template-columns:1fr}}
+.brief-callout{max-width:900px;margin-top:2rem;padding:1.5rem 1.75rem;
+  border-left:3px solid var(--gold2);background:rgba(232,176,32,0.06)}
+.brief-callout p{font-size:13.5px;line-height:1.85;color:rgba(255,255,255,0.75)}
+
+/* ============ TICK LIST ============ */
+.tick-list{max-width:820px;list-style:none}
+.tick-item{display:flex;gap:1rem;align-items:flex-start;padding:0.9rem 0;border-bottom:1px solid var(--border)}
+.tick-item:last-child{border-bottom:none}
+.tick-icon{flex-shrink:0;width:22px;height:22px;border:1.5px solid var(--accent);color:var(--accent);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-family:'Space Mono',monospace;margin-top:0.15rem}
+.tick-text{font-size:13.5px;line-height:1.8;color:var(--black)}
+.sec-dark .tick-item{border-bottom-color:rgba(255,255,255,0.08)}
+.sec-dark .tick-text{color:rgba(255,255,255,0.65)}
+
+/* ============ PROPOSAL NUMBERED GRID ============ */
+.prop-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;max-width:900px}
+.prop-row{display:flex;gap:1rem;align-items:flex-start;padding:1.25rem 1.5rem;
+  border:1px solid rgba(255,255,255,0.06)}
+.prop-num{flex-shrink:0;font-family:'Space Mono',monospace;font-size:12px;color:var(--accent-l);
+  width:24px;padding-top:0.15rem}
+.prop-body{flex:1;min-width:0}
+.prop-name{font-weight:600;font-size:14px;color:var(--white);margin-bottom:0.15rem}
+.prop-desc{font-size:13px;line-height:1.7;color:rgba(255,255,255,0.5)}
+@media(max-width:768px){.prop-grid{grid-template-columns:1fr}}
+
+/* ============ HEADINGS CALLOUT ============ */
+.pp-callout-mono{max-width:820px;margin-bottom:2rem;padding:1.25rem 1.5rem;
+  border-left:3px solid var(--accent-l);background:rgba(var(--accent-rgb),0.05)}
+.pp-callout-mono p{font-family:'Space Mono',monospace;font-size:12.5px;line-height:1.9;color:rgba(255,255,255,0.75)}
+.pp-callout-mono strong{color:var(--accent-l)}
+
+/* ============ CHECKLIST (read-only for track pages) ============ */
+.ro-check-list{max-width:820px;list-style:none}
+.ro-check-item{display:flex;gap:0.85rem;align-items:flex-start;padding:0.7rem 0;
+  border-bottom:1px solid var(--border)}
+.ro-check-item:last-child{border-bottom:none}
+.ro-check-box{flex-shrink:0;width:18px;height:18px;border:1.5px solid var(--accent);
+  margin-top:0.2rem;display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--accent);font-family:'Space Mono',monospace}
+.ro-check-text{font-family:'Space Mono',monospace;font-size:12.5px;line-height:1.7;color:var(--black)}
+
+/* ============ CTA ============ */
+.sec-cta{background:var(--dg);padding:6.5rem 5%;position:relative;overflow:hidden}
+.pp-cta-inner{max-width:760px;position:relative;z-index:1}
+.pp-cta-copy{margin-top:1.25rem;font-size:15px;line-height:1.9;color:rgba(255,255,255,0.55);max-width:600px}
+.pp-cta-term{margin-top:2.25rem;background:var(--black);border:1px solid rgba(var(--accent-rgb),0.25);
+  position:relative;overflow:hidden;
+  padding:1.5rem 1.75rem;font-family:'Space Mono',monospace;font-size:clamp(0.85rem,1.8vw,1.05rem);
+  color:var(--accent-l)}
+.pp-cta-btns{display:flex;gap:1rem;margin-top:2rem;flex-wrap:wrap}
+
+/* ============ MISSION RAIL ============ */
+.mission-rail{position:fixed;right:1.5rem;top:50%;transform:translateY(-50%);z-index:9997;
+  display:flex;flex-direction:column;gap:0.6rem}
+.mission-rail a{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.14em;
+  color:rgba(255,255,255,0.2);text-decoration:none;text-align:right;
+  transition:color 0.25s;display:block;padding:0.15rem 0}
+.mission-rail a:hover{color:var(--accent-l)}
+.mission-rail a.active{color:var(--accent-l)}
+@media(max-width:1199px){.mission-rail{display:none}}
+
+/* ============ FOOTER ============ */
+footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
+  padding:2.5rem 5%;display:flex;justify-content:space-between;
+  align-items:center;flex-wrap:wrap;gap:1.5rem}
+.ft-brand{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.1em;color:var(--white)}
+.ft-brand em{color:var(--gold);font-style:normal}
+.ft-sub{font-family:'Space Mono',monospace;font-size:10px;color:rgba(255,255,255,0.18);
+  margin-top:0.3rem;letter-spacing:0.04em}
+.ft-right{text-align:right}
+.ft-right a{font-family:'Space Mono',monospace;font-size:12px;color:var(--accent-l);text-decoration:none}
+.ft-right p{font-family:'Space Mono',monospace;font-size:10px;color:rgba(255,255,255,0.14);
+  margin-top:0.3rem;letter-spacing:0.04em}
+
+/* ============ RESPONSIVE ============ */
+@media(max-width:768px){
+  nav{padding:1rem 4%}
+  nav.scrolled{padding:0.85rem 4%}
+  .nav-links{display:none}
+  .nav-cta{display:none}
+  .hamburger{display:flex}
+  .sec,.sec-cta,footer{padding-left:4%;padding-right:4%}
+  .hero{padding:8rem 4% 3rem}
+  footer{text-align:center;justify-content:center}
+  .ft-right{text-align:center}
+  .stat-row{flex-direction:column;gap:0.7rem}
+}
+</style>
+<style>
+.motion-toggle{padding:.75rem 1rem;border:1px solid rgba(232,176,32,.4);background:rgba(8,12,8,.38);color:var(--gold2);font:10px 'Space Mono',monospace;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+html.motion-reduced .hero-grid,html.motion-reduced .hero-beam,html.motion-reduced .hero-logo-wm,html.motion-reduced .term-sweep,html.motion-reduced .bdot,html.motion-reduced .badge-cursor,html.motion-reduced .term-live::before{animation:none!important}
+html.motion-reduced .hero-beam{opacity:0}
+</style>
+<style>
+@media(max-width:768px){
+  .hero{min-height:100svh;padding:7rem 4% 3rem;align-items:flex-start}
+  .hero-img{inset:0;background-size:cover;background-position:center center}
+  .hero-content{grid-template-columns:minmax(0,1fr);gap:2rem;width:100%;min-width:0}
+  .hero-left,.hero-right{width:100%;max-width:none;min-width:0}
+  .prep-term{width:100%;max-width:100%}
+  .hero-logo-wm{width:min(78vw,360px);max-width:100%;height:auto}
+}
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="grain" aria-hidden="true"></div>
+<div id="cur-dot" aria-hidden="true"></div>
+<div id="cur-ring" aria-hidden="true"></div>
+<div id="prog" aria-hidden="true"></div>
+
+<div class="mmenu" id="mm" aria-hidden="true">
+  <button class="mclose" id="mc" aria-label="Close menu">CLOSE &#10005;</button>
+  <a href="{% url 'landing' %}#home" onclick="cm()">Home</a>
+  <a href="{% url 'landing' %}#how" onclick="cm()">How It Works</a>
+  <a href="{% url 'landing' %}#road" onclick="cm()">Timeline</a>
+  <a href="{% url 'landing' %}#speakers" onclick="cm()">Speakers</a>
+  <a href="{% url 'landing' %}#numbers" onclick="cm()">Numbers</a>
+  <a href="{% url 'landing' %}#faq" onclick="cm()">FAQ</a>
+  <a href="{% url 'prepare' %}" onclick="cm()" class="active" aria-current="page" style="color:var(--gl)">Prepare</a>
+  <a href="{% url 'landing' %}#contact" onclick="cm()">Contact</a>
+  <div class="mmenu-login">
+    <span>Already registered or an active party?</span>
+    <a href="{% url 'login' %}" onclick="cm()">Login</a>
+  </div>
+</div>
+
+<nav id="nav" aria-label="Main navigation">
+  <a class="nl" href="{% url 'landing' %}#home" id="wordmark">
+    <img src="{% static 'images/logo.png' %}" alt="JengaSec spear logo" class="nl-spear">
+    Jenga<span class="wm-sec" id="wmsec">Sec</span>
+  </a>
+  <ul class="nav-links" id="navlinks">
+    <li><a href="{% url 'landing' %}#home" data-txt="Home">Home</a></li>
+    <li><a href="{% url 'landing' %}#how" data-txt="How It Works">How It Works</a></li>
+    <li><a href="{% url 'landing' %}#road" data-txt="Timeline">Timeline</a></li>
+    <li><a href="{% url 'landing' %}#speakers" data-txt="Speakers">Speakers</a></li>
+    <li><a href="{% url 'landing' %}#numbers" data-txt="Numbers">Numbers</a></li>
+    <li><a href="{% url 'landing' %}#faq" data-txt="FAQ">FAQ</a></li>
+    <li><a href="{% url 'prepare' %}" data-txt="Prepare" class="active" aria-current="page">Prepare</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="{% url 'login' %}" class="nav-login magnetic">
+      <span class="nav-login-hint">Already registered or an active party?</span>
+      <span class="nav-login-btn">Login</span>
+    </a>
+    <a href="{% url 'landing' %}#contact" class="nav-cta magnetic">Talk To Us</a>
+    <button class="hamburger" id="mb" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+  </div>
+</nav>
+
+<div class="breadcrumb" id="breadcrumb">
+  <a href="{% url 'prepare' %}">PREPARE</a>
+  <span>/</span>
+  <a href="{% url 'prepare' %}#tracks">RED_SIDE</a>
+  <span>/</span>
+  AI RED
+</div>
+
+<main id="main">
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="home">
+  <div class="hero-img" id="heroimg" aria-hidden="true"></div>
+  <div class="hero-overlay" aria-hidden="true"></div>
+  <div class="hero-tint" aria-hidden="true"></div>
+  <canvas id="rain" aria-hidden="true"></canvas>
+  <canvas id="particles" aria-hidden="true"></canvas>
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="hero-scan" aria-hidden="true"></div>
+  <div class="hero-beam" aria-hidden="true"></div>
+  <div class="hero-content">
+    <div class="hero-left">
+      <div class="hero-badge"><span class="bdot"></span>// TRACK_04 :: RED_SIDE<span class="badge-cursor"></span></div>
+      <h1 class="prep-h1">
+        THE DEFENDER IS A MACHINE.<br>
+        <span class="glitch" id="pglitch" data-text="MAKE IT BETRAY THE BANK.">MAKE IT BETRAY THE BANK.</span>
+      </h1>
+      <p class="prep-sub">You attack the AI Defence agent, not the applications. Instruction injection through telemetry, evasion, budget exhaustion, and inducing it to act against legitimate users. An autonomous attacking agent needs a declared containment design and a kill switch before it is allowed into the range at all. That is why AI Red submits a proposal.</p>
+
+      <div class="hero-chips">
+        <span class="hero-chip hero-chip-ember">ARMING</span>
+        <span class="hero-chip hero-chip-gold">PROPOSAL REQUIRED</span>
+        <span class="hero-chip hero-chip-accent">REG OPENS 21 SEP</span>
+      </div>
+
+      <div class="hero-ctas">
+        <a href="#brief" class="btn-accent magnetic">What You Attack</a>
+        <a href="#proposal" class="btn-ghost magnetic">Your Proposal</a>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <aside class="prep-term" aria-label="AI Red terminal">
+        <div class="term-sweep" aria-hidden="true"></div>
+        <canvas class="term-rain" id="readinessRain" aria-hidden="true"></canvas>
+        <div class="term-head">
+          <div class="term-dots"><span></span><span></span><span></span></div>
+          <span class="term-title">ai-red.sh</span>
+          <span class="term-live">LIVE</span>
+        </div>
+        <div class="term-body">
+          <div class="boot-line" id="rl0"></div>
+          <div class="boot-line" id="rl1"></div>
+          <div class="boot-line" id="rl2"></div>
+          <div class="boot-line" id="rl3"></div>
+        </div>
+        <div class="term-boot-bar"><i id="heroBbar"></i></div>
+        <div class="term-boot-label" id="heroBlabel">AI_RED :: LOADING</div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ S1 MISSION ============ -->
+<section class="sec sec-off" id="mission">
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line"></div><span class="sh-label">// Your_Mission</span></div>
+    <h2 class="sh-title">Three attackers.<br><span class="outline-a">For every defender.</span></h2>
+  </div>
+  <p class="pp-lead">Attack the defence agent itself: instruction injection through telemetry, evasion, budget exhaustion, and inducing it to act against legitimate users.</p>
+
+  <div class="stat-row fade-up">
+    <div class="stat-item"><span class="stat-dot"></span>~3 RED TEAMS PER DEFENCE CELL</div>
+    <div class="stat-item"><span class="stat-dot"></span>PROPOSAL REQUIRED</div>
+    <div class="stat-item"><span class="stat-dot"></span>OPENS 21 SEP</div>
+  </div>
+
+  <p class="pp-section-note fade-up">A Red Team without an approved proposal does not receive range credentials.</p>
+</section>
+
+<!-- ============ S2 BRIEF ============ -->
+<section class="sec sec-dark" id="brief">
+  <div class="orb orb-r orb1" aria-hidden="true"></div>
+  <div class="orb orb-au orb2" aria-hidden="true"></div>
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line" style="background:var(--accent-l)"></div><span class="sh-label" style="color:var(--accent-l)">// Your_Target</span></div>
+    <h2 class="sh-title">What the defender<br><span style="color:var(--accent-l)">was told to do.</span></h2>
+  </div>
+  <p class="pp-lead">The agent you attack was built to this brief. Every sentence is a surface.</p>
+
+  <div class="brief-grid fade-up">
+    <div class="brief-row">
+      <span class="brief-num">01</span>
+      <p class="brief-text">Consume the enterprise's full telemetry stream.</p>
+      <span class="brief-tag">INSTRUCTION INJECTION</span>
+    </div>
+    <div class="brief-row">
+      <span class="brief-num">02</span>
+      <p class="brief-text">Combine deterministic analytics with model-based reasoning: prompt-in, verdict-out is not sufficient and scores poorly on technical complexity.</p>
+      <span class="brief-tag">EVASION</span>
+    </div>
+    <div class="brief-row">
+      <span class="brief-num">03</span>
+      <p class="brief-text">Map detections to MITRE ATT&amp;CK and state the coverage gap honestly.</p>
+      <span class="brief-tag">EVASION</span>
+    </div>
+    <div class="brief-row">
+      <span class="brief-num">04</span>
+      <p class="brief-text">Correlate across cells so that one incident is recognised as one incident rather than five alerts.</p>
+      <span class="brief-tag">INSTRUCTION INJECTION</span>
+    </div>
+    <div class="brief-row">
+      <span class="brief-num">05</span>
+      <p class="brief-text">Publish an action policy binding severity and confidence to alert, recommend or act.</p>
+      <span class="brief-tag">BUDGET EXHAUSTION</span>
+    </div>
+    <div class="brief-row">
+      <span class="brief-num">06</span>
+      <p class="brief-text">Act only through the JengaSec Action API, with a hard blast-radius cap, per-window action budgets, a reversal path for every action, and a kill switch that halts autonomy without halting detection.</p>
+      <span class="brief-tag">BUDGET EXHAUSTION</span>
+    </div>
+    <div class="brief-row">
+      <span class="brief-num">07</span>
+      <p class="brief-text">Treat every telemetry field as attacker-controlled text.</p>
+      <span class="brief-tag">INSTRUCTION INJECTION</span>
+    </div>
+    <div class="brief-row">
+      <span class="brief-num">08</span>
+      <p class="brief-text">Keep false positives low: blocking a legitimate customer is scored as damage.</p>
+      <span class="brief-tag">INDUCED ACTION AGAINST LEGITIMATE USERS</span>
+    </div>
+    <div class="brief-row">
+      <span class="brief-num">09</span>
+      <p class="brief-text">Emit a decision log for every alert, recommendation and action, complete enough for a judge to reconstruct the reasoning after the fact.</p>
+      <span class="brief-tag">EVASION</span>
+    </div>
+  </div>
+
+  <div class="brief-callout fade-up">
+    <p>Treat every telemetry field as attacker-controlled text. Your agent is the target of the AI Red track.</p>
+  </div>
+</section>
+
+<!-- ============ S3 RULES ============ -->
+<section class="sec" id="rules">
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line"></div><span class="sh-label">// Safety_First</span></div>
+    <h2 class="sh-title">Your agent is a system.<br><span class="outline-a">It needs safety design.</span></h2>
+  </div>
+  <p class="pp-lead">An autonomous attacking agent is itself a system that needs safety design. These sections are a condition of being permitted to run one in the range at all.</p>
+
+  <ul class="tick-list fade-up">
+    <li class="tick-item"><span class="tick-icon">&#10003;</span><span class="tick-text">Agent architecture: what the agent perceives, how it plans, what tools it may call, and what it does when it is uncertain.</span></li>
+    <li class="tick-item"><span class="tick-icon">&#10003;</span><span class="tick-text">Autonomy boundary: which actions the agent takes without a human, and which require a team member to confirm.</span></li>
+    <li class="tick-item"><span class="tick-icon">&#10003;</span><span class="tick-text">Containment design: how the agent is prevented from acting outside the assigned cell: the technical control that enforces it, not the intention that guides it.</span></li>
+    <li class="tick-item"><span class="tick-icon">&#10003;</span><span class="tick-text">Kill switch: how a team member or an organiser halts the agent within seconds, and what state it leaves behind.</span></li>
+    <li class="tick-item"><span class="tick-icon">&#10003;</span><span class="tick-text">Action and resource budget: the ceiling on requests, model calls and duration, and how it is enforced.</span></li>
+    <li class="tick-item"><span class="tick-icon">&#10003;</span><span class="tick-text">Attack taxonomy: which attack classes the agent will attempt, and how each will be evidenced.</span></li>
+    <li class="tick-item"><span class="tick-icon">&#10003;</span><span class="tick-text">Attribution: how every action the agent takes is traceable to this team, so that its activity can be separated from the other Red Team attacking the same cell.</span></li>
+    <li class="tick-item"><span class="tick-icon">&#10003;</span><span class="tick-text">Rollback: what the team will do if the agent causes unintended disruption to a Blue cell's availability.</span></li>
+  </ul>
+</section>
+
+<!-- ============ S4 PROPOSAL ============ -->
+<section class="sec sec-dark" id="proposal">
+  <div class="orb orb-r orb1" aria-hidden="true"></div>
+  <div class="orb orb-au orb2" aria-hidden="true"></div>
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line" style="background:var(--accent-l)"></div><span class="sh-label" style="color:var(--accent-l)">// Your_Proposal</span></div>
+    <h2 class="sh-title">Fifteen sections.<br><span style="color:var(--accent-l)">Eight more for the agent.</span></h2>
+  </div>
+
+  <div class="pp-callout-mono fade-up">
+    <p><strong>HEADINGS ARE NOT OPTIONAL ::</strong> Use the section numbers and titles below as your document headings, in order, exactly as written, for example 08 Reconnaissance Plan. The platform reads headings to locate each section before a judge opens the file. A section under a different title, or merged into another, can be read as missing and scored as missing.</p>
+  </div>
+
+  <p class="pp-lead">Scored on preparation and professionalism rather than on results. It doubles as the record that the team understood and accepted the rules of engagement before being given access.</p>
+
+  <div class="prop-grid fade-up">
+    <div class="prop-row">
+      <span class="prop-num">01</span>
+      <div class="prop-body">
+        <div class="prop-name">Executive Summary</div>
+        <p class="prop-desc">The target cell, the team's approach in one page, and what a successful engagement would demonstrate.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">02</span>
+      <div class="prop-body">
+        <div class="prop-name">Target Understanding</div>
+        <p class="prop-desc">What the assigned cell is for, its role in the enterprise, its published interface, and what the team assesses to be its most valuable assets.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">03</span>
+      <div class="prop-body">
+        <div class="prop-name">Scope Statement</div>
+        <p class="prop-desc">Everything in scope, restated in the team's own words, and everything out of scope. Errors here are the most common cause of rule breaches.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">04</span>
+      <div class="prop-body">
+        <div class="prop-name">Rules of Engagement Acknowledgement</div>
+        <p class="prop-desc">Explicit, itemised acceptance of the rules of engagement, signed by every member.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">05</span>
+      <div class="prop-body">
+        <div class="prop-name">Threat Actor Profile</div>
+        <p class="prop-desc">The adversary being simulated: external unauthenticated, authenticated customer, malicious insider, compromised partner: and the capability and motivation assumed.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">06</span>
+      <div class="prop-body">
+        <div class="prop-name">Attack Hypotheses</div>
+        <p class="prop-desc">Six to ten specific, testable hypotheses about where the cell is likely to be weak, derived from its domain and its published interface.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">07</span>
+      <div class="prop-body">
+        <div class="prop-name">Methodology</div>
+        <p class="prop-desc">The phases of the engagement, the standard being followed (PTES, OWASP WSTG, OSSTMM or equivalent), and the mapping to MITRE ATT&amp;CK tactics.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">08</span>
+      <div class="prop-body">
+        <div class="prop-name">Reconnaissance Plan</div>
+        <p class="prop-desc">What will be enumerated in the recon window, with what tooling, at what rate.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">09</span>
+      <div class="prop-body">
+        <div class="prop-name">Planned Attack Chains</div>
+        <p class="prop-desc">At least three chains from initial access to objective, each with the expected evidence and the expected impact.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">10</span>
+      <div class="prop-body">
+        <div class="prop-name">Tooling</div>
+        <p class="prop-desc">Every tool to be used, with versions. Any custom tooling described, with its intended behaviour and its safety limits.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">11</span>
+      <div class="prop-body">
+        <div class="prop-name">Safety and Non-Destructive Measures</div>
+        <p class="prop-desc">How the team will avoid data destruction, uncontrolled disruption and scope escape, including the rate limits it imposes on itself.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">12</span>
+      <div class="prop-body">
+        <div class="prop-name">Evidence and Chain of Custody</div>
+        <p class="prop-desc">How evidence will be captured, timestamped, stored, redacted and destroyed.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">13</span>
+      <div class="prop-body">
+        <div class="prop-name">Team, Roles and Timeline</div>
+        <p class="prop-desc">Who does what in which window, and how the activity log will be maintained.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">14</span>
+      <div class="prop-body">
+        <div class="prop-name">Reporting Plan</div>
+        <p class="prop-desc">The structure of the final report, the severity model to be used with the CVSS version stated, and how remediation advice will be developed.</p>
+      </div>
+    </div>
+    <div class="prop-row">
+      <span class="prop-num">15</span>
+      <div class="prop-body">
+        <div class="prop-name">Ethics Declaration</div>
+        <p class="prop-desc">Signed statement on lawful conduct, confidentiality of anything discovered, and the obligation to report real-world risk immediately.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pp-callout-mono fade-up" style="margin-top:2.5rem;border-left-color:var(--gold);background:rgba(232,176,32,0.06)">
+    <p><strong>UPLOAD FORMAT ::</strong> Attach a cover page, declaration of originality, and AI use statement. Missing any of the three is returned as incomplete. PDF only, selectable text, 8 to 14 pages excluding cover, contents, references and appendices. A4, margins &gt;= 2 cm, body &gt;= 11 pt, spacing &gt;= 1.15, max 25 MB, English, no password or encryption. Filename: JS26_&lt;ENTERPRISE&gt;_&lt;CELL&gt;_&lt;TEAMID&gt;_&lt;TYPE&gt;_v&lt;N&gt;.pdf.</p>
+    <p style="margin-top:0.85rem"><strong>AI USE ::</strong> Editing your own text, diagrams from your own content, and human-verified research assistance are permitted when declared. Generating attack methodology or safety design without team authorship, unread citations, or undeclared use is not permitted.</p>
+  </div>
+</section>
+
+<!-- ============ S5 READY ============ -->
+<section class="sec" id="ready">
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line"></div><span class="sh-label">// Before_You_Register</span></div>
+    <h2 class="sh-title">Ready in thirty minutes.<br><span class="outline-a">Or losing days.</span></h2>
+  </div>
+
+  <ul class="ro-check-list fade-up">
+    <li class="ro-check-item"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Full legal name of every member, exactly as on their identity document.</span></li>
+    <li class="ro-check-item"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Identity document per member showing date of birth. PDF, JPG or PNG, under 5 MB, photographed in good light with the whole document in frame.</span></li>
+    <li class="ro-check-item"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Email per member, institutional if you have one.</span></li>
+    <li class="ro-check-item"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">GitHub or GitLab handle per member.</span></li>
+    <li class="ro-check-item"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">If enrolled: student number, institution, programme and year of study.</span></li>
+    <li class="ro-check-item"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Captain and one deputy: phone number in international format, for example +254712345678.</span></li>
+    <li class="ro-check-item"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Team name, three to forty characters.</span></li>
+    <li class="ro-check-item"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Ranked track preferences for your side.</span></li>
+    <li class="ro-check-item"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Skills declaration, 100 to 1500 characters, honestly describing what the team has built before. Overstating it earns you a brief you cannot complete.</span></li>
+  </ul>
+
+  <div style="margin-top:2rem">
+<a href="#ready" class="btn-accent magnetic" style="background:var(--accent);border-color:var(--accent)">Open the Full Checklist</a>
+  </div>
+</section>
+
+<!-- ============ S6 CTA ============ -->
+<section class="sec-cta" id="cta">
+  <div class="orb orb-r orb2" aria-hidden="true"></div>
+  <div class="pp-cta-inner">
+    <div class="sh">
+      <div class="sh-eye"><div class="sh-line" style="background:var(--accent-l)"></div><span class="sh-label" style="color:rgba(255,255,255,0.3)">// Final_Word</span></div>
+      <h2 class="sh-title" style="color:var(--white);font-size:clamp(2.2rem,5vw,3.5rem)">Write the containment design.<br><span style="color:var(--accent-l)">Then come for the agent.</span></h2>
+    </div>
+    <div class="pp-cta-term">
+      <canvas class="term-rain" id="ctaRain" aria-hidden="true"></canvas>
+      <div class="term-sweep" aria-hidden="true"></div>
+      <span style="position:relative;z-index:1">&gt; ./register --track=ai-red --team=4<span class="badge-cursor"></span></span>
+    </div>
+    <div class="pp-cta-btns">
+<a href="#ready" class="btn-accent magnetic" style="background:var(--accent);border-color:var(--accent)">How to Register</a>
+      <a href="{% url 'track_ai_defence_blue' %}" class="btn-ghost magnetic">See the Other Side</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ MISSION RAIL ============ -->
+<aside class="mission-rail" id="missionRail" aria-label="Section navigation">
+  <a href="#mission" data-sec="mission">01 MISSION</a>
+  <a href="#brief" data-sec="brief">02 BRIEF</a>
+  <a href="#rules" data-sec="rules">03 RULES</a>
+  <a href="#proposal" data-sec="proposal">04 PROPOSAL</a>
+  <a href="#ready" data-sec="ready">05 READY</a>
+</aside>
+
+<footer>
+  <div>
+    <div class="ft-brand">Jenga<em>Sec</em> 2026</div>
+    <div class="ft-sub">// Strathmore Cybersecurity Club · Nairobi, Kenya · @sucybersec</div>
+  </div>
+  <div class="ft-right">
+    <a href="mailto:sucybersec@strathmore.edu">sucybersec@strathmore.edu</a>
+    <p>// Kenya's proving ground for enterprise-ready technologists</p>
+  </div>
+</footer>
+
+<script>
+'use strict';
+let reduceMotion=document.documentElement.classList.contains('motion-reduced')&&!document.documentElement.classList.contains('motion-full');
+const finePointer = window.matchMedia('(pointer: fine)').matches;
+const CH="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./\\[]{}><_#@!";
+
+const motionToggle=document.createElement('button');
+motionToggle.className='motion-toggle';
+motionToggle.type='button';
+motionToggle.setAttribute('aria-label','Change visual effects mode');
+motionToggle.textContent=reduceMotion?'ENABLE FULL EFFECTS':'USE REDUCED EFFECTS';
+document.querySelector('.hero-ctas')?.appendChild(motionToggle);
+motionToggle.addEventListener('click',()=>{
+  const url=new URL(location.href);
+  url.searchParams.set('motion',reduceMotion?'full':'reduced');
+  location.href=url.href;
+});
+
+{const mode=new URLSearchParams(location.search).get('motion');if(mode)document.querySelectorAll('a[href$=".html"],a[href*=".html#"]').forEach(link=>{const u=new URL(link.href,location.href);if(u.origin===location.origin){u.searchParams.set('motion',mode);link.href=u.href;}});}
+if('scrollRestoration' in history)history.scrollRestoration='manual';
+if(!location.hash)window.scrollTo(0,0);
+
+/* ---------- shared: initRain(canvas) ---------- */
+function initRain(canvas){
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const RCH='01JENGASEC';
+  const TRAIL=5;
+  let rw,rh,cols,drops,raf=null,running=false;
+  function size(){
+    const box=canvas.parentElement;
+    rw=canvas.width=box.clientWidth||1;
+    rh=canvas.height=box.clientHeight||1;
+    const spacing=18+Math.random()*4;
+    cols=Math.max(1,Math.floor(rw/spacing));
+    drops=Array.from({length:cols},(_,i)=>({
+      x:Math.round((i+0.5)*(rw/cols)),
+      y:Math.random()*-40,
+      speed:2+Math.random()*2,
+      chars:[]
+    }));
+  }
+  size();
+  canvas.style.opacity='0.18';
+  function drawFrame(){
+    ctx.clearRect(0,0,rw,rh);
+    ctx.font='11px "Space Mono",monospace';
+    for(const d of drops){
+      d.chars.unshift(RCH[Math.floor(Math.random()*RCH.length)]);
+      if(d.chars.length>TRAIL)d.chars.pop();
+      for(let t=0;t<d.chars.length;t++){
+        ctx.fillStyle=t===0?'rgba(255,59,71,0.9)':'rgba(179,0,12,'+(0.5*(1-t/TRAIL))+')';
+        ctx.fillText(d.chars[t],d.x,d.y-t*13);
+      }
+      d.y+=d.speed;
+      if(d.y-TRAIL*13>rh&&Math.random()>0.96){d.y=Math.random()*-30;d.chars=[];d.speed=2+Math.random()*2;}
+    }
+  }
+  function loop(){if(!running)return;drawFrame();raf=requestAnimationFrame(loop);}
+  if(reduceMotion){
+    ctx.clearRect(0,0,rw,rh);
+    ctx.font='11px "Space Mono",monospace';
+    drops.forEach(d=>{
+      ctx.fillStyle='rgba(179,0,12,0.4)';
+      ctx.fillText(RCH[Math.floor(Math.random()*RCH.length)],d.x,Math.random()*rh);
+    });
+    return;
+  }
+  function start(){if(!running){size();running=true;loop();}}
+  function stop(){running=false;if(raf)cancelAnimationFrame(raf);}
+  const io=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{e.isIntersecting?start():stop();});
+  },{threshold:0});
+  io.observe(canvas);
+  window.addEventListener('resize',size,{passive:true});
+}
+initRain(document.getElementById('ctaRain'));
+initRain(document.getElementById('readinessRain'));
+
+/* ---------- hero background: parallax + rain + particles ---------- */
+(function(){
+  const heroImg=document.getElementById('heroimg');
+  const hero=document.getElementById('home');
+  if(!heroImg||!hero)return;
+  let heroVisible=true;
+  new IntersectionObserver(e=>{heroVisible=e[0].isIntersecting;},{threshold:0}).observe(hero);
+
+  if(!reduceMotion){
+    let px=0,py=0,sy=0;
+    hero.addEventListener('mousemove',e=>{
+      const r=hero.getBoundingClientRect();
+      px=((e.clientX-r.left)/r.width-0.5)*14;
+      py=((e.clientY-r.top)/r.height-0.5)*10;
+      applyParallax();
+    },{passive:true});
+    window.addEventListener('scroll',()=>{
+      sy=Math.min(window.scrollY*0.12,80);
+      applyParallax();
+    },{passive:true});
+    function applyParallax(){
+      heroImg.style.transform='translate3d('+(-px)+'px,'+(-py+sy)+'px,0) scale(1.04)';
+    }
+  }
+
+  /* hero rain canvas - red colored */
+  const rain=document.getElementById('rain');
+  if(rain&&innerWidth>768){
+    const rctx=rain.getContext('2d');
+    const RCH='01アイウエオカキク>#$%&+=/\\';
+    const TRAIL=9;
+    let rw,rh,cols,drops;
+    function sizeRain(){
+      rw=rain.width=rain.offsetWidth||1;
+      rh=rain.height=rain.offsetHeight||1;
+      cols=Math.floor(rw/26);
+      drops=Array.from({length:cols},()=>({y:Math.random()*-40,chars:[]}));
+    }
+    function drawStaticRain(){
+      rctx.font='12px "Space Mono",monospace';
+      for(let i=0;i<cols;i++){
+        rctx.fillStyle='rgba(255,59,71,0.3)';
+        rctx.fillText(RCH[Math.floor(Math.random()*RCH.length)],i*26,Math.random()*rh);
+      }
+    }
+    function handleRainResize(){sizeRain();if(reduceMotion)drawStaticRain();}
+    sizeRain();
+    addEventListener('load',handleRainResize,{passive:true});
+    addEventListener('resize',handleRainResize,{passive:true});
+    if(reduceMotion){
+      drawStaticRain();
+    }else{
+      setInterval(()=>{
+        if(!heroVisible)return;
+        rctx.clearRect(0,0,rw,rh);
+        rctx.font='12px "Space Mono",monospace';
+        for(let i=0;i<cols;i++){
+          const d=drops[i];
+          d.chars.unshift(RCH[Math.floor(Math.random()*RCH.length)]);
+          if(d.chars.length>TRAIL)d.chars.pop();
+          for(let t=0;t<d.chars.length;t++){
+            const a=t===0?0.5:0.16*(1-t/TRAIL);
+            rctx.fillStyle='rgba(255,59,71,'+a+')';
+            rctx.fillText(d.chars[t],i*26,(d.y-t)*14);
+          }
+          d.y++;
+          if((d.y-TRAIL)*14>rh&&Math.random()>0.96){d.y=Math.random()*-20;d.chars=[];}
+        }
+      },72);
+    }
+  }
+
+  /* hero particles - red colored */
+  const pcanvas=document.getElementById('particles');
+  if(pcanvas&&!reduceMotion){
+    const ctx=pcanvas.getContext('2d');
+    let W,H,pts=[];
+    let mouse={x:-9999,y:-9999};
+    hero.addEventListener('mousemove',e=>{
+      const r=pcanvas.getBoundingClientRect();
+      mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;
+    },{passive:true});
+    hero.addEventListener('mouseleave',()=>{mouse.x=-9999;mouse.y=-9999;},{passive:true});
+    function sizeCanvas(){W=pcanvas.width=pcanvas.offsetWidth;H=pcanvas.height=pcanvas.offsetHeight;}
+    function seed(){
+      const n=Math.min(Math.floor(W*H/22000),70);
+      pts=Array.from({length:n},()=>({
+        x:Math.random()*W,y:Math.random()*H,
+        vx:(Math.random()-0.5)*0.22,vy:(Math.random()-0.5)*0.22,
+        r:Math.random()*1.4+0.6
+      }));
+    }
+    sizeCanvas();seed();
+    addEventListener('resize',()=>{sizeCanvas();seed();},{passive:true});
+    function frame(){
+      if(heroVisible){
+        ctx.clearRect(0,0,W,H);
+        for(const p of pts){
+          p.x+=p.vx;p.y+=p.vy;
+          if(p.x<0||p.x>W)p.vx*=-1;
+          if(p.y<0||p.y>H)p.vy*=-1;
+          ctx.beginPath();
+          ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+          ctx.fillStyle='rgba(255,59,71,0.32)';
+          ctx.fill();
+        }
+        for(let i=0;i<pts.length;i++){
+          const mdx=pts[i].x-mouse.x,mdy=pts[i].y-mouse.y;
+          const md=mdx*mdx+mdy*mdy;
+          if(md<26000){
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x,pts[i].y);
+            ctx.lineTo(mouse.x,mouse.y);
+            ctx.strokeStyle='rgba(232,176,32,'+(0.16*(1-md/26000))+')';
+            ctx.lineWidth=0.7;
+            ctx.stroke();
+          }
+          for(let j=i+1;j<pts.length;j++){
+            const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y;
+            const d=dx*dx+dy*dy;
+            if(d<12100){
+              ctx.beginPath();
+              ctx.moveTo(pts[i].x,pts[i].y);
+              ctx.lineTo(pts[j].x,pts[j].y);
+              ctx.strokeStyle='rgba(255,59,71,'+(0.11*(1-d/12100))+')';
+              ctx.lineWidth=0.6;
+              ctx.stroke();
+            }
+          }
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+})();
+
+/* ---------- shared: terminal line decode-typer ---------- */
+function terminalTypeLines(lineEls,lines,onProgress,onDone){
+  let li=0;
+  function typeNext(){
+    if(li>=lineEls.length){if(onDone)onDone();return;}
+    const el=lineEls[li];
+    const spec=lines[li];
+    const text=spec.text,suffix=spec.suffix||'';
+    let i=0;
+    const cursor=document.createElement('span');
+    cursor.className='badge-cursor';
+    function step(){
+      const shown=text.split('').map((c,idx)=>{
+        if(c===' ')return ' ';
+        if(idx<i)return text[idx];
+        return CH[Math.floor(Math.random()*CH.length)];
+      }).join('');
+      el.replaceChildren(document.createTextNode(shown));
+      el.appendChild(cursor);
+      if(i>=text.length){
+        el.replaceChildren(document.createTextNode(text));
+        if(suffix){const ok=document.createElement('span');ok.className='ok';ok.textContent=suffix.replace(/<[^>]*>/g,'');el.appendChild(ok);}
+        li++;
+        if(onProgress)onProgress(li/lineEls.length);
+        setTimeout(typeNext,260);
+        return;
+      }
+      i+=0.7;
+      setTimeout(step,22);
+    }
+    step();
+  }
+  typeNext();
+}
+
+/* ---------- custom cursor (red-tinted) ---------- */
+if(finePointer){
+  document.body.classList.add('cursor-on');
+  const dot=document.getElementById('cur-dot'),ring=document.getElementById('cur-ring');
+  let mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my;
+  addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;
+    dot.style.left=mx+'px';dot.style.top=my+'px';},{passive:true});
+  (function ringLoop(){
+    rx+=(mx-rx)*0.16;ry+=(my-ry)*0.16;
+    ring.style.left=rx+'px';ring.style.top=ry+'px';
+    requestAnimationFrame(ringLoop);
+  })();
+  document.querySelectorAll('a,button,summary').forEach(el=>{
+    el.addEventListener('mouseenter',()=>ring.classList.add('hovering'));
+    el.addEventListener('mouseleave',()=>ring.classList.remove('hovering'));
+  });
+}
+
+/* ---------- scroll progress + nav + breadcrumb ---------- */
+const prog=document.getElementById('prog');
+const nav=document.getElementById('nav');
+const breadcrumb=document.getElementById('breadcrumb');
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  prog.style.width=((h.scrollTop/(h.scrollHeight-h.clientHeight))*100)+'%';
+  const scrolled=h.scrollTop>40;
+  nav.classList.toggle('scrolled',scrolled);
+  if(breadcrumb)breadcrumb.classList.toggle('scrolled',scrolled);
+},{passive:true});
+if(document.documentElement.scrollTop>40){
+  nav.classList.add('scrolled');
+  if(breadcrumb)breadcrumb.classList.add('scrolled');
+}
+
+/* ---------- mobile menu ---------- */
+const mm=document.getElementById('mm');
+document.getElementById('mb').onclick=()=>{mm.classList.add('open');mm.setAttribute('aria-hidden','false');document.body.classList.add('menu-open')};
+document.getElementById('mc').onclick=cm;
+function cm(){mm.classList.remove('open');mm.setAttribute('aria-hidden','true');document.body.classList.remove('menu-open')}
+
+/* ---------- nav wordmark "Sec" glitch ---------- */
+const wmsec=document.getElementById('wmsec');
+if(wmsec){
+  document.getElementById('wordmark').addEventListener('mouseenter',()=>{
+    wmsec.classList.remove('wm-glitch');
+    void wmsec.offsetWidth;
+    wmsec.classList.add('wm-glitch');
+  });
+}
+
+/* ---------- nav link scramble ---------- */
+if(!reduceMotion){
+  document.querySelectorAll('#navlinks a[data-txt]').forEach(a=>{
+    let siv=null;
+    a.addEventListener('mouseenter',()=>{
+      const txt=a.dataset.txt;let i=0;clearInterval(siv);
+      siv=setInterval(()=>{
+        a.textContent=txt.split('').map((c,idx)=>{
+          if(c===' ')return ' ';
+          if(idx<i)return txt[idx];
+          return CH[Math.floor(Math.random()*CH.length)];
+        }).join('');
+        if(i>=txt.length){clearInterval(siv);a.textContent=txt;}
+        i+=0.9;
+      },24);
+    });
+  });
+}
+
+/* ---------- magnetic buttons ---------- */
+if(finePointer&&!reduceMotion){
+  document.querySelectorAll('.magnetic').forEach(btn=>{
+    btn.addEventListener('mousemove',e=>{
+      const r=btn.getBoundingClientRect();
+      const x=(e.clientX-r.left-r.width/2)*0.22;
+      const y=(e.clientY-r.top-r.height/2)*0.32;
+      btn.style.transform='translate('+x+'px,'+y+'px)';
+    });
+    btn.addEventListener('mouseleave',()=>{btn.style.transform='translate(0,0)'});
+  });
+}
+
+/* ---------- hero glitch auto-fire ---------- */
+(function(){
+  const el=document.getElementById('pglitch');
+  if(!el||reduceMotion)return;
+  function burst(){
+    el.classList.remove('glitching');void el.offsetWidth;el.classList.add('glitching');
+    setTimeout(()=>el.classList.remove('glitching'),600);
+    setTimeout(burst,4600+Math.random()*1400);
+  }
+  setTimeout(burst,1800);
+})();
+
+/* ---------- hero terminal decode-type ---------- */
+(function(){
+  const term=document.querySelector('.prep-term');
+  const els=[0,1,2,3].map(i=>document.getElementById('rl'+i)).filter(Boolean);
+  const bbar=document.getElementById('heroBbar');
+  const blabel=document.getElementById('heroBlabel');
+  if(!term||!els.length)return;
+  const lines=[
+    {text:'> jengasec --track=ai-red',suffix:''},
+    {text:'> target :: AI_DEFENCE_AGENT',suffix:''},
+    {text:'> proposal :: SAFETY_REQUIREMENT ',suffix:'<span class="ok">[15 + 8]</span>'},
+    {text:'> registration :: OPENS 21_SEP ',suffix:'<span class="ok">[ARMED]</span>'}
+  ];
+  function finishBar(progress){
+    if(bbar)bbar.style.transform='scaleX('+progress+')';
+    if(blabel)blabel.textContent=progress>=1?'AI_RED :: LOADED':'AI_RED :: '+Math.round(progress*100)+'%';
+  }
+  if(reduceMotion){
+    els.forEach((el,i)=>{el.replaceChildren(document.createTextNode(lines[i].text));const suffix=lines[i].suffix.replace(/<[^>]*>/g,'');if(suffix){const ok=document.createElement('span');ok.className='ok';ok.textContent=suffix;el.appendChild(ok);}});
+    finishBar(1);
+    return;
+  }
+  let fired=false;
+  const io=new IntersectionObserver(entries=>{
+    if(entries[0].isIntersecting&&!fired){
+      fired=true;
+      finishBar(0);terminalTypeLines(els,lines,finishBar,()=>finishBar(1));
+      io.disconnect();
+    }
+  },{threshold:0.3});
+  io.observe(term);
+  setTimeout(()=>{const r=term.getBoundingClientRect();if(r.top<innerHeight&&r.bottom>0&&!fired){fired=true;finishBar(0);terminalTypeLines(els,lines,finishBar,()=>finishBar(1));io.disconnect();}},500);
+})();
+
+/* ---------- entrance reveals ---------- */
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});
+},{threshold:0.07});
+document.querySelectorAll('.fade-up,.slide-l,.slide-r,.sh').forEach(e=>obs.observe(e));
+
+/* ---------- mission rail active state ---------- */
+(function(){
+  const rail=document.getElementById('missionRail');
+  if(!rail)return;
+  const links=[...rail.querySelectorAll('a[data-sec]')];
+  const sections=links.map(a=>document.getElementById(a.dataset.sec)).filter(Boolean);
+  if(!sections.length)return;
+  const io=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const id=e.target.id;
+        links.forEach(a=>{a.classList.toggle('active',a.dataset.sec===id);});
+      }
+    });
+  },{rootMargin:'-30% 0px -60% 0px',threshold:0});
+  sections.forEach(s=>io.observe(s));
+})();
+</script>
+</body>
+</html>

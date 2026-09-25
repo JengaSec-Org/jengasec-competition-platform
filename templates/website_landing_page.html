@@ -10,20 +10,20 @@
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#007A3D">
 <link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
-<link rel="canonical" href="https://jengasec.com">
+<link rel="canonical" href="https://www.jengasec.com/">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://jengasec.com">
+<meta property="og:url" content="https://www.jengasec.com/">
 <meta property="og:title" content="JengaSec 2026 | Kenya's Enterprise Cyber Simulation">
 <meta property="og:description" content="Kenya's first full-spectrum enterprise cybersecurity simulation. 350+ participants. Nairobi, October 2026.">
-<meta property="og:image" content="https://jengasec.com/Jengasec.jpg">
+<meta property="og:image" content="https://www.jengasec.com/static/images/Jengasec.jpg">
 <meta property="og:site_name" content="JengaSec">
 <meta property="og:locale" content="en_KE">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@sucybersec">
 <meta name="twitter:title" content="JengaSec 2026 | Kenya's Enterprise Cyber Simulation">
 <meta name="twitter:description" content="Kenya's first full-spectrum enterprise cybersecurity simulation. 350+ participants. Nairobi, October 2026.">
-<meta name="twitter:image" content="https://jengasec.com/Jengasec.jpg">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Event","name":"JengaSec 2026","startDate":"2026-10-14","eventStatus":"https://schema.org/EventScheduled","location":{"@type":"Place","name":"Strathmore University","address":{"@type":"PostalAddress","addressLocality":"Nairobi","addressCountry":"KE"}},"organizer":{"@type":"Organization","name":"Strathmore Cybersecurity Club","url":"https://jengasec.com","email":"sucybersec@strathmore.edu"},"url":"https://jengasec.com","isAccessibleForFree":true}</script>
+<meta name="twitter:image" content="https://www.jengasec.com/static/images/Jengasec.jpg">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Event","name":"JengaSec 2026","startDate":"2026-10-14","eventStatus":"https://schema.org/EventScheduled","location":{"@type":"Place","name":"Strathmore University","address":{"@type":"PostalAddress","addressLocality":"Nairobi","addressCountry":"KE"}},"organizer":{"@type":"Organization","name":"Strathmore Cybersecurity Club","url":"https://www.jengasec.com","email":"sucybersec@strathmore.edu"},"url":"https://www.jengasec.com","isAccessibleForFree":true}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
@@ -933,6 +933,8 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
   <a href="#speakers" onclick="cm()">Speakers</a>
   <a href="#numbers" onclick="cm()">Numbers</a>
   <a href="#faq" onclick="cm()">FAQ</a>
+  <a href="{% url 'prepare' %}" onclick="cm()">Prepare</a>
+  <a href="{% url 'partner' %}" onclick="cm()">Partner With Us</a>
   <a href="#contact" onclick="cm()">Contact</a>
   <a href="#contact" onclick="cm()" style="color:var(--gold)">Partner With Us →</a>
   <a href="{% url 'accounts:register' %}" style="color:var(--gl)">Register Your Team →</a>
@@ -953,6 +955,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
     <li><a href="#speakers" data-txt="Speakers">Speakers</a></li>
     <li><a href="#numbers" data-txt="Numbers">Numbers</a></li>
     <li><a href="#faq" data-txt="FAQ">FAQ</a></li>
+    <li><a href="{% url 'prepare' %}" data-txt="Prepare">Prepare</a></li>
     <li><a href="#contact" data-txt="Contact">Contact</a></li>
   </ul>
   <div class="nav-right">
@@ -960,7 +963,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
       <span class="nav-login-hint">Already registered or an active party?</span>
       <span class="nav-login-btn">Login</span>
     </a>
-    <a href="#contact" class="nav-cta magnetic">Partner With Us</a>
+    <a href="{% url 'partner' %}" class="nav-cta magnetic">Partner With Us</a>
     <button class="hamburger" id="mb" aria-label="Open menu">
       <span></span><span></span><span></span>
     </button>
@@ -1028,6 +1031,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
       <div class="plogo"><img src="{% static 'logo/Strath.png' %}" alt="Strathmore University"></div>
       <div class="plogo"><img src="{% static 'logo/KCA.png' %}" alt="KCA Cybersecurity Club"></div>
       <div class="plogo"><img src="{% static 'logo/SheLeadsTech_Logo.png' %}" alt="She Leads Tech"></div>
+      <div class="plogo"><img src="{% static 'logo/scesa.png' %}" alt="SCESA"></div>
       <div class="plogo"><img src="{% static 'logo/ISG Strath.png' %}" alt="ISACA Student Chapter Strathmore"></div>
     </div>
   </div>
@@ -1073,6 +1077,15 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
       </div>
       <div class="sp-logo-rank"><i></i>CORE_03</div>
       <div class="sp-logo-name">Digital Africa</div>
+    </div>
+
+    <!-- CORE 04: iLab Africa -->
+    <div class="sp-logo-wrap slide-r" style="transition-delay:0.2s">
+      <div class="sp-logo-frame sp-pending">
+        <img src="{% static 'logo/iLab.png' %}" alt="iLab Africa">
+      </div>
+      <div class="sp-logo-rank"><i></i>CORE_04</div>
+      <div class="sp-logo-name">iLab Africa</div>
     </div>
 
     <!-- ADD FUTURE SPONSORS HERE — copy a .sp-logo-wrap block.

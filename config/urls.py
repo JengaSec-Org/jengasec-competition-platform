@@ -49,6 +49,31 @@ urlpatterns = [
         TemplateView.as_view(template_name="website_landing_page.html"),
         name="landing",
     ),
+    # The rest of the public event website. Each is a standalone page from
+    # the design repo (its own inline CSS/JS, like the landing page), served
+    # here so the whole site ships as one app on one domain.
+    path("prepare/", TemplateView.as_view(template_name="prepare.html"), name="prepare"),
+    path("partner/", TemplateView.as_view(template_name="partner.html"), name="partner"),
+    path(
+        "tracks/application-blue/",
+        TemplateView.as_view(template_name="track_application_blue.html"),
+        name="track_application_blue",
+    ),
+    path(
+        "tracks/application-red/",
+        TemplateView.as_view(template_name="track_application_red.html"),
+        name="track_application_red",
+    ),
+    path(
+        "tracks/ai-defence-blue/",
+        TemplateView.as_view(template_name="track_ai_defence_blue.html"),
+        name="track_ai_defence_blue",
+    ),
+    path(
+        "tracks/ai-red/",
+        TemplateView.as_view(template_name="track_ai_red.html"),
+        name="track_ai_red",
+    ),
     path("dashboard/", include("dashboard.urls")),
     path("accounts/", include("accounts.urls")),
     path("competitions/", include("competitions.urls")),

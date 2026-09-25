@@ -289,9 +289,23 @@ class ApplicationBrief(models.Model):
     def places_left(self):
         return max(self.proposal_cap - self.proposal_count, 0)
 
+    # How many requirement lines a brief card shows while teams are still
+    # choosing one. The catalogue is nine cards on a single page, so the
+    # propose view names the security areas and stops; the full list is on
+    # the team's own build page once a proposal is selected.
+    PREVIEW_REQUIREMENTS = 5
+
     @property
     def requirement_list(self):
         return [line.strip() for line in self.requirements.splitlines() if line.strip()]
+
+    @property
+    def requirement_preview(self):
+        return self.requirement_list[: self.PREVIEW_REQUIREMENTS]
+
+    @property
+    def requirements_hidden(self):
+        return max(len(self.requirement_list) - self.PREVIEW_REQUIREMENTS, 0)
 
 
 class AttackScenario(models.Model):

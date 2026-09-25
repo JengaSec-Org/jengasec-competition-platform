@@ -1,0 +1,1479 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-side="red">
+<head>
+<script>
+/* Resolve visual mode before first paint. */
+const motionParam=new URLSearchParams(location.search).get('motion');
+if(motionParam==='reduced')document.documentElement.classList.add('motion-reduced');
+else document.documentElement.classList.add('motion-full','force-motion');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morani Hunting Grounds :: JengaSec 2026</title>
+<meta name="description" content="Morani Hunting Grounds at JengaSec 2026: attack one assigned JengaBank application cell within a scheduled window and report the findings to a professional standard. Registration only, no proposal. Opens 21 September.">
+<meta name="author" content="Strathmore Cybersecurity Club">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#B3000C">
+<link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
+<link rel="canonical" href="https://www.jengasec.com/tracks/application-red/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.jengasec.com/tracks/application-red/">
+<meta property="og:title" content="Morani Hunting Grounds :: JengaSec 2026">
+<meta property="og:description" content="Morani Hunting Grounds at JengaSec 2026: attack one assigned JengaBank application cell within a scheduled window and report the findings to a professional standard. Registration only, no proposal. Opens 21 September.">
+<meta property="og:image" content="https://www.jengasec.com/static/images/Jengasec.jpg">
+<meta property="og:site_name" content="JengaSec">
+<meta property="og:locale" content="en_KE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@sucybersec">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#007A3D;--gd:#004D26;--gl:#00C853;
+  --red:#B3000C;--gold:#C9960A;--gold2:#E8B020;
+  --black:#080C08;--white:#F8FAF8;--off:#EEF1EE;
+  --muted:#5A6A5A;--border:#CDD8CD;--card:#FFFFFF;
+  --dg:#0A2416;--mg:#0D3020;
+  --accent:var(--g);--accent-l:var(--gl);--accent-d:var(--gd);--accent-rgb:0,200,83;--accent-tint:rgba(0,200,80,0.10);
+}
+html[data-side="red"]{--accent:#B3000C;--accent-l:#FF3B47;--accent-d:#5E0008;--accent-rgb:255,59,71;--accent-tint:rgba(179,0,12,0.10);--dg:#240A0C;--mg:#30100F}
+html{scroll-behavior:smooth}
+html,body{overflow-x:hidden;max-width:100%}
+body{background:var(--white);color:var(--black);font-family:'DM Sans',sans-serif}
+img{max-width:100%;height:auto}
+
+/* ============ SKIP LINK ============ */
+.skip-link{position:absolute;left:-9999px;top:0;z-index:10001;
+  padding:0.75rem 1.5rem;background:var(--accent);color:var(--white);
+  font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.08em;text-decoration:none}
+.skip-link:focus{left:0}
+
+/* ============ FILM GRAIN ============ */
+#grain{position:fixed;inset:-100px;z-index:9998;pointer-events:none;opacity:0.032;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain 0.9s steps(4) infinite}
+@keyframes grain{
+  0%{transform:translate(0,0)}25%{transform:translate(-38px,22px)}
+  50%{transform:translate(26px,-30px)}75%{transform:translate(-14px,-18px)}100%{transform:translate(0,0)}
+}
+
+/* ============ SCROLL PROGRESS ============ */
+#prog{position:fixed;top:0;left:0;height:2px;width:0%;z-index:9999;
+  background:linear-gradient(90deg,var(--red) 0%,var(--gold) 40%,var(--g) 100%);
+  transition:width 0.08s linear;pointer-events:none;box-shadow:0 0 10px rgba(var(--accent-rgb),0.5)}
+
+/* ============ CUSTOM CURSOR ============ */
+@media(pointer:fine){
+  body.cursor-on,body.cursor-on a,body.cursor-on button,body.cursor-on summary{cursor:none}
+}
+#cur-dot,#cur-ring{position:fixed;top:0;left:0;pointer-events:none;z-index:9999;
+  border-radius:50%;transform:translate(-50%,-50%);display:none}
+body.cursor-on #cur-dot,body.cursor-on #cur-ring{display:block}
+#cur-dot{width:6px;height:6px;background:var(--accent-l);
+  box-shadow:0 0 10px rgba(var(--accent-rgb),0.9)}
+#cur-ring{width:34px;height:34px;border:1px solid rgba(var(--accent-rgb),0.5);
+  transition:width 0.25s,height 0.25s,border-color 0.25s,background 0.25s}
+#cur-ring.hovering{width:56px;height:56px;border-color:var(--gold2);
+  background:rgba(var(--accent-rgb),0.06)}
+
+/* ============ AMBIENT ORBS ============ */
+.orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(70px);opacity:0.5;z-index:0}
+.orb-r{background:radial-gradient(circle,rgba(179,0,12,0.3),transparent 70%)}
+.orb-au{background:radial-gradient(circle,rgba(201,150,10,0.22),transparent 70%)}
+.orb1{width:420px;height:420px;top:-10%;left:-8%;animation:orbf1 18s ease-in-out infinite}
+.orb2{width:340px;height:340px;bottom:-14%;right:-6%;animation:orbf2 22s ease-in-out infinite}
+@keyframes orbf1{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,40px)}}
+@keyframes orbf2{0%,100%{transform:translate(0,0)}50%{transform:translate(-50px,-55px)}}
+.sec-dark{position:relative;overflow:hidden}
+@media(max-width:768px){.orb{display:none}}
+
+/* ============ NAV ============ */
+nav{position:fixed;top:2px;left:0;right:0;z-index:9999;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.1rem 5%;background:rgba(8,12,8,0.9);border-bottom:1px solid transparent;
+  backdrop-filter:blur(14px);
+  transition:background 0.35s,border-color 0.35s,padding 0.35s}
+nav.scrolled{padding:0.85rem 5%;background:rgba(248,250,248,0.97);
+  backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nl{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.1em;
+  color:var(--white);display:flex;align-items:center;gap:0.7rem;text-decoration:none;
+  transition:color 0.35s}
+nav.scrolled .nl{color:var(--black)}
+.nl-spear{width:22px;height:22px;object-fit:contain;flex-shrink:0;
+  filter:hue-rotate(-115deg) saturate(1.15)}
+.nl .wm-sec{position:relative;display:inline-block;color:var(--gold)}
+.nl .wm-sec.wm-glitch{animation:navglitch 0.4s steps(2) 1}
+@keyframes navglitch{
+  0%{transform:translateX(0);text-shadow:none}
+  25%{transform:translateX(-2px);text-shadow:2px 0 var(--red),-2px 0 var(--gl)}
+  50%{transform:translateX(2px);text-shadow:-2px 0 var(--red),2px 0 var(--gl)}
+  75%{transform:translateX(-1px);text-shadow:1px 0 var(--red),-1px 0 var(--gl)}
+  100%{transform:translateX(0);text-shadow:none}
+}
+.nav-links{display:flex;gap:2rem;list-style:none}
+.nav-links a{font-family:'Space Mono',monospace;font-size:12px;font-weight:500;letter-spacing:0.04em;
+  color:rgba(255,255,255,0.7);text-decoration:none;transition:color 0.2s;
+  position:relative;padding-bottom:3px}
+nav.scrolled .nav-links a{color:var(--muted)}
+.nav-links a::after{content:'';position:absolute;left:0;bottom:0;height:2px;width:0;
+  background:var(--accent);transition:width 0.25s}
+.nav-links a:hover{color:var(--accent-l)}
+nav.scrolled .nav-links a:hover{color:var(--accent)}
+.nav-links a.active{color:var(--accent-l)}
+nav.scrolled .nav-links a.active{color:var(--accent)}
+.nav-links a.active::after{width:100%}
+.nav-cta{padding:0.5rem 1.4rem;background:var(--accent);color:var(--white);
+  font-size:12px;font-weight:600;letter-spacing:0.06em;
+  text-decoration:none;border:2px solid var(--accent);transition:all 0.2s;
+  font-family:'Space Mono',monospace;display:inline-block}
+.nav-cta:hover{background:transparent;color:var(--accent-l)}
+nav.scrolled .nav-cta:hover{color:var(--accent)}
+.hamburger{display:none;flex-direction:column;gap:5px;
+  cursor:pointer;padding:4px;background:none;border:none}
+.hamburger span{display:block;width:22px;height:2px;background:var(--white);transition:all 0.3s}
+nav.scrolled .hamburger span{background:var(--black)}
+
+/* ============ MOBILE MENU ============ */
+.mmenu{display:none;position:fixed;inset:0;z-index:10000;
+  background:rgba(8,12,8,0.98);flex-direction:column;
+  align-items:center;justify-content:center;gap:2rem;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.mmenu.open{display:flex}
+.mmenu a{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;
+  letter-spacing:0.1em;color:var(--white);text-decoration:none}
+.mmenu a:hover,.mmenu a.active{color:var(--gold)}
+.mclose{position:absolute;top:1.5rem;right:5%;font-size:1.1rem;
+  cursor:pointer;background:none;border:none;
+  font-family:'Space Mono',monospace;color:rgba(255,255,255,0.35);letter-spacing:0.1em}
+body.menu-open{overflow:hidden}
+@media(max-width:768px){
+  .mmenu{justify-content:flex-start;gap:1.35rem;padding:5.25rem 5% 2rem}
+  .mmenu a{font-size:clamp(1.75rem,8vw,2.2rem);line-height:1}
+  .mclose{position:fixed}
+}
+
+/* ============ BREADCRUMB ============ */
+.breadcrumb{display:none;padding:0.5rem 5%;font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:0.1em;color:var(--muted);margin-top:56px}
+.breadcrumb a{color:var(--muted);text-decoration:none;transition:color 0.2s}
+.breadcrumb a:hover{color:var(--accent)}
+.breadcrumb .sep{margin:0 0.4rem;color:var(--border)}
+.breadcrumb .current{color:var(--accent)}
+@media(min-width:769px){.breadcrumb{display:block}}
+
+/* ============ GLITCH ============ */
+.glitch{color:rgba(255,255,255,0.42);display:block;position:relative;cursor:default}
+.glitch::before,.glitch::after{content:attr(data-text);position:absolute;top:0;left:0;
+  font-family:'Bebas Neue',sans-serif;font-size:1em;line-height:0.85;
+  color:rgba(255,255,255,0.42);overflow:hidden;opacity:0;pointer-events:none}
+.glitch::before{text-shadow:-2px 0 var(--red);
+  clip-path:polygon(0 25%,100% 25%,100% 52%,0 52%)}
+.glitch::after{text-shadow:2px 0 var(--gl);
+  clip-path:polygon(0 58%,100% 58%,100% 84%,0 84%)}
+.glitch.glitching::before{animation:gt 0.55s steps(3) 1}
+.glitch.glitching::after{animation:gb 0.55s steps(3) 1}
+@keyframes gt{
+  0%{transform:translateX(0);opacity:0}
+  15%{transform:translateX(-5px) skewX(-3deg);opacity:1}
+  35%{transform:translateX(5px);opacity:1}
+  55%{transform:translateX(-3px) skewX(2deg);opacity:1}
+  75%{transform:translateX(2px);opacity:1}
+  100%{transform:translateX(0);opacity:0}
+}
+@keyframes gb{
+  0%{transform:translateX(0);opacity:0}
+  18%{transform:translateX(5px) skewX(3deg);opacity:1}
+  38%{transform:translateX(-5px);opacity:1}
+  58%{transform:translateX(3px) skewX(-2deg);opacity:1}
+  78%{transform:translateX(-2px);opacity:1}
+  100%{transform:translateX(0);opacity:0}
+}
+.glitch:hover{color:rgba(255,255,255,0.5)}
+.glitch:hover::before{opacity:1;animation:rgbT 0.28s steps(2) infinite}
+.glitch:hover::after{opacity:1;animation:rgbB 0.28s steps(2) infinite}
+@keyframes rgbT{0%,100%{transform:translateX(-4px)}50%{transform:translateX(3px)}}
+@keyframes rgbB{0%,100%{transform:translateX(4px)}50%{transform:translateX(-3px)}}
+
+/* ============ BUTTONS ============ */
+.btn-primary,.btn-ghost{position:relative;overflow:hidden}
+.btn-primary::after{content:'';position:absolute;top:0;bottom:0;width:36%;left:-50%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,0.22),transparent);
+  transform:skewX(-20deg);transition:left 0.55s ease}
+.btn-primary:hover::after{left:130%}
+.btn-primary{padding:0.85rem 2.2rem;background:var(--accent);color:var(--white);
+  font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  text-decoration:none;border:2px solid var(--accent);font-family:'Space Mono',monospace;
+  transition:background 0.2s,color 0.2s,border-color 0.2s,box-shadow 0.2s;display:inline-block}
+.btn-primary:hover{background:transparent;color:var(--white);border-color:rgba(255,255,255,0.6);
+  box-shadow:0 0 24px rgba(var(--accent-rgb),0.35)}
+.btn-ghost{padding:0.85rem 2.2rem;border:2px solid rgba(255,255,255,0.2);
+  color:rgba(255,255,255,0.6);font-size:12px;font-weight:500;letter-spacing:0.08em;
+  text-transform:uppercase;text-decoration:none;font-family:'Space Mono',monospace;
+  transition:border-color 0.2s,color 0.2s,box-shadow 0.2s;display:inline-block}
+.btn-ghost:hover{border-color:var(--accent-l);color:var(--white);
+  box-shadow:0 0 24px rgba(var(--accent-rgb),0.2),inset 0 0 18px rgba(var(--accent-rgb),0.06)}
+.btn-green{padding:1rem 3rem;background:var(--g);color:var(--white);
+  font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  text-decoration:none;border:2px solid var(--g);font-family:'Space Mono',monospace;
+  transition:background 0.25s,color 0.25s,border-color 0.25s;display:inline-block;
+  position:relative;overflow:hidden}
+.btn-green::after{content:'';position:absolute;top:0;bottom:0;width:36%;left:-50%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,0.22),transparent);
+  transform:skewX(-20deg);transition:left 0.55s ease}
+.btn-green:hover::after{left:130%}
+.btn-green:hover{background:transparent;color:var(--gl);border-color:var(--gl);
+  box-shadow:0 0 28px rgba(0,200,80,0.25)}
+/* nav right group: login (hint + button) then CTA, hamburger */
+.nav-right{display:flex;align-items:center;gap:1rem;flex-shrink:0;
+  position:relative;z-index:1}
+.nav-login{display:flex;align-items:center;gap:0.75rem;text-decoration:none}
+.nav-login-hint{font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:0.04em;white-space:nowrap;color:rgba(255,255,255,0.45);
+  transition:color 0.35s}
+nav.scrolled .nav-login-hint{color:var(--muted)}
+.nav-login:hover .nav-login-hint{color:rgba(255,255,255,0.7)}
+nav.scrolled .nav-login:hover .nav-login-hint{color:var(--black)}
+.nav-login-btn{padding:0.5rem 1.4rem;border:2px solid rgba(255,255,255,0.25);
+  color:rgba(255,255,255,0.75);font-size:12px;font-weight:600;letter-spacing:0.06em;
+  font-family:'Space Mono',monospace;display:inline-block;transition:all 0.2s}
+.nav-login:hover .nav-login-btn{border-color:var(--gl);color:var(--gl)}
+nav.scrolled .nav-login-btn{color:var(--muted);border-color:var(--border)}
+nav.scrolled .nav-login:hover .nav-login-btn{color:var(--g);border-color:var(--g)}
+@media(max-width:1380px){.nav-login-hint{display:none}}
+/* the Login block needs the room the links were using: collapse them
+   into the hamburger earlier than the page's own 768px breakpoint */
+@media(max-width:1024px){
+  .nav-links,.nav-cta{display:none}
+  .hamburger{display:flex}
+}
+@media(max-width:900px){.nav-right{gap:0.75rem}
+  .nav-login-btn{padding:0.4rem 1rem;font-size:11px}}
+/* mobile menu login block */
+.mmenu-login{display:flex;flex-direction:column;align-items:center;gap:0.7rem;
+  margin-top:0.8rem;position:relative;z-index:1}
+.mmenu-login span{font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.4);
+  text-align:center;padding:0 1.5rem}
+.mmenu .mmenu-login a{font-size:2rem;color:var(--gl);
+  border:2px solid rgba(0,200,80,0.45);padding:0.15rem 2.4rem}
+.mmenu .mmenu-login a:hover{color:var(--white);border-color:var(--gl);
+  box-shadow:0 0 24px rgba(0,200,80,0.25)}
+/* while the menu is open its CLOSE button owns the top bar */
+.mmenu.open ~ nav .nav-login,
+.mmenu.open ~ nav .hamburger{visibility:hidden;pointer-events:none}
+.magnetic{will-change:transform}
+
+/* ============ HERO ============ */
+.hero{min-height:92vh;display:flex;align-items:center;
+  padding:9rem 5% 4rem;position:relative;overflow:hidden;
+  background:linear-gradient(160deg,#140408 0%,#240A0C 55%,#1A070A 100%)}
+.hero-img{position:absolute;inset:-4%;
+  background-image:url('{% static 'images/speakers-bg.jpg' %}');
+  background-size:cover;background-position:center 40%;
+  background-repeat:no-repeat;background-color:transparent;
+  will-change:transform;transition:transform 0.18s ease-out}
+.hero-overlay{position:absolute;inset:0;
+  background:linear-gradient(100deg,rgba(14,4,5,0.97) 0%,rgba(20,4,6,0.9) 38%,rgba(40,0,8,0.55) 68%,rgba(20,0,5,0.5) 100%)}
+.hero-tint{position:absolute;inset:0;background:rgba(94,0,8,0.35);mix-blend-mode:multiply}
+.hero-grid{position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(var(--accent-rgb),0.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(var(--accent-rgb),0.035) 1px,transparent 1px);
+  background-size:50px 50px;animation:griddrift 60s linear infinite}
+@keyframes griddrift{from{background-position:0 0,0 0}to{background-position:0 -600px,-600px 0}}
+.hero-scan{position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,
+    rgba(var(--accent-rgb),0.022) 2px,rgba(var(--accent-rgb),0.022) 4px)}
+#rain,#particles{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#rain{z-index:1;opacity:0.5}
+#particles{z-index:1}
+.hero-beam{position:absolute;left:0;right:0;height:120px;z-index:2;pointer-events:none;
+  background:linear-gradient(to bottom,transparent,rgba(var(--accent-rgb),0.05),transparent);
+  animation:beam 9s cubic-bezier(0.45,0,0.55,1) infinite}
+@keyframes beam{0%{top:-15%}55%{top:105%}100%{top:105%}}
+.hero-logo-wm{position:absolute;top:50%;right:6%;z-index:0;
+  width:clamp(320px,38vw,620px);height:auto;
+  opacity:0.10;pointer-events:none;
+  transform:translateY(-50%);filter:hue-rotate(-115deg) saturate(1.15);
+  animation:logoGlowPulse 2.4s ease-in-out infinite}
+@keyframes logoGlowPulse{
+  0%,100%{filter:hue-rotate(-115deg) saturate(1.15) drop-shadow(0 0 24px rgba(var(--accent-rgb),.35))}
+  50%{filter:hue-rotate(-115deg) saturate(1.15) drop-shadow(0 0 24px rgba(var(--accent-rgb),.1))}
+}
+.hero-content{position:relative;z-index:3;max-width:1240px;margin:0 auto;width:100%;
+  display:grid;grid-template-columns:1fr;gap:2.5rem}
+.hero-left{max-width:620px}
+.hero-right{display:flex;align-items:center;justify-content:center}
+@media(min-width:1024px){
+  .hero-content{grid-template-columns:620px 1fr;align-items:center;gap:3rem}
+}
+.hero-badge{display:inline-flex;align-items:center;gap:0.55rem;
+  padding:0.4rem 1rem;margin-bottom:1.6rem;
+  border:1px solid rgba(var(--accent-rgb),0.28);background:rgba(20,4,5,0.55);
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.15em;
+  text-transform:uppercase;color:rgba(255,180,180,0.72)}
+.bdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;
+  background:var(--accent-l);box-shadow:0 0 8px rgba(var(--accent-rgb),0.8);
+  animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(1.5)}}
+.badge-cursor{display:inline-block;width:6px;height:11px;
+  background:var(--accent-l);margin-left:2px;animation:blink 0.9s step-end infinite;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.prep-h1{font-family:'Bebas Neue',sans-serif;color:var(--white);
+  font-size:clamp(2.4rem,6.4vw,4.7rem);line-height:1.05;letter-spacing:0.02em}
+.prep-h1 .line2{color:var(--accent-l);font-size:1em;display:block}
+.prep-h1 .glitch{font-size:1em;color:var(--accent-l)}
+.prep-h1 .glitch::before,.prep-h1 .glitch::after{color:var(--accent-l)}
+.prep-h1 .glitch:hover{color:var(--accent-l)}
+.prep-sub{margin-top:1.5rem;font-size:15px;font-weight:300;line-height:1.9;
+  color:rgba(255,255,255,0.62);max-width:560px;
+  border-left:2px solid var(--gold);padding-left:1rem}
+.hero-chips{display:flex;flex-wrap:wrap;gap:0.6rem;margin-top:1.5rem;align-items:center}
+.hero-ctas{display:flex;gap:1rem;margin-top:2rem;flex-wrap:wrap}
+
+/* ============ STATUS CHIPS (ember dot + stamps) ============ */
+.fire-chip{display:inline-flex;align-items:center;gap:0.5rem;
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;
+  padding:0.4rem 0.8rem;border:1px solid rgba(var(--accent-rgb),0.4);color:var(--accent-l)}
+.fire-chip .ember{width:8px;height:8px;border-radius:50%;flex-shrink:0;
+  background:radial-gradient(circle at 35% 30%,#fff,rgba(var(--accent-rgb),1) 45%,transparent 78%);
+  box-shadow:0 0 6px rgba(var(--accent-rgb),.9),0 0 14px rgba(var(--accent-rgb),.5);
+  animation:emberPulse 2.4s ease-in-out infinite}
+@keyframes emberPulse{0%,100%{opacity:1}50%{opacity:.45}}
+.stamp-green{display:inline-block;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.1em;
+  text-transform:uppercase;padding:0.4rem 0.8rem;
+  color:var(--gl);border:1px solid rgba(0,200,83,0.4)}
+.stamp-red{display:inline-block;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.1em;
+  text-transform:uppercase;padding:0.4rem 0.8rem;
+  color:var(--accent-l);border:1px solid rgba(var(--accent-rgb),0.4)}
+
+/* ============ TERMINAL PANEL ============ */
+.prep-term{width:min(420px,100%);
+  background:rgba(20,4,5,0.82);border:1px solid rgba(var(--accent-rgb),0.22);
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  font-family:'Space Mono',monospace;overflow:hidden;position:relative;z-index:3}
+.term-head{display:flex;align-items:center;gap:0.6rem;
+  padding:0.55rem 0.9rem;border-bottom:1px solid rgba(var(--accent-rgb),0.15);
+  background:rgba(25,5,5,0.7)}
+.term-dots{display:flex;gap:5px}
+.term-dots span{width:8px;height:8px;border-radius:50%;display:block}
+.term-dots span:nth-child(1){background:var(--red)}
+.term-dots span:nth-child(2){background:var(--gold)}
+.term-dots span:nth-child(3){background:var(--gl)}
+.term-title{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.35)}
+.term-live{margin-left:auto;font-size:8px;letter-spacing:0.16em;color:var(--accent-l);
+  display:flex;align-items:center;gap:0.35rem}
+.term-live::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent-l);
+  box-shadow:0 0 6px rgba(var(--accent-rgb),0.9);animation:pulse 1.4s ease infinite}
+.term-head,.term-body{position:relative;z-index:1}
+.term-body{min-height:112px;padding:0.9rem 0.9rem;display:flex;flex-direction:column;gap:0.55rem;justify-content:center}
+.boot-line{min-height:1.4em;font-size:11px;letter-spacing:0.05em;color:rgba(var(--accent-rgb),0.85)}
+.boot-line .ok{color:var(--gold2)}
+.term-boot-bar{margin:0.4rem 0.9rem 0.9rem;height:3px;background:rgba(var(--accent-rgb),0.12);position:relative;overflow:hidden;z-index:1}
+.term-boot-bar i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);
+  background:linear-gradient(90deg,var(--accent),var(--accent-l));transition:transform 0.3s linear}
+.term-boot-label{margin:0 0.9rem 0.75rem;font-size:9px;letter-spacing:0.14em;color:rgba(255,255,255,0.3);
+  text-transform:uppercase;position:relative;z-index:1}
+.term-sweep{position:absolute;left:0;right:0;height:1px;z-index:2;pointer-events:none;
+  background:var(--accent-l);opacity:0.08;box-shadow:0 0 6px rgba(var(--accent-rgb),0.3);
+  animation:termSweepMove 7s linear infinite}
+@keyframes termSweepMove{0%{top:0%}100%{top:100%}}
+.term-rain{position:absolute;inset:0;z-index:0;pointer-events:none}
+
+/* ============ SECTION SCAFFOLD ============ */
+.sec{padding:6rem 5%}
+@media(min-width:1600px){.sec{padding-left:calc(50% - 620px);padding-right:calc(50% - 620px)}}
+.sec-dark{background:var(--black);color:var(--white)}
+.sec-off{background:var(--off)}
+.sh{margin-bottom:3rem;position:relative;z-index:1}
+.sh-eye{display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem}
+.sh-line{width:0;height:2px;background:var(--accent);transition:width 0.6s cubic-bezier(0.22,1,0.36,1) 0.15s}
+.sh.visible .sh-line{width:16px}
+.sh-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.18em;
+  text-transform:uppercase;color:var(--accent)}
+.sh-title{font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2rem,4.5vw,3.5rem);line-height:1;letter-spacing:0.03em;
+  clip-path:inset(0 100% 0 0);transition:clip-path 0.85s cubic-bezier(0.22,1,0.36,1) 0.1s}
+.sh.visible .sh-title{clip-path:inset(0 0% 0 0)}
+.sh::after{content:'';position:absolute;top:0;bottom:0;width:3px;left:0;
+  background:linear-gradient(to bottom,transparent,var(--accent-l),transparent);
+  opacity:0;pointer-events:none}
+.sh.visible::after{animation:shsweep 0.85s cubic-bezier(0.22,1,0.36,1) 0.1s 1}
+@keyframes shsweep{0%{left:0;opacity:1}90%{opacity:1}100%{left:min(100%,560px);opacity:0}}
+.outline-accent{color:var(--accent)}
+.sec-dark .sh-title{color:var(--white)}
+.pp-lead{font-size:15px;line-height:1.85;color:var(--muted);max-width:640px;margin-bottom:2.5rem}
+.sec-dark .pp-lead{color:rgba(255,255,255,0.55)}
+.pp-section-note{margin-top:2rem;font-size:13px;line-height:1.8;color:var(--muted);
+  border-left:2px solid var(--gold);padding-left:1rem;max-width:680px}
+.sec-dark .pp-section-note{color:rgba(255,255,255,0.5)}
+
+/* entrances */
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity 0.65s,transform 0.65s}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+.slide-l{opacity:0;transform:translateX(-44px);transition:opacity 0.7s cubic-bezier(0.22,1,0.36,1),transform 0.7s cubic-bezier(0.22,1,0.36,1)}
+.slide-r{opacity:0;transform:translateX(44px);transition:opacity 0.7s cubic-bezier(0.22,1,0.36,1),transform 0.7s cubic-bezier(0.22,1,0.36,1)}
+.slide-l.visible,.slide-r.visible{opacity:1;transform:translateX(0)}
+@media(prefers-reduced-motion:reduce){
+  html:not(.force-motion) .fade-up,html:not(.force-motion) .slide-l,html:not(.force-motion) .slide-r,html:not(.force-motion) .sh-title,html:not(.force-motion) .sh-line{transition:none}
+  html:not(.force-motion) .slide-l,html:not(.force-motion) .slide-r{transform:translateY(0)}
+}
+
+/* ============ CORNER BRACKETS ============ */
+.cnr{position:absolute;width:22px;height:22px;pointer-events:none;z-index:2;opacity:0;
+  transition:opacity 0.3s,transform 0.35s cubic-bezier(0.22,1,0.36,1)}
+.cnr-tl{top:8px;left:8px;border-top:2px solid var(--accent-l);border-left:2px solid var(--accent-l);
+  transform:translate(6px,6px)}
+.cnr-br{bottom:8px;right:8px;border-bottom:2px solid var(--accent-l);border-right:2px solid var(--accent-l);
+  transform:translate(-6px,-6px)}
+
+/* ============ STAT ROW ============ */
+.stat-row{display:flex;flex-wrap:wrap;gap:2rem;align-items:center;margin:2rem 0}
+.stat-item{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--accent);position:relative;padding-left:1rem}
+.stat-item::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%) rotate(45deg);
+  width:6px;height:6px;background:var(--accent);opacity:0.7}
+@media(max-width:768px){.stat-row{flex-direction:column;gap:1rem}}
+
+/* ============ TICK LIST ============ */
+.tick-list{list-style:none;max-width:760px}
+.tick-list li{display:flex;gap:1.1rem;align-items:flex-start;padding:1.1rem 0;border-bottom:1px solid var(--border)}
+.tick-list li:last-child{border-bottom:none}
+.tick-icon{flex-shrink:0;width:24px;height:24px;border:1.5px solid var(--accent);color:var(--accent);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-family:'Space Mono',monospace;margin-top:0.1rem}
+.tick-list li p{font-size:14px;line-height:1.8;color:var(--black)}
+.sec-dark .tick-list li{border-bottom-color:rgba(255,255,255,0.08)}
+.sec-dark .tick-list li p{color:rgba(255,255,255,0.7)}
+.sec-dark .tick-icon{border-color:var(--accent-l);color:var(--accent-l)}
+
+/* two-column tick list */
+.tick-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 3rem;max-width:900px}
+@media(max-width:768px){.tick-grid{grid-template-columns:1fr}}
+
+/* ============ RULES CARDS (3-column, index how-card style) ============ */
+.rules-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;position:relative;z-index:1}
+.rules-card{background:var(--card);border:1px solid var(--border);
+  border-top:3px solid var(--accent);padding:2rem;
+  position:relative;overflow:hidden;transition:transform 0.35s,box-shadow 0.35s}
+.rules-card::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M18 2L34 18L18 34L2 18Z' stroke='%23B3000C' stroke-width='0.5' stroke-opacity='0.06' fill='none'/%3E%3Cpath d='M18 9L27 18L18 27L9 18Z' stroke='%23C9960A' stroke-width='0.4' stroke-opacity='0.05' fill='none'/%3E%3C/svg%3E");
+  background-size:36px 36px;background-position:bottom right;opacity:0.7}
+.rules-card::after{content:'';position:absolute;top:-3px;left:0;right:0;height:3px;z-index:3;
+  background:linear-gradient(90deg,transparent,rgba(var(--accent-rgb),0.9),transparent);
+  background-size:200% 100%;opacity:0.55;animation:borderflow 4.5s linear infinite}
+@keyframes borderflow{from{background-position:200% 0}to{background-position:-200% 0}}
+.rules-card:hover{box-shadow:0 24px 56px rgba(0,0,0,0.1);transform:translateY(-4px)}
+.rules-card:hover .cnr{opacity:1;transform:translate(0,0)}
+.rules-card-tag{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.15em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:1rem;position:relative;z-index:1}
+.rules-card-title{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.03em;
+  color:var(--black);margin-bottom:0.85rem;position:relative;z-index:1}
+.rules-card-desc{font-size:13px;line-height:1.8;color:var(--muted);position:relative;z-index:1}
+@media(max-width:768px){.rules-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){
+  html:not(.force-motion) .rules-card{transition:none}
+  html:not(.force-motion) .rules-card:hover{transform:none}
+}
+
+/* ============ BRIEF ACCORDION ============ */
+.brief-list{border:1px solid rgba(var(--accent-rgb),0.14);background:rgba(8,12,8,0.5);max-width:900px;position:relative;z-index:1}
+.brief-item+.brief-item{border-top:1px solid rgba(var(--accent-rgb),0.1)}
+.brief-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:1.25rem 1.5rem;background:none;border:none;cursor:pointer;text-align:left;
+  font-family:'Space Mono',monospace;font-size:clamp(0.78rem,1.5vw,0.95rem);
+  letter-spacing:0.08em;color:rgba(255,255,255,0.75);transition:color 0.2s,background 0.2s}
+.brief-q:hover{color:var(--accent-l);background:rgba(var(--accent-rgb),0.03)}
+.brief-q .pfx{color:var(--accent-l);margin-right:0.6rem}
+.brief-x{font-size:1.1rem;color:var(--gold2);flex-shrink:0;
+  transition:transform 0.35s cubic-bezier(0.22,1,0.36,1)}
+.brief-item.open .brief-x{transform:rotate(45deg)}
+.brief-item.open .brief-q{color:var(--accent-l)}
+.brief-a{max-height:0;overflow:hidden;transition:max-height 0.45s cubic-bezier(0.22,1,0.36,1)}
+.brief-a-in{padding:0 1.5rem 1.5rem}
+.brief-block-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.14em;
+  text-transform:uppercase;color:var(--accent-l);margin:1.25rem 0 0.75rem;display:block}
+.brief-block-label:first-child{margin-top:0.5rem}
+.brief-attack-list{list-style:none}
+.brief-attack-list li{font-size:13px;line-height:1.85;color:rgba(255,255,255,0.55);
+  padding:0.3rem 0;padding-left:1.2rem;position:relative}
+.brief-attack-list li::before{content:'>';position:absolute;left:0;color:var(--accent-l);
+  font-family:'Space Mono',monospace;font-size:11px}
+.brief-tick-list{list-style:none}
+.brief-tick-list li{display:flex;gap:0.7rem;align-items:flex-start;padding:0.35rem 0;
+  font-size:13px;line-height:1.85;color:rgba(255,255,255,0.55)}
+.brief-tick-list li::before{content:'\2713';flex-shrink:0;color:var(--accent-l);font-family:'Space Mono',monospace;font-size:12px;margin-top:0.1rem}
+.brief-chip-optional{display:inline-block;font-family:'Space Mono',monospace;font-size:9px;
+  letter-spacing:0.1em;color:var(--gold2);border:1px solid rgba(232,176,32,0.4);
+  padding:0.2rem 0.5rem;margin-left:0.5rem;vertical-align:middle}
+
+/* ============ CALLOUT ============ */
+.callout{max-width:760px;padding:1.5rem 1.75rem;font-size:13.5px;line-height:1.85;margin:2rem 0}
+.callout-gold{border-left:3px solid var(--gold2);background:rgba(232,176,32,0.06);color:rgba(255,255,255,0.75)}
+.callout-accent{border-left:3px solid var(--accent);background:var(--accent-tint);color:var(--muted)}
+.sec-dark .callout-accent{color:rgba(255,255,255,0.7)}
+
+/* ============ CHECKLIST (read-only) ============ */
+.ro-checklist{max-width:820px}
+.ro-check-row{display:flex;align-items:flex-start;gap:0.85rem;padding:0.8rem 0;
+  border-bottom:1px solid var(--border)}
+.ro-check-row:last-child{border-bottom:none}
+.ro-check-box{flex-shrink:0;width:20px;height:20px;border:1.5px solid var(--accent);
+  margin-top:0.15rem;position:relative;display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--accent);font-family:'Space Mono',monospace}
+.ro-check-text{font-family:'Space Mono',monospace;font-size:12.5px;line-height:1.7;color:var(--black)}
+
+/* ============ CTA SECTION ============ */
+.sec-cta{background:var(--dg);padding:6.5rem 5%;position:relative;overflow:hidden}
+.cta-inner{max-width:760px;position:relative;z-index:1}
+.cta-term{margin-top:2.25rem;background:var(--black);border:1px solid rgba(var(--accent-rgb),0.25);
+  position:relative;overflow:hidden;
+  padding:1.5rem 1.75rem;font-family:'Space Mono',monospace;font-size:clamp(0.85rem,1.8vw,1.05rem);
+  color:var(--accent-l)}
+.cta-btns{display:flex;gap:1rem;margin-top:2rem;flex-wrap:wrap}
+
+/* ============ MISSION RAIL ============ */
+.mission-rail{position:fixed;right:2rem;top:50%;transform:translateY(-50%);z-index:9990;
+  display:none;flex-direction:column;gap:0.6rem}
+.mission-rail a{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.1em;
+  text-transform:uppercase;color:rgba(255,255,255,0.2);text-decoration:none;
+  transition:color 0.2s;white-space:nowrap}
+.mission-rail a:hover,.mission-rail a.active{color:var(--accent-l)}
+@media(min-width:1200px){.mission-rail{display:flex}}
+
+/* ============ FOOTER ============ */
+footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
+  padding:2.5rem 5%;display:flex;justify-content:space-between;
+  align-items:center;flex-wrap:wrap;gap:1.5rem}
+.ft-brand{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.1em;color:var(--white)}
+.ft-brand em{color:var(--gold);font-style:normal}
+.ft-sub{font-family:'Space Mono',monospace;font-size:10px;color:rgba(255,255,255,0.18);
+  margin-top:0.3rem;letter-spacing:0.04em}
+.ft-right{text-align:right}
+.ft-right a{font-family:'Space Mono',monospace;font-size:12px;color:var(--accent-l);text-decoration:none}
+.ft-right p{font-family:'Space Mono',monospace;font-size:10px;color:rgba(255,255,255,0.14);
+  margin-top:0.3rem;letter-spacing:0.04em}
+
+/* ============ RESPONSIVE ============ */
+@media(prefers-reduced-motion:reduce){
+  html:not(.force-motion) .hero-grid{animation:none}
+  html:not(.force-motion) .bdot,html:not(.force-motion) .badge-cursor,html:not(.force-motion) .term-live::before{animation:none}
+  html:not(.force-motion) .hero-beam{animation:none;opacity:0}
+  html:not(.force-motion) .hero-logo-wm{animation:none;filter:hue-rotate(-115deg) saturate(1.15) drop-shadow(0 0 24px rgba(var(--accent-rgb),.245))}
+  html:not(.force-motion) .term-sweep{animation:none;display:none}
+  html:not(.force-motion) .ember{animation:none;opacity:0.7}
+}
+@media(max-width:768px){
+  nav{padding:1rem 4%}
+  nav.scrolled{padding:0.85rem 4%}
+  .nav-links{display:none}
+  .nav-cta{display:none}
+  .hamburger{display:flex}
+  .sec,.sec-cta,footer{padding-left:4%;padding-right:4%}
+  .hero{min-height:100svh;align-items:flex-start;padding-top:7rem;padding-left:4%;padding-right:4%}
+  .hero-ctas{flex-direction:column}
+  .hero-ctas a{width:100%;text-align:center}
+  .hero-logo-wm{top:16%;right:auto;left:50%;transform:translateX(-50%);
+    width:70vw;opacity:0.07;animation:none;filter:hue-rotate(-115deg) saturate(1.15)}
+  footer{text-align:center;justify-content:center}
+  .ft-right{text-align:center}
+  .slide-l,.slide-r{transform:translateY(24px)}
+  .slide-l.visible,.slide-r.visible{transform:translateY(0)}
+  #rain{display:none}
+  .mission-rail{display:none}
+}
+</style>
+<style>
+.motion-toggle{padding:.75rem 1rem;border:1px solid rgba(232,176,32,.4);background:rgba(8,12,8,.38);color:var(--gold2);font:10px 'Space Mono',monospace;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+html.motion-reduced .hero-grid,html.motion-reduced .hero-beam,html.motion-reduced .hero-logo-wm,html.motion-reduced .term-sweep,html.motion-reduced .bdot,html.motion-reduced .badge-cursor,html.motion-reduced .term-live::before{animation:none!important}
+html.motion-reduced .hero-beam{opacity:0}
+</style>
+<style>
+@media(max-width:768px){
+  .hero{min-height:100svh;padding:7rem 4% 3rem;align-items:flex-start}
+  .hero-img{inset:0;background-size:cover;background-position:center center}
+  .hero-content{grid-template-columns:minmax(0,1fr);gap:2rem;width:100%;min-width:0}
+  .hero-left,.hero-right{width:100%;max-width:none;min-width:0}
+  .prep-term{width:100%;max-width:100%}
+  .hero-logo-wm{width:min(78vw,360px);max-width:100%;height:auto}
+}
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="grain" aria-hidden="true"></div>
+<div id="cur-dot" aria-hidden="true"></div>
+<div id="cur-ring" aria-hidden="true"></div>
+<div id="prog" aria-hidden="true"></div>
+
+<div class="mmenu" id="mm" aria-hidden="true">
+  <button class="mclose" id="mc" aria-label="Close menu">CLOSE &#10005;</button>
+  <a href="{% url 'landing' %}" onclick="cm()">Home</a>
+  <a href="{% url 'landing' %}#how" onclick="cm()">How It Works</a>
+  <a href="{% url 'landing' %}#road" onclick="cm()">Timeline</a>
+  <a href="{% url 'landing' %}#speakers" onclick="cm()">Speakers</a>
+  <a href="{% url 'landing' %}#numbers" onclick="cm()">Numbers</a>
+  <a href="{% url 'landing' %}#faq" onclick="cm()">FAQ</a>
+  <a href="{% url 'prepare' %}" onclick="cm()" class="active" aria-current="page" style="color:var(--accent-l)">Prepare</a>
+  <a href="{% url 'landing' %}#contact" onclick="cm()">Contact</a>
+  <div class="mmenu-login">
+    <span>Already registered or an active party?</span>
+    <a href="{% url 'login' %}" onclick="cm()">Login</a>
+  </div>
+</div>
+
+<nav id="nav" aria-label="Main navigation">
+  <a class="nl" href="{% url 'landing' %}" id="wordmark">
+    <img src="{% static 'images/logo.png' %}" alt="JengaSec spear logo" class="nl-spear">
+    Jenga<span class="wm-sec" id="wmsec">Sec</span>
+  </a>
+  <ul class="nav-links" id="navlinks">
+    <li><a href="{% url 'landing' %}" data-txt="Home">Home</a></li>
+    <li><a href="{% url 'landing' %}#how" data-txt="How It Works">How It Works</a></li>
+    <li><a href="{% url 'landing' %}#road" data-txt="Timeline">Timeline</a></li>
+    <li><a href="{% url 'landing' %}#speakers" data-txt="Speakers">Speakers</a></li>
+    <li><a href="{% url 'landing' %}#numbers" data-txt="Numbers">Numbers</a></li>
+    <li><a href="{% url 'landing' %}#faq" data-txt="FAQ">FAQ</a></li>
+    <li><a href="{% url 'prepare' %}" data-txt="Prepare" class="active" aria-current="page">Prepare</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="{% url 'login' %}" class="nav-login magnetic">
+      <span class="nav-login-hint">Already registered or an active party?</span>
+      <span class="nav-login-btn">Login</span>
+    </a>
+    <a href="{% url 'landing' %}#contact" class="nav-cta magnetic">Talk To Us</a>
+    <button class="hamburger" id="mb" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+  </div>
+</nav>
+
+<div class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{% url 'prepare' %}">PREPARE</a><span class="sep">/</span>
+  <a href="{% url 'prepare' %}#tracks">RED_SIDE</a><span class="sep">/</span>
+  <span class="current">MORANI HUNTING GROUNDS</span>
+</div>
+
+<main id="main">
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="home">
+  <div class="hero-img" id="heroimg" aria-hidden="true"></div>
+  <div class="hero-overlay" aria-hidden="true"></div>
+  <div class="hero-tint" aria-hidden="true"></div>
+  <img class="hero-logo-wm" src="{% static 'images/logo.png' %}" alt="" aria-hidden="true">
+  <canvas id="rain" aria-hidden="true"></canvas>
+  <canvas id="particles" aria-hidden="true"></canvas>
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="hero-scan" aria-hidden="true"></div>
+  <div class="hero-beam" aria-hidden="true"></div>
+  <div class="hero-content">
+    <div class="hero-left">
+      <div class="hero-badge"><span class="bdot"></span>// TRACK_03 :: RED_SIDE<span class="badge-cursor"></span></div>
+      <h1 class="prep-h1">
+        MORANI HUNTING GROUNDS.<br>
+        <span class="glitch line2" id="pglitch" data-text="THE CELL IS YOUR TERRAIN.">THE CELL IS YOUR TERRAIN.</span>
+      </h1>
+      <p class="prep-sub">Register, get assigned a cell, and attack a system another team built against a brief you can read right now. No proposal round. Registration opens 21 September.</p>
+      <div class="hero-chips">
+        <span class="fire-chip"><span class="ember"></span>ARMING</span>
+        <span class="stamp-green">REGISTRATION ONLY</span>
+        <span class="stamp-red">REG OPENS 21 SEP</span>
+      </div>
+      <div class="hero-ctas">
+        <a href="#brief" class="btn-primary magnetic">What You Attack</a>
+        <a href="#ready" class="btn-ghost magnetic">How To Register</a>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <aside class="prep-term" aria-label="Morani Hunting Grounds terminal">
+        <div class="term-sweep" aria-hidden="true"></div>
+        <canvas class="term-rain" id="readinessRain" aria-hidden="true"></canvas>
+        <div class="term-head">
+          <div class="term-dots"><span></span><span></span><span></span></div>
+          <span class="term-title">morani-hunting-grounds.sh</span>
+          <span class="term-live">LIVE</span>
+        </div>
+        <div class="term-body">
+          <div class="boot-line" id="rl0"></div>
+          <div class="boot-line" id="rl1"></div>
+          <div class="boot-line" id="rl2"></div>
+          <div class="boot-line" id="rl3"></div>
+        </div>
+        <div class="term-boot-bar"><i id="heroBbar"></i></div>
+        <div class="term-boot-label" id="heroBlabel">MORANI_HUNTING_GROUNDS :: LOADING</div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ S1 MISSION ============ -->
+<section class="sec sec-off" id="mission">
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line"></div><span class="sh-label">// Morani_Hunting_Grounds</span></div>
+    <h2 class="sh-title">MORANI HUNTING GROUNDS.<br><span class="outline-accent">Your cell is the terrain.</span></h2>
+  </div>
+  <p class="pp-lead fade-up">Attack one assigned application cell within a scheduled window and report the findings to a professional standard.</p>
+  <div class="stat-row fade-up">
+    <span class="stat-item">NO PROPOSAL</span>
+    <span class="stat-item">ASSIGNED TO ONE CELL</span>
+    <span class="stat-item">OPENS 21 SEP</span>
+  </div>
+  <p class="pp-section-note fade-up">Morani is the hunting ground: register, get assigned to one application cell, and learn its terrain before the attack window opens. Morani teams do not go through the proposal round.</p>
+</section>
+
+<!-- ============ S2 BRIEF ============ -->
+<section class="sec sec-dark" id="brief">
+  <div class="orb orb-r orb1" aria-hidden="true"></div>
+  <div class="orb orb-au orb2" aria-hidden="true"></div>
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line" style="background:var(--accent-l)"></div><span class="sh-label" style="color:var(--accent-l)">// Your_Targets</span></div>
+    <h2 class="sh-title">Nine kinds of target.<br><span style="color:var(--accent-l)">Read what they had to get right.</span></h2>
+  </div>
+  <p class="pp-lead">You will be assigned one of these. Every Blue team building it was given the same requirements you are reading now. Your job is to find where they fell short.</p>
+
+  <div class="brief-list">
+
+    <!-- 01 Internet Banking Portal -->
+    <div class="brief-item">
+      <button class="brief-q" aria-expanded="false"><span><span class="pfx">&gt;</span>Internet Banking Portal</span><span class="brief-x">+</span></button>
+      <div class="brief-a"><div class="brief-a-in">
+        <p style="font-size:13px;line-height:1.85;color:rgba(255,255,255,0.55);margin-bottom:0.75rem">The customer web front door: balances, transaction history, statements, transfers and profile.</p>
+        <span class="brief-block-label">// What_You_Will_Try</span>
+        <ul class="brief-attack-list">
+          <li>Authentication bypass, session fixation and hijacking, horizontal privilege escalation between customers, business-logic abuse of the beneficiary and transfer flow, and forced browsing to unlinked endpoints.</li>
+        </ul>
+        <span class="brief-block-label">// What_Blue_Had_To_Get_Right</span>
+        <ul class="brief-tick-list">
+          <li>Server-side authorisation on every request.</li>
+          <li>Session lifetime, invalidation and secure cookie attributes.</li>
+          <li>A cooling-off period or step-up authentication before a newly added beneficiary can receive funds.</li>
+          <li>Defence against injection, cross-site scripting, cross-site request forgery, insecure direct object reference and open redirect.</li>
+          <li>Rate limiting and lockout on all authentication and money-movement paths.</li>
+          <li>Statements generated server-side with authorisation checked at generation, not merely at link time.</li>
+          <li>A full audit trail the customer can retrieve.</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 02 Mobile Banking API -->
+    <div class="brief-item">
+      <button class="brief-q" aria-expanded="false"><span><span class="pfx">&gt;</span>Mobile Banking API</span><span class="brief-x">+</span></button>
+      <div class="brief-a"><div class="brief-a-in">
+        <p style="font-size:13px;line-height:1.85;color:rgba(255,255,255,0.55);margin-bottom:0.75rem">The same bank for a client that cannot be trusted to enforce anything, on a device that may be compromised.</p>
+        <span class="brief-block-label">// What_You_Will_Try</span>
+        <ul class="brief-attack-list">
+          <li>Token theft and replay across devices, refresh-token abuse, idempotency and race-condition attacks on transfers, mass assignment, and API enumeration for unprotected endpoints.</li>
+        </ul>
+        <span class="brief-block-label">// What_Blue_Had_To_Get_Right</span>
+        <ul class="brief-tick-list">
+          <li>Device registration and binding so a token issued to one device cannot be replayed from another.</li>
+          <li>Short-lived access tokens with refresh-token rotation and reuse detection.</li>
+          <li>Transaction signing or step-up confirmation independent of the session token.</li>
+          <li>Idempotency keys on every state-changing endpoint.</li>
+          <li>Strict schema validation that rejects unknown fields rather than ignoring them.</li>
+          <li>Per-device and per-account rate limiting.</li>
+          <li>No sensitive data in URLs, logs or error messages.</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 03 Customer Authentication and Identity Service -->
+    <div class="brief-item">
+      <button class="brief-q" aria-expanded="false"><span><span class="pfx">&gt;</span>Customer Authentication and Identity Service</span><span class="brief-x">+</span></button>
+      <div class="brief-a"><div class="brief-a-in">
+        <p style="font-size:13px;line-height:1.85;color:rgba(255,255,255,0.55);margin-bottom:0.75rem">The identity provider every other cell trusts. The most security-dense brief in the catalogue.</p>
+        <span class="brief-block-label">// What_You_Will_Try</span>
+        <ul class="brief-attack-list">
+          <li>Credential stuffing, user enumeration through timing or message differences, MFA bypass through flow manipulation, token forgery and algorithm confusion, password-reset token prediction or reuse, and race conditions in enrolment.</li>
+        </ul>
+        <span class="brief-block-label">// What_Blue_Had_To_Get_Right</span>
+        <ul class="brief-tick-list">
+          <li>Credential storage using a modern memory-hard password hash with per-user salt and a breached-password check.</li>
+          <li>Multi-factor authentication with at least two second factors, plus recovery codes issued once and stored hashed.</li>
+          <li>Signed short-lived tokens with audience and issuer claims, key rotation, and a published JWKS endpoint.</li>
+          <li>Token revocation and introspection so a compromised session ends enterprise-wide within seconds.</li>
+          <li>Password reset that does not disclose account existence, uses single-use time-limited tokens and invalidates all sessions.</li>
+          <li>Progressive lockout resistant to both targeted brute force and credential-stuffing sprays.</li>
+          <li>Risk signals on every authentication: new device, new location, impossible travel, unusual hour: emitted even when the login is allowed.</li>
+          <li>A tamper-evident audit log of every identity event.</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 04 Payment Processing Service -->
+    <div class="brief-item">
+      <button class="brief-q" aria-expanded="false"><span><span class="pfx">&gt;</span>Payment Processing Service</span><span class="brief-x">+</span></button>
+      <div class="brief-a"><div class="brief-a-in">
+        <p style="font-size:13px;line-height:1.85;color:rgba(255,255,255,0.55);margin-bottom:0.75rem">The service that actually moves money: the ledger, the rules that govern a transfer, and the controls that stop money moving when it should not.</p>
+        <span class="brief-block-label">// What_You_Will_Try</span>
+        <ul class="brief-attack-list">
+          <li>Race conditions and time-of-check-to-time-of-use attacks on balance, negative and precision-abuse amounts, currency and rounding manipulation, replay of payment instructions, limit bypass through decomposition, and forging or replaying the settlement webhook.</li>
+        </ul>
+        <span class="brief-block-label">// What_Blue_Had_To_Get_Right</span>
+        <ul class="brief-tick-list">
+          <li>A double-entry ledger where balance is derived from entries and never from a mutable field.</li>
+          <li>Atomic, isolated transfer execution provably safe under concurrent requests.</li>
+          <li>Idempotency on every payment instruction with a defined retention window.</li>
+          <li>Per-transaction, daily and velocity limits evaluated server-side.</li>
+          <li>A rules-based fraud check producing allow, review or block with a recorded reason, and a reviewable queue.</li>
+          <li>Maker-checker approval above a defined threshold where the approver may not be the initiator.</li>
+          <li>Reversals and refunds as compensating entries, never as mutation of history.</li>
+          <li>An append-only transaction log with independently verifiable sequence integrity.</li>
+          <li>End-of-day reconciliation that proves the ledger balances.</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 05 Loan Origination System -->
+    <div class="brief-item">
+      <button class="brief-q" aria-expanded="false"><span><span class="pfx">&gt;</span>Loan Origination System</span><span class="brief-x">+</span></button>
+      <div class="brief-a"><div class="brief-a-in">
+        <p style="font-size:13px;line-height:1.85;color:rgba(255,255,255,0.55);margin-bottom:0.75rem">Application to decision: a multi-stage workflow with document upload, automated scoring, human approval and a disbursement instruction.</p>
+        <span class="brief-block-label">// What_You_Will_Try</span>
+        <ul class="brief-attack-list">
+          <li>Workflow-stage skipping, insecure direct object reference across applicants, malicious file upload and path traversal, tampering with declared income or score inputs, and privilege escalation from applicant to assessor or approver.</li>
+        </ul>
+        <span class="brief-block-label">// What_Blue_Had_To_Get_Right</span>
+        <ul class="brief-tick-list">
+          <li>Stage transitions enforced server-side and impossible to skip by manipulating client state.</li>
+          <li>Document upload with content-type verified by inspection rather than by extension, size limits, malware scanning, and storage in the private bucket.</li>
+          <li>Documents served only through authorised, short-lived, single-use links with non-guessable references.</li>
+          <li>A deterministic credit-scoring component with a recorded input snapshot so any decision can be reproduced.</li>
+          <li>Segregation of duties between applicant, assessor and approver.</li>
+          <li>An approval authority matrix by amount, enforced in code, with an escalation path.</li>
+          <li>Disbursement issued only after approval, signed, idempotent, and impossible to trigger from the applicant's session.</li>
+          <li>Defined retention and deletion for the personal and financial documents collected.</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 06 Internal Back-Office Portal -->
+    <div class="brief-item">
+      <button class="brief-q" aria-expanded="false"><span><span class="pfx">&gt;</span>Internal Back-Office Portal</span><span class="brief-x">+</span></button>
+      <div class="brief-a"><div class="brief-a-in">
+        <p style="font-size:13px;line-height:1.85;color:rgba(255,255,255,0.55);margin-bottom:0.75rem">The staff-facing system where tellers, supervisors and administrators service customer accounts. The highest-privilege application in the enterprise.</p>
+        <span class="brief-block-label">// What_You_Will_Try</span>
+        <ul class="brief-attack-list">
+          <li>Privilege escalation between staff roles, forced browsing to administrative functions, maker-checker bypass through self-approval or replay, mass data extraction through search and export, and abuse of elevation flows.</li>
+        </ul>
+        <span class="brief-block-label">// What_Blue_Had_To_Get_Right</span>
+        <ul class="brief-tick-list">
+          <li>Role-based access control with at least four staff roles whose permissions genuinely differ, enforced server-side for every action and never merely hidden in the interface.</li>
+          <li>Maker-checker on every high-impact action, with a different and more senior checker.</li>
+          <li>Mandatory structured reason codes on every privileged action.</li>
+          <li>Just-in-time elevation, time-boxed and automatically revoked.</li>
+          <li>Data minimisation by role, with masked account and identity numbers and unmasking as a separately audited action.</li>
+          <li>Administrative access restricted by network origin.</li>
+          <li>Session controls suited to a shared workstation: short idle timeout, explicit lock, concurrent-session limits.</li>
+          <li>A tamper-evident audit log viewable by an auditor role that cannot modify customer data.</li>
+          <li>Detection and alerting on insider-abuse patterns: bulk record access, out-of-hours activity, repeated access to one customer, and self-servicing of an employee's own accounts.</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 07 Customer Support and Ticketing System -->
+    <div class="brief-item">
+      <button class="brief-q" aria-expanded="false"><span><span class="pfx">&gt;</span>Customer Support and Ticketing System</span><span class="brief-x">+</span></button>
+      <div class="brief-a"><div class="brief-a-in">
+        <p style="font-size:13px;line-height:1.85;color:rgba(255,255,255,0.55);margin-bottom:0.75rem">Free text and file attachments moving between two parties at very different privilege levels, with identity verification under pressure.</p>
+        <span class="brief-block-label">// What_You_Will_Try</span>
+        <ul class="brief-attack-list">
+          <li>Stored cross-site scripting aimed at agents, insecure direct object reference across tickets, leakage of internal notes into the customer view, malicious attachments, and social-engineering flows that trick the system into treating an unverified caller as verified.</li>
+        </ul>
+        <span class="brief-block-label">// What_Blue_Had_To_Get_Right</span>
+        <ul class="brief-tick-list">
+          <li>Ticket lifecycle with an immutable conversation thread.</li>
+          <li>Two-sided messaging where internal notes are provably invisible to the customer.</li>
+          <li>Attachment upload from both sides with type verification by inspection, size limits, malware scanning, and rendering that cannot execute in the browser.</li>
+          <li>Structured customer identity verification before any account-affecting action, with method and outcome recorded on the ticket.</li>
+          <li>Output encoding everywhere customer-supplied text is rendered, including the agent interface: the higher-value cross-site scripting target.</li>
+          <li>Rate limiting on ticket and message creation.</li>
+          <li>A defined, enforced boundary: anything touching money or credentials is handed to the back-office portal rather than performed here.</li>
+          <li>Detection and masking at ingestion of credentials or card numbers pasted into a ticket.</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 08 Fraud and Transaction Monitoring Service (optional) -->
+    <div class="brief-item">
+      <button class="brief-q" aria-expanded="false"><span><span class="pfx">&gt;</span>Fraud and Transaction Monitoring Service <span class="brief-chip-optional">OPTIONAL BRIEF</span></span><span class="brief-x">+</span></button>
+      <div class="brief-a"><div class="brief-a-in">
+        <p style="font-size:13px;line-height:1.85;color:rgba(255,255,255,0.55);margin-bottom:0.75rem">Near-real-time scoring of transactions from the payments service, with case management for analysts and a feedback loop.</p>
+        <span class="brief-block-label">// What_You_Will_Try</span>
+        <ul class="brief-attack-list">
+          <li>Score evasion through transaction shaping, case tampering, suppression of alerts, and poisoning of the feedback loop.</li>
+        </ul>
+        <span class="brief-block-label">// What_Blue_Had_To_Get_Right</span>
+        <ul class="brief-tick-list">
+          <li>Scoring that consumes the payments ledger rather than duplicating it.</li>
+          <li>Analyst role-based access control and case-level authorisation.</li>
+          <li>Tamper-evident case history where decisions cannot be rewritten.</li>
+          <li>Customer notification that does not itself disclose account detail.</li>
+          <li>An analyst feedback loop that the customer cannot poison, and integrity protection on the rule set itself.</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <!-- 09 Notifications and Statements Service (optional) -->
+    <div class="brief-item">
+      <button class="brief-q" aria-expanded="false"><span><span class="pfx">&gt;</span>Notifications and Statements Service <span class="brief-chip-optional">OPTIONAL BRIEF</span></span><span class="brief-x">+</span></button>
+      <div class="brief-a"><div class="brief-a-in">
+        <p style="font-size:13px;line-height:1.85;color:rgba(255,255,255,0.55);margin-bottom:0.75rem">Outbound email, SMS and push, plus server-generated account statements.</p>
+        <span class="brief-block-label">// What_You_Will_Try</span>
+        <ul class="brief-attack-list">
+          <li>Account enumeration through notification behaviour, statement link prediction, template injection, and notification flooding used as cover for other activity.</li>
+        </ul>
+        <span class="brief-block-label">// What_Blue_Had_To_Get_Right</span>
+        <ul class="brief-tick-list">
+          <li>Authorisation checked at generation time, not at link time.</li>
+          <li>Short-lived signed document links that are not guessable or enumerable.</li>
+          <li>Template rendering safe against injection.</li>
+          <li>Data minimisation in every message body.</li>
+          <li>Rate limiting, and a full delivery audit trail.</li>
+        </ul>
+      </div></div>
+    </div>
+
+  </div>
+
+  <p class="pp-section-note" style="color:rgba(255,255,255,0.5);margin-top:2.5rem;border-left-color:var(--gold)">Full application briefs, with every security requirement a judge will check, are issued in the welcome pack when registration completes.</p>
+</section>
+
+<!-- ============ S3 RULES ============ -->
+<section class="sec" id="rules">
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line"></div><span class="sh-label">// Engagement</span></div>
+    <h2 class="sh-title">One cell. One window.<br><span class="outline-accent">Professional standard.</span></h2>
+  </div>
+
+  <div class="rules-grid">
+    <div class="rules-card fade-up">
+      <span class="cnr cnr-tl"></span><span class="cnr cnr-br"></span>
+      <div class="rules-card-tag">// 01</div>
+      <h3 class="rules-card-title">One Assigned Cell</h3>
+      <p class="rules-card-desc">You attack the cell you are assigned, within its scheduled window. Nothing else in the range is in scope.</p>
+    </div>
+    <div class="rules-card fade-up" style="transition-delay:0.08s">
+      <span class="cnr cnr-tl"></span><span class="cnr cnr-br"></span>
+      <div class="rules-card-tag">// 02</div>
+      <h3 class="rules-card-title">Two Red Teams Per Cell</h3>
+      <p class="rules-card-desc">Another Red team attacks the same cell. Your activity must be attributable to your team.</p>
+    </div>
+    <div class="rules-card fade-up" style="transition-delay:0.16s">
+      <span class="cnr cnr-tl"></span><span class="cnr cnr-br"></span>
+      <div class="rules-card-tag">// 03</div>
+      <h3 class="rules-card-title">Report, Not Just Exploit</h3>
+      <p class="rules-card-desc">Findings are reported to a professional standard. The exploit is half the score; the write-up a judge can act on is the other half.</p>
+    </div>
+  </div>
+
+  <p class="pp-section-note fade-up" style="margin-top:2.5rem">The full rules of engagement, the evidence standard and the report template are issued with your cell assignment in the welcome pack.</p>
+</section>
+
+<!-- ============ S4 REPORT (replaces #proposal) ============ -->
+<section class="sec sec-dark" id="report">
+  <div class="orb orb-r orb1" aria-hidden="true"></div>
+  <div class="orb orb-au orb2" aria-hidden="true"></div>
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line" style="background:var(--accent-l)"></div><span class="sh-label" style="color:var(--accent-l)">// Before_21_September</span></div>
+    <h2 class="sh-title">No proposal.<br><span style="color:var(--accent-l)">Plenty to prepare.</span></h2>
+  </div>
+
+  <div class="tick-grid">
+    <ul class="tick-list" style="border:none">
+      <li class="fade-up"><span class="tick-icon">&#10003;</span><p>Have every registration item ready: the nine-item checklist below.</p></li>
+      <li class="fade-up"><span class="tick-icon">&#10003;</span><p>Read all nine briefs. Your cell could be any of them.</p></li>
+    </ul>
+    <ul class="tick-list" style="border:none">
+      <li class="fade-up"><span class="tick-icon">&#10003;</span><p>Agree your team's attribution discipline now: how every request your team sends can be traced back to you.</p></li>
+      <li class="fade-up"><span class="tick-icon">&#10003;</span><p>Decide who writes. A finding nobody can reproduce from your report scores as nothing.</p></li>
+    </ul>
+  </div>
+
+  <div class="callout callout-gold fade-up" style="margin-top:2.5rem">
+    Morani Hunting Grounds is the one track where a team of three can register on the day and be ready. Do not be the team that is not.
+  </div>
+</section>
+
+<!-- ============ S5 READY ============ -->
+<section class="sec" id="ready">
+  <div class="sh">
+    <div class="sh-eye"><div class="sh-line"></div><span class="sh-label">// Before_You_Register</span></div>
+    <h2 class="sh-title">Ready in thirty minutes.<br><span class="outline-accent">Or losing days.</span></h2>
+  </div>
+
+  <div class="ro-checklist fade-up">
+    <div class="ro-check-row"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Full legal name of every member, exactly as on their identity document.</span></div>
+    <div class="ro-check-row"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Identity document per member showing date of birth. PDF, JPG or PNG, under 5 MB, photographed in good light with the whole document in frame.</span></div>
+    <div class="ro-check-row"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Email per member, institutional if you have one.</span></div>
+    <div class="ro-check-row"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">GitHub or GitLab handle per member.</span></div>
+    <div class="ro-check-row"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">If enrolled: student number, institution, programme and year of study.</span></div>
+    <div class="ro-check-row"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Captain and one deputy: phone number in international format, for example +254712345678.</span></div>
+    <div class="ro-check-row"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Team name, three to forty characters.</span></div>
+    <div class="ro-check-row"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Ranked track preferences for your side.</span></div>
+    <div class="ro-check-row"><span class="ro-check-box">&#10003;</span><span class="ro-check-text">Skills declaration, 100 to 1500 characters, honestly describing what the team has built before. Overstating it earns you a brief you cannot complete.</span></div>
+  </div>
+
+  <div style="margin-top:2rem">
+    <a href="#ready" class="btn-green magnetic">Open The Full Checklist</a>
+  </div>
+</section>
+
+<!-- ============ S6 CTA ============ -->
+<section class="sec-cta" id="cta">
+  <div class="orb orb-r orb2" aria-hidden="true"></div>
+  <div class="cta-inner">
+    <div class="sh">
+      <div class="sh-eye"><div class="sh-line" style="background:var(--gold)"></div><span class="sh-label" style="color:rgba(255,255,255,0.3)">// Final_Word</span></div>
+      <h2 class="sh-title" style="color:var(--white);font-size:clamp(2.2rem,5vw,3.5rem)">21 September.<br><span style="color:var(--accent-l)">Have the team before the date.</span></h2>
+    </div>
+    <div class="cta-term">
+      <canvas class="term-rain" id="ctaRain" aria-hidden="true"></canvas>
+      <div class="term-sweep" aria-hidden="true"></div>
+      <span style="position:relative;z-index:1">&gt; ./register --track=application-red --team=4<span class="badge-cursor"></span></span>
+    </div>
+    <div class="cta-btns">
+      <a href="#ready" class="btn-primary magnetic">How To Register</a>
+      <a href="{% url 'track_application_blue' %}" class="btn-ghost magnetic">See The Other Side</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ MISSION RAIL ============ -->
+<div class="mission-rail" id="missionRail" aria-label="Section navigation">
+  <a href="#mission" data-sec="mission">01 MISSION</a>
+  <a href="#brief" data-sec="brief">02 BRIEF</a>
+  <a href="#rules" data-sec="rules">03 RULES</a>
+  <a href="#report" data-sec="report">04 REPORT</a>
+  <a href="#ready" data-sec="ready">05 READY</a>
+</div>
+
+<footer>
+  <div>
+    <div class="ft-brand">Jenga<em>Sec</em> 2026</div>
+    <div class="ft-sub">// Strathmore Cybersecurity Club · Nairobi, Kenya · @sucybersec</div>
+  </div>
+  <div class="ft-right">
+    <a href="mailto:sucybersec@strathmore.edu">sucybersec@strathmore.edu</a>
+    <p>// Kenya's proving ground for enterprise-ready technologists</p>
+  </div>
+</footer>
+
+<script>
+'use strict';
+let reduceMotion=document.documentElement.classList.contains('motion-reduced')&&!document.documentElement.classList.contains('motion-full');
+const finePointer = window.matchMedia('(pointer: fine)').matches;
+const CH="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./\\[]{}><_#@!";
+
+const motionToggle=document.createElement('button');
+motionToggle.className='motion-toggle';
+motionToggle.type='button';
+motionToggle.setAttribute('aria-label','Change visual effects mode');
+motionToggle.textContent=reduceMotion?'ENABLE FULL EFFECTS':'USE REDUCED EFFECTS';
+document.querySelector('.hero-ctas')?.appendChild(motionToggle);
+motionToggle.addEventListener('click',()=>{
+  const url=new URL(location.href);
+  url.searchParams.set('motion',reduceMotion?'full':'reduced');
+  location.href=url.href;
+});
+
+{const mode=new URLSearchParams(location.search).get('motion');if(mode)document.querySelectorAll('a[href$=".html"],a[href*=".html#"]').forEach(link=>{const u=new URL(link.href,location.href);if(u.origin===location.origin){u.searchParams.set('motion',mode);link.href=u.href;}});}
+if('scrollRestoration' in history)history.scrollRestoration='manual';
+if(!location.hash)window.scrollTo(0,0);
+
+/* ---------- shared: initRain(canvas) ---------- */
+function initRain(canvas){
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const RCH='01JENGASEC';
+  const TRAIL=5;
+  let rw,rh,cols,drops,raf=null,running=false;
+  function size(){
+    const box=canvas.parentElement;
+    rw=canvas.width=box.clientWidth||1;
+    rh=canvas.height=box.clientHeight||1;
+    const spacing=18+Math.random()*4;
+    cols=Math.max(1,Math.floor(rw/spacing));
+    drops=Array.from({length:cols},(_,i)=>({
+      x:Math.round((i+0.5)*(rw/cols)),
+      y:Math.random()*-40,
+      speed:2+Math.random()*2,
+      chars:[]
+    }));
+  }
+  size();
+  canvas.style.opacity='0.18';
+  function drawFrame(){
+    ctx.clearRect(0,0,rw,rh);
+    ctx.font='11px "Space Mono",monospace';
+    for(const d of drops){
+      d.chars.unshift(RCH[Math.floor(Math.random()*RCH.length)]);
+      if(d.chars.length>TRAIL)d.chars.pop();
+      for(let t=0;t<d.chars.length;t++){
+        ctx.fillStyle=t===0?'rgba(255,59,71,0.9)':'rgba(179,0,12,'+(0.5*(1-t/TRAIL))+')';
+        ctx.fillText(d.chars[t],d.x,d.y-t*13);
+      }
+      d.y+=d.speed;
+      if(d.y-TRAIL*13>rh&&Math.random()>0.96){d.y=Math.random()*-30;d.chars=[];d.speed=2+Math.random()*2;}
+    }
+  }
+  function loop(){if(!running)return;drawFrame();raf=requestAnimationFrame(loop);}
+  if(reduceMotion){
+    ctx.clearRect(0,0,rw,rh);
+    ctx.font='11px "Space Mono",monospace';
+    drops.forEach(d=>{
+      ctx.fillStyle='rgba(179,0,12,0.4)';
+      ctx.fillText(RCH[Math.floor(Math.random()*RCH.length)],d.x,Math.random()*rh);
+    });
+    return;
+  }
+  function start(){if(!running){size();running=true;loop();}}
+  function stop(){running=false;if(raf)cancelAnimationFrame(raf);}
+  const io=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{e.isIntersecting?start():stop();});
+  },{threshold:0});
+  io.observe(canvas);
+  window.addEventListener('resize',size,{passive:true});
+}
+initRain(document.getElementById('ctaRain'));
+initRain(document.getElementById('readinessRain'));
+
+/* ---------- hero background: parallax + full rain + particles ---------- */
+(function(){
+  const heroImg=document.getElementById('heroimg');
+  const hero=document.getElementById('home');
+  if(!heroImg||!hero)return;
+  let heroVisible=true;
+  new IntersectionObserver(e=>{heroVisible=e[0].isIntersecting;},{threshold:0}).observe(hero);
+
+  if(!reduceMotion){
+    let px=0,py=0,sy=0;
+    hero.addEventListener('mousemove',e=>{
+      const r=hero.getBoundingClientRect();
+      px=((e.clientX-r.left)/r.width-0.5)*14;
+      py=((e.clientY-r.top)/r.height-0.5)*10;
+      applyParallax();
+    },{passive:true});
+    window.addEventListener('scroll',()=>{
+      sy=Math.min(window.scrollY*0.12,80);
+      applyParallax();
+    },{passive:true});
+    function applyParallax(){
+      heroImg.style.transform='translate3d('+(-px)+'px,'+(-py+sy)+'px,0) scale(1.04)';
+    }
+  }
+
+  /* hero rain canvas */
+  const rain=document.getElementById('rain');
+  if(rain&&innerWidth>768){
+    const rctx=rain.getContext('2d');
+    const RCH='01アイウエオカキク>#$%&+=/\\';
+    const TRAIL=9;
+    let rw,rh,cols,drops;
+    function sizeRain(){
+      rw=rain.width=rain.offsetWidth||1;
+      rh=rain.height=rain.offsetHeight||1;
+      cols=Math.floor(rw/26);
+      drops=Array.from({length:cols},()=>({y:Math.random()*-40,chars:[]}));
+    }
+    function drawStaticRain(){
+      rctx.font='12px "Space Mono",monospace';
+      for(let i=0;i<cols;i++){
+        rctx.fillStyle='rgba(179,0,12,0.3)';
+        rctx.fillText(RCH[Math.floor(Math.random()*RCH.length)],i*26,Math.random()*rh);
+      }
+    }
+    function handleRainResize(){sizeRain();if(reduceMotion)drawStaticRain();}
+    sizeRain();
+    addEventListener('load',handleRainResize,{passive:true});
+    addEventListener('resize',handleRainResize,{passive:true});
+    if(reduceMotion){
+      drawStaticRain();
+    }else{
+      setInterval(()=>{
+        if(!heroVisible)return;
+        rctx.clearRect(0,0,rw,rh);
+        rctx.font='12px "Space Mono",monospace';
+        for(let i=0;i<cols;i++){
+          const d=drops[i];
+          d.chars.unshift(RCH[Math.floor(Math.random()*RCH.length)]);
+          if(d.chars.length>TRAIL)d.chars.pop();
+          for(let t=0;t<d.chars.length;t++){
+            const a=t===0?0.5:0.16*(1-t/TRAIL);
+            rctx.fillStyle='rgba(255,59,71,'+a+')';
+            rctx.fillText(d.chars[t],i*26,(d.y-t)*14);
+          }
+          d.y++;
+          if((d.y-TRAIL)*14>rh&&Math.random()>0.96){d.y=Math.random()*-20;d.chars=[];}
+        }
+      },72);
+    }
+  }
+
+  /* particles */
+  const pcanvas=document.getElementById('particles');
+  if(pcanvas&&!reduceMotion){
+    const ctx=pcanvas.getContext('2d');
+    let W,H,pts=[];
+    let mouse={x:-9999,y:-9999};
+    hero.addEventListener('mousemove',e=>{
+      const r=pcanvas.getBoundingClientRect();
+      mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;
+    },{passive:true});
+    hero.addEventListener('mouseleave',()=>{mouse.x=-9999;mouse.y=-9999;},{passive:true});
+    function sizeCanvas(){W=pcanvas.width=pcanvas.offsetWidth;H=pcanvas.height=pcanvas.offsetHeight;}
+    function seed(){
+      const n=Math.min(Math.floor(W*H/22000),70);
+      pts=Array.from({length:n},()=>({
+        x:Math.random()*W,y:Math.random()*H,
+        vx:(Math.random()-0.5)*0.22,vy:(Math.random()-0.5)*0.22,
+        r:Math.random()*1.4+0.6
+      }));
+    }
+    sizeCanvas();seed();
+    addEventListener('resize',()=>{sizeCanvas();seed();},{passive:true});
+    function frame(){
+      if(heroVisible){
+        ctx.clearRect(0,0,W,H);
+        for(const p of pts){
+          p.x+=p.vx;p.y+=p.vy;
+          if(p.x<0||p.x>W)p.vx*=-1;
+          if(p.y<0||p.y>H)p.vy*=-1;
+          ctx.beginPath();
+          ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+          ctx.fillStyle='rgba(255,59,71,0.32)';
+          ctx.fill();
+        }
+        for(let i=0;i<pts.length;i++){
+          const mdx=pts[i].x-mouse.x,mdy=pts[i].y-mouse.y;
+          const md=mdx*mdx+mdy*mdy;
+          if(md<26000){
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x,pts[i].y);
+            ctx.lineTo(mouse.x,mouse.y);
+            ctx.strokeStyle='rgba(232,176,32,'+(0.16*(1-md/26000))+')';
+            ctx.lineWidth=0.7;
+            ctx.stroke();
+          }
+          for(let j=i+1;j<pts.length;j++){
+            const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y;
+            const d=dx*dx+dy*dy;
+            if(d<12100){
+              ctx.beginPath();
+              ctx.moveTo(pts[i].x,pts[i].y);
+              ctx.lineTo(pts[j].x,pts[j].y);
+              ctx.strokeStyle='rgba(255,59,71,'+(0.11*(1-d/12100))+')';
+              ctx.lineWidth=0.6;
+              ctx.stroke();
+            }
+          }
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+})();
+
+/* ---------- shared: terminal line decode-typer ---------- */
+function terminalTypeLines(lineEls,lines,onProgress,onDone){
+  let li=0;
+  function typeNext(){
+    if(li>=lineEls.length){if(onDone)onDone();return;}
+    const el=lineEls[li];
+    const spec=lines[li];
+    const text=spec.text,suffix=spec.suffix||'';
+    let i=0;
+    const cursor=document.createElement('span');
+    cursor.className='badge-cursor';
+    function step(){
+      const shown=text.split('').map((c,idx)=>{
+        if(c===' ')return ' ';
+        if(idx<i)return text[idx];
+        return CH[Math.floor(Math.random()*CH.length)];
+      }).join('');
+      el.replaceChildren(document.createTextNode(shown));
+      el.appendChild(cursor);
+      if(i>=text.length){
+        el.replaceChildren(document.createTextNode(text));
+        if(suffix){const ok=document.createElement('span');ok.className='ok';ok.textContent=suffix.replace(/<[^>]*>/g,'');el.appendChild(ok);}
+        li++;
+        if(onProgress)onProgress(li/lineEls.length);
+        setTimeout(typeNext,260);
+        return;
+      }
+      i+=0.7;
+      setTimeout(step,22);
+    }
+    step();
+  }
+  typeNext();
+}
+
+/* ---------- custom cursor ---------- */
+if(finePointer){
+  document.body.classList.add('cursor-on');
+  const dot=document.getElementById('cur-dot'),ring=document.getElementById('cur-ring');
+  let mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my;
+  addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;
+    dot.style.left=mx+'px';dot.style.top=my+'px';},{passive:true});
+  (function ringLoop(){
+    rx+=(mx-rx)*0.16;ry+=(my-ry)*0.16;
+    ring.style.left=rx+'px';ring.style.top=ry+'px';
+    requestAnimationFrame(ringLoop);
+  })();
+  document.querySelectorAll('a,button,.rules-card,summary,.brief-q').forEach(el=>{
+    el.addEventListener('mouseenter',()=>ring.classList.add('hovering'));
+    el.addEventListener('mouseleave',()=>ring.classList.remove('hovering'));
+  });
+}
+
+/* ---------- scroll progress + nav weight ---------- */
+const prog=document.getElementById('prog');
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  prog.style.width=((h.scrollTop/(h.scrollHeight-h.clientHeight))*100)+'%';
+  nav.classList.toggle('scrolled',h.scrollTop>40);
+},{passive:true});
+if(document.documentElement.scrollTop>40)nav.classList.add('scrolled');
+
+/* ---------- mobile menu ---------- */
+const mm=document.getElementById('mm');
+document.getElementById('mb').onclick=()=>{mm.classList.add('open');mm.setAttribute('aria-hidden','false');document.body.classList.add('menu-open')};
+document.getElementById('mc').onclick=cm;
+function cm(){mm.classList.remove('open');mm.setAttribute('aria-hidden','true');document.body.classList.remove('menu-open')}
+
+/* ---------- nav wordmark "Sec" glitch on hover ---------- */
+const wmsec=document.getElementById('wmsec');
+if(wmsec){
+  document.getElementById('wordmark').addEventListener('mouseenter',()=>{
+    wmsec.classList.remove('wm-glitch');
+    void wmsec.offsetWidth;
+    wmsec.classList.add('wm-glitch');
+  });
+}
+
+/* ---------- nav link scramble on hover ---------- */
+if(!reduceMotion){
+  document.querySelectorAll('#navlinks a[data-txt]').forEach(a=>{
+    let siv=null;
+    a.addEventListener('mouseenter',()=>{
+      const txt=a.dataset.txt;let i=0;clearInterval(siv);
+      siv=setInterval(()=>{
+        a.textContent=txt.split('').map((c,idx)=>{
+          if(c===' ')return ' ';
+          if(idx<i)return txt[idx];
+          return CH[Math.floor(Math.random()*CH.length)];
+        }).join('');
+        if(i>=txt.length){clearInterval(siv);a.textContent=txt;}
+        i+=0.9;
+      },24);
+    });
+  });
+}
+
+/* ---------- magnetic buttons ---------- */
+if(finePointer && !reduceMotion){
+  document.querySelectorAll('.magnetic').forEach(btn=>{
+    btn.addEventListener('mousemove',e=>{
+      const r=btn.getBoundingClientRect();
+      const x=(e.clientX-r.left-r.width/2)*0.22;
+      const y=(e.clientY-r.top-r.height/2)*0.32;
+      btn.style.transform='translate('+x+'px,'+y+'px)';
+    });
+    btn.addEventListener('mouseleave',()=>{btn.style.transform='translate(0,0)'});
+  });
+}
+
+/* ---------- hero glitch auto-fire ---------- */
+(function(){
+  const el=document.getElementById('pglitch');
+  if(!el||reduceMotion)return;
+  function burst(){
+    el.classList.remove('glitching');void el.offsetWidth;el.classList.add('glitching');
+    setTimeout(()=>el.classList.remove('glitching'),600);
+    setTimeout(burst,4600+Math.random()*1400);
+  }
+  setTimeout(burst,1800);
+})();
+
+/* ---------- hero terminal: decode-type on scroll ---------- */
+(function(){
+  const term=document.querySelector('.prep-term');
+  const els=[0,1,2,3].map(i=>document.getElementById('rl'+i)).filter(Boolean);
+  const bbar=document.getElementById('heroBbar');
+  const blabel=document.getElementById('heroBlabel');
+  if(!term||!els.length)return;
+  const lines=[
+    {text:'> jengasec --track=morani-hunting-grounds',suffix:''},
+    {text:'> proposal_round :: SKIPPED',suffix:''},
+    {text:'> cell_assignment :: ON_REGISTRATION',suffix:''},
+    {text:'> registration :: OPENS 21_SEP ',suffix:'<span class="ok">[ARMED]</span>'}
+  ];
+  function finishBar(progress){
+    if(bbar)bbar.style.transform='scaleX('+progress+')';
+    if(blabel)blabel.textContent=progress>=1?'MORANI_HUNTING_GROUNDS :: LOADED':'MORANI_HUNTING_GROUNDS :: '+Math.round(progress*100)+'%';
+  }
+  if(reduceMotion){
+    els.forEach((el,i)=>{el.replaceChildren(document.createTextNode(lines[i].text));const suffix=(lines[i].suffix||'').replace(/<[^>]*>/g,'');if(suffix){const ok=document.createElement('span');ok.className='ok';ok.textContent=suffix;el.appendChild(ok);}});
+    finishBar(1);
+    return;
+  }
+  let fired=false;
+  const io=new IntersectionObserver(entries=>{
+    if(entries[0].isIntersecting&&!fired){
+      fired=true;
+      finishBar(0);terminalTypeLines(els,lines,finishBar,()=>finishBar(1));
+      io.disconnect();
+    }
+  },{threshold:0.3});
+  io.observe(term);
+  setTimeout(()=>{const r=term.getBoundingClientRect();if(r.top<innerHeight&&r.bottom>0&&!fired){fired=true;finishBar(0);terminalTypeLines(els,lines,finishBar,()=>finishBar(1));io.disconnect();}},500);
+})();
+
+/* ---------- entrance reveals ---------- */
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});
+},{threshold:0.07});
+document.querySelectorAll('.fade-up,.slide-l,.slide-r,.sh').forEach(e=>obs.observe(e));
+
+/* ---------- brief accordion ---------- */
+document.querySelectorAll('.brief-item').forEach(item=>{
+  const q=item.querySelector('.brief-q'),a=item.querySelector('.brief-a');
+  q.addEventListener('click',()=>{
+    const open=item.classList.toggle('open');
+    q.setAttribute('aria-expanded',open);
+    a.style.maxHeight=open?a.scrollHeight+'px':'0';
+  });
+});
+
+/* ---------- mission rail active state ---------- */
+(function(){
+  const rail=document.getElementById('missionRail');
+  if(!rail)return;
+  const links=[...rail.querySelectorAll('a[data-sec]')];
+  const secs=links.map(a=>document.getElementById(a.dataset.sec)).filter(Boolean);
+  function update(){
+    let active=null;
+    for(let i=secs.length-1;i>=0;i--){
+      const r=secs[i].getBoundingClientRect();
+      if(r.top<=innerHeight*0.4){active=links[i];break;}
+    }
+    links.forEach(a=>a.classList.remove('active'));
+    if(active)active.classList.add('active');
+  }
+  window.addEventListener('scroll',update,{passive:true});
+  update();
+})();
+</script>
+</body>
+</html>

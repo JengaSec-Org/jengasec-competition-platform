@@ -25,13 +25,14 @@ services:
         value: "False"
       - key: DJANGO_SECRET_KEY
         generateValue: true         # Render generates a random 64-char value
-      # DJANGO_ALLOWED_HOSTS / CSRF origins: the *.onrender.com hostname is picked
-      # up automatically from RENDER_EXTERNAL_HOSTNAME. Add a custom domain here
-      # (comma-separated) once you have one.
+      # The custom domain must be listed here or Django answers 400 for it.
+      # The *.onrender.com hostname is added automatically from
+      # RENDER_EXTERNAL_HOSTNAME, so it does not need repeating.
       - key: DJANGO_ALLOWED_HOSTS
-        value: localhost,127.0.0.1
+        value: localhost,127.0.0.1,jengasec.com,www.jengasec.com
+      # Both schemes+hosts that will POST (login, forms), with the scheme.
       - key: DJANGO_CSRF_TRUSTED_ORIGINS
-        value: ""
+        value: https://jengasec.com,https://www.jengasec.com
 
       # ── Neon ──────────────────────────────────────────────────────────────
       # ONE value: the full connection string from Neon → Connect (Pooled
@@ -63,7 +64,7 @@ services:
       - key: DJANGO_EMAIL_HOST_USER
         value: sucybersec@strathmore.edu   # the verified sender; also the From address
       - key: DJANGO_SITE_URL
-        sync: false                 # https://<your-service>.onrender.com -- links inside emails
+        sync: false                 # https://www.jengasec.com -- links inside emails
       - key: DJANGO_DEFAULT_FROM_EMAIL
         sync: false                 # optional, defaults to "JengaSec <sucybersec@strathmore.edu>"
         value: "JengaSec <sucybersec@strathmore.edu>"
