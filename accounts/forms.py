@@ -148,7 +148,7 @@ class TeamCreateForm(forms.ModelForm):
         self.fields["application_brief"].queryset = (
             ApplicationBrief.objects.filter(is_open=True)
             .select_related("competition")
-            .order_by("enterprise", "code")
+            .order_by("code")
         )
         self.fields["application_brief"].required = False
         self.fields["application_brief"].empty_label = "— choose a brief —"

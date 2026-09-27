@@ -118,7 +118,29 @@ class Competition(models.Model):
 
     @property
     def registration_open(self):
-        return self.phase == self.Phase.REGISTRATION
+        """Registration accepts new teams and submissions right now.
+
+        Both gates matter: the organisers' phase switch, and the published
+        deadline. The deadline used to drive only the reminder emails, so a
+        competition that had told every captain "registration closes on the
+        2nd" went on accepting registrations after it.
+        """
+        from django.utils import timezone
+
+        if self.phase != self.Phase.REGISTRATION:
+            return False
+        deadline = self.settings.registration_deadline
+        return deadline is None or timezone.now() <= deadline
+
+    @property
+    def registration_closed_at(self):
+        """When registration shut, or None while it is still open."""
+        from django.utils import timezone
+
+        deadline = self.settings.registration_deadline
+        if deadline and timezone.now() > deadline:
+            return deadline
+        return None
 
 
 class CompetitionSettings(models.Model):
@@ -160,8 +182,18 @@ class CompetitionSettings(models.Model):
 
     # Timelines.
     registration_deadline = models.DateTimeField(null=True, blank=True)
+    # When registration-phase proposals close. Weeks before the built
+    # applications are due, so the two cannot share one field: closing the
+    # proposal window used to close document uploads with it.
+    proposal_deadline = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Proposals only. Falls back to the submission deadline when blank.",
+    )
     build_deadline = models.DateTimeField(null=True, blank=True)
-    submission_deadline = models.DateTimeField(null=True, blank=True)
+    submission_deadline = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Applications, reports and evidence — everything that is not a proposal.",
+    )
 
     # Caps.
     max_proposals_per_team = models.PositiveIntegerField(default=1)
@@ -191,6 +223,25 @@ class CompetitionSettings(models.Model):
             if "update_fields" in kwargs and kwargs["update_fields"] is not None:
                 kwargs["update_fields"] = list(kwargs["update_fields"]) + ["results_published_at"]
         super().save(*args, **kwargs)
+
+    def deadline_for_type(self, type_name):
+        """The deadline that governs one submission type.
+
+        Proposals answer to `proposal_deadline` when it is set; everything
+        else — the applications, reports and evidence — answers to
+        `submission_deadline`.
+        """
+        from services.submission_service import PROPOSAL_TYPES
+
+        if type_name in PROPOSAL_TYPES and self.proposal_deadline:
+            return self.proposal_deadline
+        return self.submission_deadline
+
+    @property
+    def last_deadline(self):
+        """The later of the two, for 'is anything still open' questions."""
+        known = [d for d in (self.proposal_deadline, self.submission_deadline) if d]
+        return max(known) if known else None
 
     @property
     def appeal_window_closes_at(self):
@@ -224,6 +275,14 @@ class CompetitionCategory(models.Model):
 class ApplicationBrief(models.Model):
     """An application JengaSec has lined up for blue teams to build.
 
+    One row per application, not one per enterprise: a team proposing has
+    nine choices, not eighteen. Both JengaBank instances run the same
+    architecture, so each brief is ultimately built twice — but the
+    enterprise is assigned to the *team* when its proposal is selected
+    (services.team_service.assign_cell), once the organisers know the
+    turnout. `enterprise` is therefore normally blank, and is only set
+    when organisers deliberately pin a brief to one instance.
+
     Teams register by proposing against a brief. Several teams may
     propose for the same application — the cap keeps any one brief from
     swallowing the field — and the best proposals are picked later
@@ -233,11 +292,17 @@ class ApplicationBrief(models.Model):
     competition = models.ForeignKey(
         Competition, on_delete=models.CASCADE, related_name="application_briefs"
     )
-    # Cell code, e.g. APP03 -- the same code exists in both enterprises,
-    # because every brief is built twice (Entry Guide section 1).
+    # Cell code, e.g. APP03. The same code is used in both enterprises when
+    # the brief is built twice, but that is a property of the teams placed
+    # on it, not of this row.
     code = models.CharField(max_length=20, help_text="e.g. APP03")
     name = models.CharField(max_length=200)
-    enterprise = models.CharField(max_length=1, choices=Enterprise.choices, blank=True)
+    enterprise = models.CharField(
+        max_length=1,
+        choices=Enterprise.choices,
+        blank=True,
+        help_text="Leave blank. Only set to pin this application to one JengaBank instance.",
+    )
     track = models.CharField(
         max_length=15, choices=Track.choices, default=Track.APPLICATION
     )
@@ -265,7 +330,8 @@ class ApplicationBrief(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.enterprise_code} {self.code} — {self.name}"
+        prefix = f"{self.enterprise_code} " if self.enterprise else ""
+        return f"{prefix}{self.code} — {self.name}"
 
     @property
     def enterprise_code(self):

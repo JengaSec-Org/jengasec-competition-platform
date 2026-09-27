@@ -65,6 +65,7 @@ class CompetitionSettingsForm(forms.ModelForm):
         model = CompetitionSettings
         fields = [
             "registration_deadline",
+            "proposal_deadline",
             "build_deadline",
             "submission_deadline",
             "max_proposals_per_team",
@@ -83,6 +84,9 @@ class CompetitionSettingsForm(forms.ModelForm):
             "build_deadline": forms.DateTimeInput(
                 attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
             ),
+            "proposal_deadline": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+            ),
             "submission_deadline": forms.DateTimeInput(
                 attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
             ),
@@ -91,7 +95,8 @@ class CompetitionSettingsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Browsers only prefill datetime-local inputs in this exact format.
-        for name in ("registration_deadline", "build_deadline", "submission_deadline"):
+        for name in ("registration_deadline", "proposal_deadline",
+                     "build_deadline", "submission_deadline"):
             self.fields[name].input_formats = ["%Y-%m-%dT%H:%M"]
 
     def clean(self):
@@ -99,6 +104,7 @@ class CompetitionSettingsForm(forms.ModelForm):
         order = [
             ("registration_deadline", "Registration"),
             ("build_deadline", "Build"),
+            ("proposal_deadline", "Proposal"),
             ("submission_deadline", "Submission"),
         ]
         seen = [(cleaned.get(f), label) for f, label in order if cleaned.get(f)]

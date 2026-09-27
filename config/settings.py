@@ -229,6 +229,20 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
+# Sessions. An idle session ends after an hour: this is a competition
+# platform used on shared university machines, where an abandoned tab is a
+# logged-in dashboard for whoever sits down next.
+#
+# SESSION_SAVE_EVERY_REQUEST makes the hour count from the last *request*
+# rather than from login, so someone working continuously is never thrown
+# out mid-upload; it rewrites the cookie on every response, which is the
+# price of an idle timeout rather than an absolute one.
+SESSION_COOKIE_AGE = int(os.environ.get("DJANGO_SESSION_COOKIE_AGE", 60 * 60))
+SESSION_SAVE_EVERY_REQUEST = True
+# The cookie also dies with the browser, so closing it ends the session
+# even inside the hour.
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
 # Authentication flow
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard:main_dashboard"
@@ -321,12 +335,21 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "SAMEORIGIN"
 
-    # SECURE_SSL_REDIRECT is deliberately NOT set. nginx already redirects
-    # HTTP to HTTPS, and enabling both produces a redirect loop whenever the
-    # proxy header is misconfigured — a failure that is hard to diagnose
-    # because the browser only reports "too many redirects".
+    # SECURE_SSL_REDIRECT stays off by default: whatever sits in front
+    # (nginx, or Render for a custom domain) already redirects HTTP to
+    # HTTPS, and doing it in both places produces a redirect loop the
+    # moment the proxy header is misconfigured — a failure that is hard to
+    # diagnose because the browser only reports "too many redirects".
+    # Turn it on with DJANGO_SECURE_SSL_REDIRECT=True if the front end
+    # ever stops doing it.
+    SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SECURE_SSL_REDIRECT", "False").lower() in ("true", "1", "yes")
+    # The health check must answer over plain HTTP so a load balancer
+    # probing it never follows a redirect.
+    SECURE_REDIRECT_EXEMPT = [r"^healthz/$"]
 
-    # HSTS is set by nginx, which owns one policy in one place. Left at 0 here
-    # so the two cannot disagree. `manage.py check --deploy` warns about this;
-    # the warning is expected.
+    # HSTS is owned by whatever terminates TLS, so one policy lives in one
+    # place and the two cannot disagree. Left at 0 here; set
+    # DJANGO_HSTS_SECONDS (3600 to start, 31536000 once the domain has been
+    # stable for days) if Django should own it instead. `check --deploy`
+    # warns about the 0; that warning is expected.
     SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "0"))

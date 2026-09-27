@@ -27,6 +27,18 @@ TEAM_TYPE_ROLE = {
 }
 
 
+def registration_closed_message(competition):
+    """Why registration is shut, in words a captain can act on."""
+    closed_at = competition.registration_closed_at
+    if closed_at:
+        return (
+            f"Registration for {competition.name} closed on "
+            f"{timezone.localtime(closed_at):%d %b %Y at %H:%M}. Contact the "
+            f"organisers if you believe this is wrong."
+        )
+    return f"Registration for {competition.name} is not open."
+
+
 class TeamRuleError(ValueError):
     """A Guide rule was broken. The message is written for the person who
     tried, and is safe to show verbatim."""
@@ -108,6 +120,9 @@ def create_team_for_captain(form, captain):
     """Registering as a captain creates the team *and* seats the captain on it."""
     if team_for(captain) is not None:
         raise TeamRuleError("You are already on a team.")
+    competition = form.cleaned_data.get("competition")
+    if competition is not None and not competition.registration_open:
+        raise TeamRuleError(registration_closed_message(competition))
     profile = getattr(captain, "profile", None)
     if profile is not None and not profile.is_email_verified:
         raise TeamRuleError("Verify your email address before creating a team.")
@@ -294,6 +309,8 @@ def submit_registration(team, *, track_preferences, enterprise_preference,
     """
     if not team.can_submit:
         raise TeamRuleError(f"This registration is {team.get_status_display().lower()} and cannot be submitted again.")
+    if not team.competition.registration_open:
+        raise TeamRuleError(registration_closed_message(team.competition))
     blockers = registration_blockers(team)
     if blockers:
         raise TeamRuleError(
@@ -359,38 +376,51 @@ def cell_taken(competition, enterprise, cell_id, exclude_pk=None):
     return qs.exists()
 
 
+def enterprise_loads(competition, family="", exclude_pk=None):
+    """Teams per enterprise, so placement can balance the two instances."""
+    counts = {e: 0 for e, _ in Enterprise.choices}
+    rows = Team.objects.filter(competition=competition)
+    if family:
+        rows = rows.filter(cell_id__startswith=family)
+    if exclude_pk:
+        rows = rows.exclude(pk=exclude_pk)
+    for row in rows.values("enterprise").annotate(n=Count("id")):
+        if row["enterprise"] in counts:
+            counts[row["enterprise"]] = row["n"]
+    return counts
+
+
 def choose_enterprise(team):
     """Which JengaBank instance a team goes into.
 
-    Application teams follow their brief -- unless that brief's cell is
-    already taken in that enterprise, in which case the same brief in the
-    other enterprise (every brief is built twice). Everyone else is
-    balanced: whichever enterprise has fewer teams of this family.
+    Briefs no longer carry an enterprise: a team proposes for an
+    application, and the instance is decided here, when the proposal is
+    selected. Every brief is built at most twice, once per instance, so
+    the candidates are the instances where this brief's cell is still
+    free; between them, the one carrying fewer teams. A brief an organiser
+    has deliberately pinned to an instance is honoured if that side is
+    still free.
     """
     if team.track == Track.APPLICATION and team.application_brief_id:
         brief = team.application_brief
-        preferred = brief.enterprise or Enterprise.A
-        other = Enterprise.B if preferred == Enterprise.A else Enterprise.A
-        for ent in (preferred, other):
-            if not cell_taken(team.competition, ent, brief.code, exclude_pk=team.pk):
-                return ent
-        raise TeamRuleError(
-            f"Brief {brief.code} already has a builder in both enterprises. "
-            f"Selection has filled this brief."
-        )
+        free = [
+            ent for ent, _ in Enterprise.choices
+            if not cell_taken(team.competition, ent, brief.code, exclude_pk=team.pk)
+        ]
+        if not free:
+            raise TeamRuleError(
+                f"Brief {brief.code} already has a builder in both enterprises. "
+                f"Selection has filled this brief."
+            )
+        if brief.enterprise in free:
+            return brief.enterprise
+        if team.enterprise in free:
+            return team.enterprise
+        loads = enterprise_loads(team.competition, exclude_pk=team.pk)
+        return min(free, key=lambda e: (loads[e], e))
     if team.enterprise:
         return team.enterprise
-    family = team.cell_family
-    counts = {e: 0 for e, _ in Enterprise.choices}
-    rows = (
-        Team.objects.filter(competition=team.competition, cell_id__startswith=family)
-        .exclude(pk=team.pk)
-        .values("enterprise")
-        .annotate(n=Count("id"))
-    )
-    for r in rows:
-        if r["enterprise"] in counts:
-            counts[r["enterprise"]] = r["n"]
+    counts = enterprise_loads(team.competition, family=team.cell_family, exclude_pk=team.pk)
     return min(counts, key=lambda e: (counts[e], e))
 
 

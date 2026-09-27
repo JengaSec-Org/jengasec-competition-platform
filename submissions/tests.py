@@ -333,3 +333,54 @@ class ScoringRulesTests(Base):
 class ReminderTests(TestCase):
     def test_thresholds_match_registration(self):
         self.assertEqual(THRESHOLDS_HOURS, (168, 48, 12))
+
+
+class TwoDeadlineTests(Base):
+    """Proposals and the applications they propose close on different
+    dates; one deadline used to govern both."""
+
+    def setUp(self):
+        super().setUp()
+        self.evidence = svc.get_or_create_thread(
+            self.team, self.comp, SubmissionType.objects.get(name="Supporting Evidence")
+        )
+
+    def set_deadlines(self, proposal_hours, submission_hours):
+        row = self.submission.competition.settings
+        row.proposal_deadline = timezone.now() + timedelta(hours=proposal_hours)
+        row.submission_deadline = timezone.now() + timedelta(hours=submission_hours)
+        row.save()
+
+    def test_each_type_answers_to_its_own_deadline(self):
+        self.set_deadlines(proposal_hours=-1, submission_hours=72)
+        # Proposal window shut...
+        self.assertTrue(svc.deadline_passed(self.submission))
+        form = self.form(good_blue_pdf())
+        self.assertTrue(form.is_valid(), form.errors)
+        with self.assertRaisesMessage(svc.HardClose, "Entry Guide section 7"):
+            svc.add_version(self.submission, form, self.captain)
+        # ...while evidence is still open.
+        self.assertFalse(svc.deadline_passed(self.evidence))
+        zip_form = self.form(b"PK\x03\x04" + b"0" * 100, name="evidence.zip",
+                             submission=self.evidence)
+        self.assertTrue(zip_form.is_valid(), zip_form.errors)
+        svc.add_version(self.evidence, zip_form, self.captain)
+
+    def test_blank_proposal_deadline_falls_back(self):
+        row = self.submission.competition.settings
+        row.proposal_deadline = None
+        row.submission_deadline = timezone.now() - timedelta(hours=1)
+        row.save()
+        self.assertTrue(svc.deadline_passed(self.submission))
+        self.assertEqual(svc.deadline_for(self.submission), row.submission_deadline)
+
+    def test_competition_stays_open_while_either_window_is(self):
+        self.set_deadlines(proposal_hours=-1, submission_hours=72)
+        open_ids = set(svc.open_competitions_for(self.captain).values_list("id", flat=True))
+        self.assertIn(self.comp.pk, open_ids)
+        # Both shut: the competition drops out of the wizard entirely.
+        row = self.submission.competition.settings
+        row.submission_deadline = timezone.now() - timedelta(hours=1)
+        row.save()
+        open_ids = set(svc.open_competitions_for(self.captain).values_list("id", flat=True))
+        self.assertNotIn(self.comp.pk, open_ids)

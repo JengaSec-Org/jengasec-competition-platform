@@ -1,0 +1,173 @@
+{% comment %}
+Branded HTML wrapper for every notification email.
+
+Constraints this layout is written against, not preferences:
+  * Tables, not flex or grid -- Outlook's Word renderer supports neither.
+  * Inline styles -- Gmail strips <style> blocks in many clients.
+  * Absolute image URLs, not CID attachments -- the Brevo API backend
+    (config/email_backends.py) posts JSON and carries no attachments.
+    Every image therefore has alt text that reads correctly on its own,
+    because Gmail hides remote images until the reader allows them.
+  * A dark header with a light body: legible whether or not the client
+    forces its own dark mode.
+
+The plain-text alternative stays the source of truth for content; this
+renders the same words with the competition's own furniture.
+{% endcomment %}{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>{{ notification.subject }}</title>
+</head>
+<body style="margin:0;padding:0;background:#F8FAF8;">
+<!-- preheader: the grey line clients show next to the subject -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">{{ preheader }}</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F8FAF8;">
+<tr><td align="center" style="padding:24px 12px;">
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="max-width:600px;background:#FFFFFF;border:1px solid #CDD8CD;border-radius:12px;overflow:hidden;">
+
+  <!-- ======== header ======== -->
+  <tr>
+    <td style="background:#0A2416;padding:22px 28px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="vertical-align:middle;width:40px;">
+            <img src="{{ logo_url }}" width="32" height="32" alt=""
+                 style="display:block;border:0;width:32px;height:32px;">
+          </td>
+          <td style="vertical-align:middle;padding-left:12px;">
+            <span style="font-family:Georgia,'Times New Roman',serif;font-size:21px;font-weight:700;
+                         letter-spacing:2px;color:#FFFFFF;">JENGA<span style="color:#C9960A;">SEC</span></span>
+          </td>
+          <td align="right" style="vertical-align:middle;">
+            <span style="font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:1.5px;
+                         text-transform:uppercase;color:rgba(255,255,255,0.45);">{{ edition }}</span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <!-- brand rule: green with a gold segment, the site's two accents -->
+  <tr>
+    <td style="font-size:0;line-height:0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td height="4" style="background:#007A3D;height:4px;font-size:0;line-height:0;">&nbsp;</td>
+          <td height="4" width="90" style="background:#C9960A;height:4px;width:90px;font-size:0;line-height:0;">&nbsp;</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- ======== body ======== -->
+  <tr>
+    <td style="padding:32px 28px 8px 28px;">
+      <div style="font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:2px;
+                  text-transform:uppercase;color:#5A6A5A;padding-bottom:10px;">// {{ kicker }}</div>
+      <h1 style="margin:0 0 20px 0;font-family:Georgia,'Times New Roman',serif;font-size:24px;
+                 line-height:1.25;font-weight:700;color:#111111;">{{ notification.subject }}</h1>
+
+      {% for block in blocks %}
+        {% if block.kind == "list" %}
+          <ul style="margin:0 0 16px 0;padding-left:20px;font-family:Arial,Helvetica,sans-serif;
+                     font-size:15px;line-height:1.6;color:#111111;">
+            {% for item in block.items %}
+              <li style="margin-bottom:6px;">{{ item }}</li>
+            {% endfor %}
+          </ul>
+        {% elif block.kind == "fields" %}
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0"
+                 style="margin:0 0 16px 0;width:100%;border-collapse:collapse;">
+            {% for label, value in block.items %}
+              <tr>
+                <td style="padding:7px 12px 7px 0;font-family:'Courier New',Courier,monospace;font-size:10px;
+                           letter-spacing:1.2px;text-transform:uppercase;color:#5A6A5A;white-space:nowrap;
+                           vertical-align:top;border-bottom:1px solid #EEF1EE;">{{ label }}</td>
+                <td style="padding:7px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;
+                           color:#111111;border-bottom:1px solid #EEF1EE;">{{ value }}</td>
+              </tr>
+            {% endfor %}
+          </table>
+        {% else %}
+          <p style="margin:0 0 16px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;
+                    line-height:1.6;color:#111111;">{{ block.text }}</p>
+        {% endif %}
+      {% endfor %}
+    </td>
+  </tr>
+
+  {% if action_url %}
+  <!-- ======== call to action ======== -->
+  <tr>
+    <td style="padding:8px 28px 4px 28px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="background:#007A3D;border-radius:8px;">
+            <a href="{{ action_url }}"
+               style="display:inline-block;padding:13px 30px;font-family:'Courier New',Courier,monospace;
+                      font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+                      color:#FFFFFF;text-decoration:none;">{{ action_label }}</a>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:12px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;
+                line-height:1.5;color:#5A6A5A;">
+        If the button does not work, paste this into your browser:<br>
+        <span style="color:#007A3D;word-break:break-all;">{{ action_url }}</span>
+      </p>
+    </td>
+  </tr>
+  {% endif %}
+
+  {% if note %}
+  <tr>
+    <td style="padding:20px 28px 0 28px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+             style="background:#EEF1EE;border-left:3px solid #C9960A;border-radius:0 6px 6px 0;">
+        <tr>
+          <td style="padding:12px 16px;font-family:Arial,Helvetica,sans-serif;font-size:13px;
+                     line-height:1.55;color:#111111;">{{ note }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  {% endif %}
+
+  <!-- ======== footer ======== -->
+  <tr>
+    <td style="padding:28px 28px 24px 28px;">
+      <div style="border-top:1px solid #CDD8CD;padding-top:18px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="vertical-align:middle;width:44px;">
+              <img src="{{ club_logo_url }}" width="36" height="36"
+                   alt="Strathmore Cybersecurity Club"
+                   style="display:block;border:0;width:36px;height:36px;">
+            </td>
+            <td style="vertical-align:middle;padding-left:12px;
+                       font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#5A6A5A;">
+              <strong style="color:#111111;">JengaSec Evaluation Platform</strong><br>
+              Strathmore Cybersecurity Club &middot; Nairobi, Kenya
+            </td>
+          </tr>
+        </table>
+        <p style="margin:16px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;
+                  line-height:1.5;color:#5A6A5A;">
+          You are receiving this because you have an account on the JengaSec
+          competition platform. Questions:
+          <a href="mailto:sucybersec@strathmore.edu" style="color:#007A3D;">sucybersec@strathmore.edu</a>
+        </p>
+      </div>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>

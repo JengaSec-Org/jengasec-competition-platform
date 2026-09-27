@@ -7,6 +7,7 @@ evidence-based scoring. The Cloud track is not offered this edition.
 Static per-track copy lives here rather than in the database — it is
 competition documentation, not data teams edit.
 """
+from django.db.models import Q
 from django.utils import timezone
 
 from accounts.models import Team
@@ -297,8 +298,12 @@ def briefs_for(team):
     queryset = ApplicationBrief.objects.filter(
         competition=team.competition, is_open=True
     )
+    # Briefs are enterprise-agnostic; only a deliberately pinned one is
+    # filtered out for a team already placed in the other instance.
     if team.enterprise:
-        queryset = queryset.filter(enterprise=team.enterprise)
+        queryset = queryset.filter(
+            Q(enterprise="") | Q(enterprise=team.enterprise)
+        )
     return queryset
 
 

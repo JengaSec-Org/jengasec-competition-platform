@@ -87,8 +87,16 @@ def open_competitions_for(user):
         # just hide the buttons. Competitions with no settings row yet are
         # left in -- the default is open.
         .exclude(settings_row__submissions_open=False)
-        # Past the published deadline the window is shut, full stop.
-        .exclude(settings_row__submission_deadline__lt=now)
+        # Shut only once *both* windows have closed: proposals and the
+        # built applications run to different dates, and the wizard's own
+        # per-type check (add_version) refuses the one that has passed.
+        .exclude(
+            Q(settings_row__submission_deadline__lt=now)
+            & (
+                Q(settings_row__proposal_deadline__lt=now)
+                | Q(settings_row__proposal_deadline__isnull=True)
+            )
+        )
         .distinct()
         .order_by("start_date")
     )
@@ -129,8 +137,15 @@ def can_upload(user, submission):
     )
 
 
+def deadline_for(submission):
+    """The deadline governing this submission's type."""
+    return submission.competition.settings.deadline_for_type(
+        submission.submission_type.name
+    )
+
+
 def deadline_passed(submission, now=None):
-    deadline = submission.competition.settings.submission_deadline
+    deadline = deadline_for(submission)
     return bool(deadline and (now or timezone.now()) > deadline)
 
 
@@ -167,7 +182,7 @@ def add_version(submission, form, user):
     late_path = False
     if deadline_passed(submission):
         if not submission.late_upload_open:
-            deadline = submission.competition.settings.submission_deadline
+            deadline = deadline_for(submission)
             raise HardClose(
                 f"Entry Guide section 7: the submission window closed on "
                 f"{timezone.localtime(deadline):%d %b %Y at %H:%M} (EAT). Late work is "
@@ -359,7 +374,7 @@ def finalize(submission, user):
 
     # After the hard close only the organiser-accepted path reaches here;
     # record that it was late so judges and the penalty table see it.
-    deadline = submission.competition.settings.submission_deadline
+    deadline = deadline_for(submission)
     if deadline and submission.submitted_at > deadline:
         submission.is_late = True
         submission.late_by = submission.submitted_at - deadline

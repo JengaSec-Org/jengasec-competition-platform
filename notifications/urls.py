@@ -9,4 +9,7 @@ urlpatterns = [
     path("<int:pk>/read/", views.mark_read, name="mark_read"),
     path("read-all/", views.mark_all_read, name="mark_all_read"),
     path("unread-count/", views.unread_count, name="unread_count"),
+    # Staff-only: look at a branded email without sending one.
+    path("email-preview/", views.email_preview, name="email_preview"),
+    path("email-preview/<str:notification_type>/", views.email_preview, name="email_preview_type"),
 ]

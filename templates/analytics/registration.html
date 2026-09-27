@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Registration Analytics | JengaSec{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="ANALYTICS" title="Registration" %}
+
+<p class="text-muted" style="margin-bottom:1.5rem;">
+  {{ competition.name }} &middot;
+  {% if headline.registration_open %}
+    {% include "components/badge.html" with label="Registration open" color="green" %}
+    {% if headline.hours_left is not None %}&middot; {{ headline.hours_left }} hour{{ headline.hours_left|pluralize }} left{% endif %}
+  {% else %}
+    {% include "components/badge.html" with label="Registration closed" color="red" %}
+  {% endif %}
+  {% if headline.deadline %}&middot; deadline {{ headline.deadline|date:"j M Y, H:i" }}{% endif %}
+</p>
+
+<div class="stat-grid" style="margin-bottom:1.5rem;">
+  <div class="card"><span class="tlabel">// TEAMS</span><h3 class="card-title">{{ headline.teams }}</h3><p class="text-muted">Registered teams</p></div>
+  <div class="card"><span class="tlabel">// PEOPLE</span><h3 class="card-title">{{ headline.people }}</h3><p class="text-muted">{{ headline.verified }} verified</p></div>
+  <div class="card"><span class="tlabel">// SUBMITTED</span><h3 class="card-title">{{ headline.submitted }}</h3><p class="text-muted">{{ headline.awaiting_review }} awaiting review</p></div>
+  <div class="card"><span class="tlabel">// APPROVED</span><h3 class="card-title">{{ headline.approved }}</h3><p class="text-muted"><a href="{% url 'accounts:team_list' %}?status=submitted">Review queue</a></p></div>
+</div>
+
+{% if headline.unverified or headline.manual_checks or headline.open_invitations %}
+<div class="card" style="margin-bottom:1.5rem; border-left:4px solid var(--gold);">
+  <span class="tlabel">// NEEDS_ATTENTION</span>
+  <ul style="margin:0.5rem 0 0 1.25rem;">
+    {% if headline.unverified %}<li>{{ headline.unverified }} account{{ headline.unverified|pluralize }} on a roster with an unverified email address.</li>{% endif %}
+    {% if headline.manual_checks %}<li>{{ headline.manual_checks }} student{{ headline.manual_checks|pluralize }} awaiting a manual institution check &mdash; <a href="{% url 'accounts:user_list' %}?manual=1">confirm them</a>.</li>{% endif %}
+    {% if headline.open_invitations %}<li>{{ headline.open_invitations }} invitation{{ headline.open_invitations|pluralize }} still unaccepted; a team cannot submit with one open.</li>{% endif %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="chart-grid" style="align-items:start; margin-bottom:1.5rem;">
+  <div class="card">
+    <span class="tlabel">// FUNNEL</span>
+    <h3 class="card-title">Where people are</h3>
+    <table class="table">
+      <tbody>
+        {% for stage in funnel %}
+          <tr>
+            <td style="width:42%;">{{ stage.label }}</td>
+            <td class="cell-num" style="width:12%;"><strong>{{ stage.count }}</strong></td>
+            <td>
+              <div style="background:var(--surface-off);height:10px;border-radius:5px;overflow:hidden;">
+                <div style="width:{{ stage.percent }}%;height:10px;background:var(--primary);"></div>
+              </div>
+            </td>
+            <td class="cell-num" style="width:12%;"><span class="form-help">{{ stage.percent }}%</span></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <span class="tlabel">// BLOCKERS</span>
+    <h3 class="card-title">What is holding teams up</h3>
+    {% if blockers %}
+      <table class="table">
+        <tbody>
+          {% for item in blockers %}
+            <tr><td>{{ item.label }}</td><td class="cell-num"><strong>{{ item.count }}</strong></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="form-help" style="margin-top:0.75rem;">// Counted from the same checklist captains and members see.</p>
+    {% else %}
+      <p class="text-muted">Nothing outstanding across the field.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="chart-grid" style="align-items:start; margin-bottom:1.5rem;">
+  <div class="card">
+    <span class="tlabel">// STATUS</span>
+    <h3 class="card-title">Teams by status</h3>
+    <table class="table">
+      <tbody>
+        {% for row in statuses %}<tr><td>{{ row.label }}</td><td class="cell-num"><strong>{{ row.count }}</strong></td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <span class="tlabel">// TRACKS</span>
+    <h3 class="card-title">Teams by track</h3>
+    {% if tracks %}
+      <table class="table">
+        <tbody>
+          {% for row in tracks %}<tr><td>{{ row.label }}</td><td class="cell-num"><strong>{{ row.count }}</strong></td></tr>{% endfor %}
+        </tbody>
+      </table>
+    {% else %}<p class="text-muted">No teams yet.</p>{% endif %}
+  </div>
+  <div class="card">
+    <span class="tlabel">// INSTITUTIONS</span>
+    <h3 class="card-title">Where teams come from</h3>
+    {% if institutions %}
+      <table class="table">
+        <tbody>
+          {% for row in institutions %}<tr><td>{{ row.label }}</td><td class="cell-num"><strong>{{ row.count }}</strong></td></tr>{% endfor %}
+        </tbody>
+      </table>
+    {% else %}<p class="text-muted">No teams yet.</p>{% endif %}
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1.5rem;">
+  <span class="tlabel">// APPLICATION_DEMAND</span>
+  <h3 class="card-title">Proposals per application</h3>
+  <p class="text-muted" style="margin-bottom:1rem;">Each application is built twice, once in each JengaBank instance. Demand decides how competitive selection is for each one.</p>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Code</th><th>Application</th><th class="cell-num">Teams</th><th class="cell-num">Proposals</th><th class="cell-num">Cap</th><th>Fill</th></tr></thead>
+      <tbody>
+        {% for b in briefs %}
+          <tr>
+            <td class="cell-mono">{{ b.code }}</td>
+            <td>{{ b.name }}{% if b.is_optional %} {% include "components/badge.html" with label="Optional" color="muted" %}{% endif %}</td>
+            <td class="cell-num">{{ b.teams }}</td>
+            <td class="cell-num">{{ b.proposals }}</td>
+            <td class="cell-num">{{ b.cap }}</td>
+            <td style="width:26%;">
+              <div style="background:var(--surface-off);height:10px;border-radius:5px;overflow:hidden;">
+                <div style="width:{{ b.percent }}%;height:10px;background:{% if b.percent >= 100 %}var(--danger){% else %}var(--primary-light){% endif %};"></div>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6"><div class="table-empty">// No applications seeded — run seed_application_briefs</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <span class="tlabel">// SIGNUPS</span>
+  <h3 class="card-title">Accounts created, last 14 days</h3>
+  <div style="display:flex; align-items:flex-end; gap:6px; height:120px; margin-top:1rem;">
+    {% for day in signups %}
+      <div style="flex:1; text-align:center;" title="{{ day.date|date:'j M' }}: {{ day.count }}">
+        <div style="background:var(--primary);height:{{ day.percent }}px;min-height:2px;border-radius:3px 3px 0 0;"></div>
+        <div class="form-help" style="font-size:9px; margin-top:4px;">{{ day.date|date:"j" }}</div>
+      </div>
+    {% endfor %}
+  </div>
+  <p class="form-help" style="margin-top:0.75rem;">// Bars scale to the busiest day in the window.</p>
+</div>
+
+<p style="margin-top:1.5rem;">
+  {% url 'reports:index' as reports_url %}
+  {% include "components/button.html" with label="Export this data" href=reports_url variant="ghost" size="sm" %}
+</p>
+{% endblock %}

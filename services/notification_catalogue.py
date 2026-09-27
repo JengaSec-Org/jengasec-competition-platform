@@ -110,15 +110,20 @@ def invitation_sent(email, team, captain, accept_url, expires_days=7, invitee_us
             send_email=True,
             dedupe_key="",  # a re-invitation is deliberate
         )
-    # No account yet: nothing to attach an in-app row to, so send directly.
-    from django.core.mail import send_mail
+    # No account yet: nothing to attach an in-app row to, so send directly --
+    # branded like every other message, since this is the first thing the
+    # invitee ever sees from JengaSec.
+    from services.email_render import send_branded
 
-    send_mail(
-        subject=f"You have been invited to {team.team_name}",
-        message=body + "\n\n--\nJengaSec Evaluation Platform",
-        from_email=None,
-        recipient_list=[email],
-        fail_silently=True,
+    send_branded(
+        f"You have been invited to {team.team_name}",
+        body,
+        email,
+        link=accept_url,
+        kicker="Team invitation",
+        action_label="Accept the invitation",
+        note=f"This invitation expires in {expires_days} days. You will need a "
+             f"JengaSec account under this exact address to accept it.",
     )
     return {"to": email, "subject": f"You have been invited to {team.team_name}", "body": body}
 
@@ -243,6 +248,7 @@ def registration_approved(team, assignment=None, resources=()):
     deadlines = [
         ("Registration closes", settings_row.registration_deadline),
         ("Build deadline", settings_row.build_deadline),
+        ("Proposal deadline", settings_row.proposal_deadline),
         ("Submission deadline", settings_row.submission_deadline),
     ]
     known = [(label, when) for label, when in deadlines if when]
@@ -396,7 +402,9 @@ def submission_returned_incomplete(submission, check):
             "\n\nAlso not found (each scores zero for its criterion unless added):\n"
             + "\n".join(f"  - {name}" for name in sections)
         )
-    deadline = submission.competition.settings.submission_deadline
+    deadline = submission.competition.settings.deadline_for_type(
+        submission.submission_type.name
+    )
     window = (
         f"Upload a corrected version and submit again before "
         f"{deadline:%d %b %Y at %H:%M}." if deadline else "Upload a corrected version and submit again."

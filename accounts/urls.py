@@ -1,7 +1,41 @@
+from django.conf import settings
 from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
+from competitions.constants import EDITION
+
 from . import views
+
+
+def password_reset_email_context():
+    """Everything the branded email layout needs that Django does not supply.
+
+    PasswordResetView renders its templates itself, so the layout's
+    context has to be handed over here rather than built in
+    services.email_render like every other message.
+    """
+    from services.email_render import asset_url
+
+    hours = settings.PASSWORD_RESET_TIMEOUT // 3600
+    return {
+        "site_url": settings.SITE_URL.rstrip("/"),
+        "edition": EDITION,
+        "kicker": "Password reset",
+        "action_label": "Set a new password",
+        "timeout_hours": hours,
+        "notification": {"subject": "Reset your JengaSec password"},
+        "blocks": [
+            {"kind": "text",
+             "text": "Someone asked to reset the password for your JengaSec account."},
+            {"kind": "text",
+             "text": f"The link below can be used once and expires in {hours} hours."},
+        ],
+        "note": ("If you did not ask for this, ignore this message — your password "
+                 "is unchanged and nothing else will be sent."),
+        "preheader": "Set a new password for your JengaSec account.",
+        "logo_url": asset_url("images/logo.png"),
+        "club_logo_url": asset_url("logo/scsc-logo.png"),
+    }
 
 app_name = "accounts"
 
@@ -51,7 +85,10 @@ urlpatterns = [
         "password-reset/",
         auth_views.PasswordResetView.as_view(
             template_name="accounts/forgot_password.html",
+            subject_template_name="accounts/password_reset_subject.txt",
             email_template_name="accounts/password_reset_email.txt",
+            html_email_template_name="accounts/password_reset_email.html",
+            extra_email_context=password_reset_email_context(),
             success_url=reverse_lazy("accounts:password_reset_done"),
         ),
         name="password_reset",

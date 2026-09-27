@@ -974,7 +974,7 @@ motionToggle.addEventListener('click',()=>{
   location.href=url.href;
 });
 
-{const mode=new URLSearchParams(location.search).get('motion');if(mode)document.querySelectorAll('a[href$=".html"],a[href*=".html#"]').forEach(link=>{const u=new URL(link.href,location.href);if(u.origin===location.origin){u.searchParams.set('motion',mode);link.href=u.href;}});}
+{const mode=new URLSearchParams(location.search).get('motion');if(mode)document.querySelectorAll('a[href^="/"]').forEach(link=>{const u=new URL(link.href,location.href);if(u.origin===location.origin){u.searchParams.set('motion',mode);link.href=u.href;}});}
 if('scrollRestoration' in history)history.scrollRestoration='manual';
 if(!location.hash)window.scrollTo(0,0);
 

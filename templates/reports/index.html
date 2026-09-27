@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Exports | JengaSec{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="REPORTS" title="Exports" %}
+
+<p class="text-muted" style="margin-bottom:1.5rem; max-width:70ch;">
+  CSV, so the rows go straight into a spreadsheet: filtering the eligibility
+  columns, mail-merging the captains, handing the venue a headcount. Opens
+  correctly in Excel, Google Sheets and LibreOffice.
+</p>
+
+{% for competition in competitions %}
+<div class="card" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// {{ competition.name|upper }}</span>
+  <h3 class="card-title">{{ competition.name }}</h3>
+  <p class="text-muted" style="margin-bottom:1rem;">{{ competition.get_status_display }} &middot; {{ competition.get_phase_display }}</p>
+  <div class="table-wrap">
+    <table class="table">
+      <tbody>
+        {% for kind, label in exports %}
+          <tr>
+            <td>{{ label }}</td>
+            <td class="cell-mono"><span class="form-help">{{ kind }}.csv</span></td>
+            <td style="text-align:right;">
+              <a class="btn btn-ghost btn-sm" href="{% url 'reports:export_csv' competition.pk kind %}">Download</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% empty %}
+<div class="card"><div class="table-empty">// No competitions yet</div></div>
+{% endfor %}
+{% endblock %}

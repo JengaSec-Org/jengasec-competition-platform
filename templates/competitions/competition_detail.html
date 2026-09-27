@@ -114,6 +114,7 @@
       <tbody>
         <tr><td class="cell-mono">REGISTRATION</td><td>{{ settings.registration_deadline|date:"Y-m-d H:i"|default:"— not set" }}</td></tr>
         <tr><td class="cell-mono">BUILD</td><td>{{ settings.build_deadline|date:"Y-m-d H:i"|default:"— not set" }}</td></tr>
+        <tr><td class="cell-mono">PROPOSALS</td><td>{{ settings.proposal_deadline|date:"Y-m-d H:i"|default:"— falls back to submission" }}</td></tr>
         <tr><td class="cell-mono">SUBMISSION</td><td>{{ settings.submission_deadline|date:"Y-m-d H:i"|default:"— not set" }}</td></tr>
         <tr><td class="cell-mono">PROPOSALS / TEAM</td><td>{{ settings.max_proposals_per_team }}</td></tr>
         <tr><td class="cell-mono">DEFAULT CAP</td><td>{{ settings.default_proposal_cap }}</td></tr>

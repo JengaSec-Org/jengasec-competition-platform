@@ -72,7 +72,19 @@ Refuses unless `DEBUG=True`. Gives you one competition (`JengaSec 2026`) with de
 * Rubrics and their criteria: Judging → Rubrics. The structure check maps a missing proposal section to the criterion whose name contains the keyword in `competitions/constants.py` (`REQUIRED_SECTIONS`, `TRACK_EXTRA_SECTIONS`) — name your criteria so those words appear (e.g. "Architecture quality", "Risk management").
 * Recognised institutional email domains: `accounts/institutions.py` (code, not data).
 
-## 4. Fresh production checklist
+## 4. Before you take real registrations
+
+```bash
+python manage.py preflight
+```
+
+Checks the deployment rather than the code: DEBUG, SECRET_KEY,
+ALLOWED_HOSTS, SITE_URL, the database engine, whether uploads survive a
+deploy, whether email can actually leave the box, and whether there is an
+open competition with briefs, a published code of conduct and an
+organiser account. Exits non-zero on a blocker, so it can gate a deploy.
+
+## 5. Fresh production checklist
 
 ```bash
 python manage.py migrate
@@ -81,4 +93,11 @@ python manage.py seed_policy --file conduct.md
 # then in the UI: create the competition, set deadlines + enforcement level, and:
 python manage.py seed_application_briefs --competition <id>
 python manage.py check_email --send-to you@example.com
+python manage.py preflight          # must report no blockers
+```
+
+Then delete the development seed accounts if any reached this database:
+
+```bash
+python manage.py shell -c "from django.contrib.auth.models import User; User.objects.filter(email__endswith='@jengasec.test').delete()"
 ```

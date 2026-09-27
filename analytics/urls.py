@@ -1,6 +1,10 @@
-﻿from django.urls import path
+from django.urls import path
+
+from . import views
 
 app_name = "analytics"
 
-urlpatterns = []
-
+urlpatterns = [
+    path("", views.registration_analytics, name="registration"),
+    path("<int:pk>/", views.registration_analytics, name="registration_for"),
+]

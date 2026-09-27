@@ -197,7 +197,7 @@ nav.scrolled .hamburger span{background:var(--black)}
 .hero{min-height:100vh;display:flex;flex-direction:column;
   justify-content:flex-end;padding:0 5% 4rem;position:relative;overflow:hidden}
 .hero-img{position:absolute;inset:-4%;
-  background-image:url('{% static "images/Jengasec.jpg" %}');
+  background-image:url('{% static 'images/Jengasec.jpg' %}');
   background-size:cover;background-position:center;
   background-repeat:no-repeat;background-color:#0A1F10;
   will-change:transform;transition:transform 0.18s ease-out}
@@ -238,9 +238,10 @@ nav.scrolled .hamburger span{background:var(--black)}
   background:rgba(4,14,7,0.82);border:1px solid rgba(0,200,80,0.22);
   backdrop-filter:blur(6px);box-shadow:0 20px 60px rgba(0,0,0,0.5),inset 0 0 30px rgba(0,200,80,0.03);
   font-family:'Space Mono',monospace;overflow:hidden}
-.hero-term::after{content:'';position:absolute;inset:0;pointer-events:none;
+.hero-term::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;
   background:repeating-linear-gradient(0deg,transparent,transparent 2px,
     rgba(0,200,80,0.04) 2px,rgba(0,200,80,0.04) 4px)}
+.term-head,.term-body{position:relative;z-index:1}
 .term-head{display:flex;align-items:center;gap:0.6rem;
   padding:0.55rem 0.9rem;border-bottom:1px solid rgba(0,200,80,0.15);
   background:rgba(0,25,10,0.7)}
@@ -400,6 +401,28 @@ nav.scrolled .nav-login:hover .nav-login-btn{color:var(--g);border-color:var(--g
    hide the nav's login + hamburger so nothing overlaps it */
 .mmenu.open ~ nav .nav-login,
 .mmenu.open ~ nav .hamburger{visibility:hidden;pointer-events:none}
+.nav-register{padding:0.5rem 1.4rem;background:var(--g);color:var(--white);
+  font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;
+  font-family:'Space Mono',monospace;text-decoration:none;border:2px solid var(--g);
+  display:inline-block;white-space:nowrap;transition:background 0.2s,color 0.2s,box-shadow 0.2s}
+.nav-register:hover{background:transparent;color:var(--gl);border-color:var(--gl);
+  box-shadow:0 0 22px rgba(0,200,80,0.35)}
+nav.scrolled .nav-register{color:var(--white)}
+nav.scrolled .nav-register:hover{color:var(--g)}
+.nr-short{display:none}
+/* Seven links, a hint, Login, Register and the partner CTA do not fit
+   together below about 1500px. Shed them in order of how much each is
+   worth on a marketing page: the hint first, then the button's own long
+   label, then the partner CTA -- registering is the point of the site,
+   so it survives to the narrowest width. */
+@media(max-width:1500px){
+  .nav-login-hint{display:none}
+  .nr-long{display:none}
+  .nr-short{display:inline}
+}
+@media(max-width:1180px){.nav-cta{display:none}}
+@media(max-width:1100px){.nav-register{padding:0.45rem 1rem;font-size:11px}}
+@media(max-width:560px){.nav-register{padding:0.4rem 0.75rem;font-size:10px;letter-spacing:0.04em}}
 .magnetic{will-change:transform}
 
 /* countdown */
@@ -588,6 +611,26 @@ nav.scrolled .nav-login:hover .nav-login-btn{color:var(--g);border-color:var(--g
 .slide-l{opacity:0;transform:translateX(-44px);transition:opacity 0.7s cubic-bezier(0.22,1,0.36,1),transform 0.7s cubic-bezier(0.22,1,0.36,1)}
 .slide-r{opacity:0;transform:translateX(44px);transition:opacity 0.7s cubic-bezier(0.22,1,0.36,1),transform 0.7s cubic-bezier(0.22,1,0.36,1)}
 .slide-l.visible,.slide-r.visible{opacity:1;transform:translateX(0)}
+@media(prefers-reduced-motion:reduce){
+  .fade-up,.slide-l,.slide-r,.sh-title,.sh-line{transition:none}
+  .slide-l,.slide-r{transform:translateY(0)}
+}
+/* .slide-l.visible/.slide-r.visible above set transform:translateX(0) at
+   specificity (0,2,0), higher than the neon cards' own resting
+   transform:translateY(-10px) at (0,1,0), so it was winning and lit/arming
+   cards never sat raised once revealed. Override at higher specificity.
+   :not(:hover) leaves the separate :hover lift (and the tilt JS's inline
+   transform) free to keep working. */
+.how-card.slide-l.visible[data-status="lit"]:not(:hover),
+.how-card.slide-r.visible[data-status="lit"]:not(:hover),
+.how-card.slide-l.visible[data-status="arming"]:not(:hover),
+.how-card.slide-r.visible[data-status="arming"]:not(:hover){transform:translateY(-10px)}
+@media(max-width:768px){
+  .how-card.slide-l.visible[data-status="lit"]:not(:hover),
+  .how-card.slide-r.visible[data-status="lit"]:not(:hover),
+  .how-card.slide-l.visible[data-status="arming"]:not(:hover),
+  .how-card.slide-r.visible[data-status="arming"]:not(:hover){transform:translateY(-4px)}
+}
 
 /* ============ HOW IT WORKS ============ */
 .sec-how{padding:6rem 5%;background:var(--off);position:relative;overflow:hidden}
@@ -639,6 +682,130 @@ nav.scrolled .nav-login:hover .nav-login-btn{color:var(--g);border-color:var(--g
 .how-swahili{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.1em;
   text-transform:uppercase;color:var(--gl);margin-bottom:0.85rem;position:relative;z-index:1}
 .how-desc{font-size:13px;line-height:1.8;color:var(--muted);position:relative;z-index:1}
+
+/* ============ PHASE CARD LINKS (BUILD + MORANI → prepare.html) ============ */
+.phase-link{cursor:pointer}
+.phase-link:focus-visible{outline:2px solid var(--gold2);outline-offset:3px}
+.how-prep-tag{display:block;margin-top:1.1rem;font-family:'Space Mono',monospace;
+  font-size:11px;letter-spacing:0.1em;text-transform:uppercase;position:relative;z-index:1}
+[data-status="arming"] .how-name.glitch{color:var(--black)}
+[data-status="arming"] .how-name.glitch:hover{color:var(--black)}
+@media(prefers-reduced-motion:reduce){
+  [data-status="arming"] .how-name.glitch:hover::before,[data-status="arming"] .how-name.glitch:hover::after{animation:none;opacity:0}
+}
+
+/* ============ NEON STATUS CARDS (shared identically across index/prepare/partner) ============ */
+/* Ember dot + status line: unchanged mechanism, no beadwork, no fire-glow overlay. */
+[data-status]{position:relative}
+.fire-status{display:flex;align-items:center;gap:0.5rem;font-family:'Space Mono',monospace;
+  font-size:10px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.85rem;
+  position:relative;z-index:2}
+.fire-status::before{content:'';width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;
+  border:1px solid var(--muted);background:transparent;box-sizing:border-box}
+.fire-status::after{content:'// STATUS :: DORMANT';color:var(--muted)}
+[data-status="lit"] .fire-status::before,[data-status="arming"] .fire-status::before{
+  border:none;
+  background:radial-gradient(circle at 35% 30%,#fff,rgba(var(--neon),1) 45%,transparent 78%);
+  box-shadow:0 0 6px rgba(var(--neon),.9),0 0 14px rgba(var(--neon),.5);
+  animation:emberPulse 1.9s ease-in-out infinite}
+[data-status="arming"] .fire-status::before{animation-duration:2.4s}
+[data-status="lit"] .fire-status::after{content:'// STATUS :: LIT';color:var(--gl)}
+[data-status="arming"] .fire-status::after{content:'// STATUS :: ARMING';color:var(--red);opacity:.8}
+@keyframes emberPulse{
+  0%,100%{opacity:1}
+  50%{opacity:.45}
+}
+
+/* Permanently-raised neon treatment for lit/arming cards.
+   Uses filter:drop-shadow, NOT box-shadow: .how-card has overflow:hidden,
+   which clips box-shadow (that was why the old pulse never showed) but
+   never clips filter, and the tilt JS below only ever touches
+   card.style.transform, so it cannot cancel this either. */
+[data-status="lit"],[data-status="arming"]{
+  transform:translateY(-10px);
+  border-top-width:3px;border-top-style:solid;
+  animation:neonPulse 1.9s ease-in-out infinite !important;
+  will-change:filter;
+}
+[data-status="lit"]{--neon:0,200,83;border-top-color:var(--gl)}
+[data-status="arming"]{--neon:179,0,12;border-top-color:var(--red);animation-duration:2.4s !important}
+@keyframes neonPulse{
+  0%,100%{
+    filter:drop-shadow(0 0 4px rgba(var(--neon),.8))
+           drop-shadow(0 0 18px rgba(var(--neon),.6))
+           drop-shadow(0 0 46px rgba(var(--neon),.38));
+    border-top-color:rgba(var(--neon),1)}
+  50%{
+    filter:drop-shadow(0 0 1px rgba(var(--neon),.1))
+           drop-shadow(0 0 4px rgba(var(--neon),.04))
+           drop-shadow(0 0 0 rgba(var(--neon),0));
+    border-top-color:rgba(var(--neon),.3)}
+}
+@keyframes neonPulseMobile{
+  0%,100%{
+    filter:drop-shadow(0 0 2px rgba(var(--neon),.8))
+           drop-shadow(0 0 9px rgba(var(--neon),.6))
+           drop-shadow(0 0 23px rgba(var(--neon),.38));
+    border-top-color:rgba(var(--neon),1)}
+  50%{
+    filter:drop-shadow(0 0 0.5px rgba(var(--neon),.1))
+           drop-shadow(0 0 2px rgba(var(--neon),.04))
+           drop-shadow(0 0 0 rgba(var(--neon),0));
+    border-top-color:rgba(var(--neon),.3)}
+}
+[data-status="lit"]:hover,[data-status="arming"]:hover{
+  transform:translateY(-16px);
+  animation-play-state:paused !important;
+}
+
+/* .spot fixed (not mouse-tracked) and permanently on for lit/arming; cnr always visible; bg-num at hover state */
+[data-status="lit"] .spot,[data-status="arming"] .spot{opacity:1;--mx:50%;--my:35%}
+[data-status="lit"] .spot{background:radial-gradient(240px circle at var(--mx) var(--my),rgba(0,200,80,0.10),transparent 65%)}
+[data-status="arming"] .spot{background:radial-gradient(240px circle at var(--mx) var(--my),rgba(179,0,12,0.08),transparent 65%)}
+[data-status="lit"] .cnr,[data-status="arming"] .cnr{opacity:1;transform:translate(0,0)}
+[data-status="arming"] .cnr-tl,[data-status="arming"] .cnr-br{border-color:var(--red)}
+[data-status="lit"] .how-bg-num,[data-status="arming"] .how-bg-num,
+[data-status="lit"] .pp-track-bgnum,[data-status="arming"] .pp-track-bgnum{transform:translateY(-4px)}
+[data-status="lit"] .how-bg-num{color:rgba(0,122,61,0.09)}
+[data-status="arming"] .how-bg-num{color:rgba(179,0,12,0.1)}
+[data-status="lit"] .pp-track-bgnum{color:rgba(0,200,80,0.1)}
+[data-status="arming"] .pp-track-bgnum{color:rgba(255,60,70,0.12)}
+/* borderflow idle shimmer (existing ::after on card classes) recolored to state */
+[data-status="arming"]::after{background:linear-gradient(90deg,transparent,rgba(179,0,12,0.9),transparent);
+  background-size:200% 100%}
+
+@media(prefers-reduced-motion:reduce){
+  [data-status="lit"] .fire-status::before,[data-status="arming"] .fire-status::before{animation-duration:4s}
+  [data-status="lit"] .fire-status::before{opacity:.9}
+  [data-status="arming"] .fire-status::before{opacity:.7}
+  [data-status="lit"],[data-status="arming"]{
+    animation:neonPulseCalm 4s ease-in-out infinite !important}
+}
+@keyframes neonPulseCalm{
+  0%,100%{filter:drop-shadow(0 0 4px rgba(var(--neon),.8))
+                 drop-shadow(0 0 18px rgba(var(--neon),.6))
+                 drop-shadow(0 0 46px rgba(var(--neon),.38))}
+  50%{filter:drop-shadow(0 0 4px rgba(var(--neon),.4))
+             drop-shadow(0 0 18px rgba(var(--neon),.3))
+             drop-shadow(0 0 46px rgba(var(--neon),.19))}
+}
+@media(max-width:768px){
+  [data-status="lit"],[data-status="arming"]{
+    transform:translateY(-4px);
+    animation-name:neonPulseMobile !important}
+  [data-status="lit"]:hover,[data-status="arming"]:hover{transform:translateY(-8px)}
+  .fire-status,.how-prep-tag,.pp-badge,.pp-stamp{font-size:10px;white-space:nowrap}
+}
+
+/* ---- shared terminal scanline sweep (extracted from hero-beam, used on every terminal panel) ---- */
+.term-sweep{position:absolute;left:0;right:0;height:1px;z-index:2;pointer-events:none;
+  background:var(--gl);opacity:0.08;box-shadow:0 0 6px rgba(0,200,83,0.3);
+  animation:termSweepMove 7s linear infinite}
+@keyframes termSweepMove{0%{top:0%}100%{top:100%}}
+@media(prefers-reduced-motion:reduce){.term-sweep{animation:none;display:none}}
+
+/* ---- shared digital rain canvas (inside terminal panels only) ---- */
+.term-rain{position:absolute;inset:0;z-index:0;pointer-events:none}
 
 /* ============ STATS ============ */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);
@@ -767,7 +934,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
 /* ============ SPEAKERS — classified dossiers, Maasai craft ============ */
 .sec-speak{background:var(--dg);color:var(--white);padding:6rem 5%;position:relative;overflow:hidden;isolation:isolate}
 .speak-bg{position:absolute;inset:0;z-index:-2;
-  background-image:url('{% static "images/speakers-bg.jpg" %}');background-size:cover;background-position:center;background-attachment: fixed; 
+  background-image:url('{% static 'images/speakers-bg.jpg' %}');background-size:cover;background-position:center;background-attachment: fixed; 
   background-color:var(--dg)}
 .speak-overlay{position:absolute;inset:0;z-index:-1;
   background:linear-gradient(160deg,rgba(6,26,15,0.94) 0%,rgba(8,32,18,0.82) 45%,rgba(4,16,9,0.96) 100%)}
@@ -927,20 +1094,18 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
 
 <div class="mmenu" id="mm" aria-hidden="true">
   <button class="mclose" id="mc" aria-label="Close menu">CLOSE ✕</button>
-
   <a href="#how" onclick="cm()">How It Works</a>
   <a href="#road" onclick="cm()">Timeline</a>
   <a href="#speakers" onclick="cm()">Speakers</a>
   <a href="#numbers" onclick="cm()">Numbers</a>
   <a href="#faq" onclick="cm()">FAQ</a>
   <a href="{% url 'prepare' %}" onclick="cm()">Prepare</a>
-  <a href="{% url 'partner' %}" onclick="cm()">Partner With Us</a>
+  <a href="{% url 'accounts:register' %}" onclick="cm()">Register as a participant →</a>
   <a href="#contact" onclick="cm()">Contact</a>
-  <a href="#contact" onclick="cm()" style="color:var(--gold)">Partner With Us →</a>
-  <a href="{% url 'accounts:register' %}" style="color:var(--gl)">Register Your Team →</a>
+  <a href="{% url 'partner' %}" onclick="cm()" style="color:var(--gold)">Partner With Us →</a>
   <div class="mmenu-login">
     <span>Already registered or an active party?</span>
-    <a href="{% url 'login' %}">Login →</a>
+    <a href="{% url 'login' %}" onclick="cm()">Login →</a>
   </div>
 </div>
 
@@ -963,6 +1128,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
       <span class="nav-login-hint">Already registered or an active party?</span>
       <span class="nav-login-btn">Login</span>
     </a>
+    
     <a href="{% url 'partner' %}" class="nav-cta magnetic">Partner With Us</a>
     <button class="hamburger" id="mb" aria-label="Open menu">
       <span></span><span></span><span></span>
@@ -985,6 +1151,8 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
 
   <!-- live simulation feed — streams forever -->
   <aside class="hero-term" aria-label="Simulated live event feed">
+    <canvas class="term-rain" id="termRain" aria-hidden="true"></canvas>
+    <div class="term-sweep" aria-hidden="true"></div>
     <div class="term-head">
       <div class="term-dots"><span></span><span></span><span></span></div>
       <span class="term-title">morani_feed.log</span>
@@ -1003,10 +1171,8 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
     <p class="hero-tagline" id="tw"></p>
     <div class="hero-decode" id="dec" data-value="> CTFs AND HACKATHONS DON'T CUT IT ANYMORE.">&gt; CTFs AND HACKATHONS DON'T CUT IT ANYMORE.</div>
     <div class="hero-ctas">
-      <!-- Registration is by email for now; swap for the platform's
-           online team registration page when Pair 1 ships it. -->
-      <a href="{% url 'accounts:register' %}" class="btn-green magnetic">Register Your Team</a>
-      <a href="#contact" class="btn-red magnetic">Partner With Us</a>
+      <a href="{% url 'accounts:register' %}" class="btn-green magnetic">Register as a participant</a>
+      <a href="{% url 'partner' %}" class="btn-red magnetic">Partner With Us</a>
       <a href="#how" class="btn-ghost magnetic">How It Works</a>
     </div>
     <div class="hero-count" id="countdown" role="timer" aria-label="Countdown to JengaSec 2026">
@@ -1022,27 +1188,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
   </div>
 </section>
 
-<!-- PARTNERS — /logo/ folder, natural colour, mix-blend on dark bg -->
-<div class="partners">
-  <div class="partners-inner">
-    <span class="partners-label">// In partnership with</span>
-    <div class="partners-logos">
-      <div class="plogo"><img src="{% static 'logo/SCSC LOGO.png' %}" alt="Strathmore Cybersecurity Club"></div>
-      <div class="plogo"><img src="{% static 'logo/Strath.png' %}" alt="Strathmore University"></div>
-      <div class="plogo"><img src="{% static 'logo/KCA.png' %}" alt="KCA Cybersecurity Club"></div>
-      <div class="plogo"><img src="{% static 'logo/SheLeadsTech_Logo.png' %}" alt="She Leads Tech"></div>
-      <div class="plogo"><img src="{% static 'logo/scesa.png' %}" alt="SCESA"></div>
-      <div class="plogo"><img src="{% static 'logo/ISG Strath.png' %}" alt="ISACA Student Chapter Strathmore"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ============================================================
-     SPONSORS — uncomment when confirmed. Currently showing 3.
-     To add more: duplicate .sp-logo-wrap blocks.
-     When you reach 6+, add class "marquee" to .sp-logos and
-     wrap all .sp-logo-wrap in &lt;div class="sp-logos-track"&gt;×2
-     ============================================================ -->
+<!-- ============ SPONSORS — "Powered by" section — now FIRST ============ -->
 <div class="sec-sponsors fade-up">
   <div class="sp-hd">
     <div class="sp-eyebrow">// 2026_CORE_PARTNERS</div>
@@ -1064,27 +1210,34 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
     <!-- CORE 02: ISACA Kenya Chapter -->
     <div class="sp-logo-wrap fade-up" style="transition-delay:0.1s">
       <div class="sp-logo-frame">
-        <img src="{% static 'logo/ISACA Kenya.png' %}" alt="ISACA Kenya Chapter">
+        <img src="{% static 'logo/isaca-kenya.png' %}" alt="ISACA Kenya Chapter">
       </div>
       <div class="sp-logo-rank"><i></i>CORE_02</div>
       <div class="sp-logo-name">ISACA Kenya Chapter</div>
     </div>
-
+    <!-- CORE 04: Hack The Box — drop logo/iLab Africa in when ready -->
+    <div class="sp-logo-wrap slide-r" style="transition-delay:0.2s">
+      <div class="sp-logo-frame sp-pending" id="da-frame">
+        <img src="{% static 'logo/HTB-Logo-RGB_BRC-Site-300.png' %}" alt="Hack The Box" id="da-img">
+      </div>
+      <div class="sp-logo-rank"><i></i>CORE_03</div>
+      <div class="sp-logo-name">Hack The Box</div>
+    </div>
     <!-- CORE 03: Digital Africa — drop logo/DigitalAfrica.png in when ready -->
     <div class="sp-logo-wrap slide-r" style="transition-delay:0.2s">
       <div class="sp-logo-frame sp-pending" id="da-frame">
         <img src="{% static 'logo/DigitalAfrica.png' %}" alt="Digital Africa" id="da-img">
       </div>
-      <div class="sp-logo-rank"><i></i>CORE_03</div>
+      <div class="sp-logo-rank"><i></i>CORE_04</div>
       <div class="sp-logo-name">Digital Africa</div>
     </div>
 
-    <!-- CORE 04: iLab Africa -->
+    <!-- CORE 04: iLab Africa — drop logo/iLab Africa in when ready -->
     <div class="sp-logo-wrap slide-r" style="transition-delay:0.2s">
-      <div class="sp-logo-frame sp-pending">
-        <img src="{% static 'logo/iLab.png' %}" alt="iLab Africa">
+      <div class="sp-logo-frame sp-pending" id="da-frame">
+        <img src="{% static 'logo/iLab.png' %}" alt="iLab Africa" id="da-img">
       </div>
-      <div class="sp-logo-rank"><i></i>CORE_04</div>
+      <div class="sp-logo-rank"><i></i>CORE_05</div>
       <div class="sp-logo-name">iLab Africa</div>
     </div>
 
@@ -1099,16 +1252,31 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
   </div>
 </div>
 
+<!-- ============ PARTNERS — "In partnership with" section — now SECOND ============ -->
+<div class="partners">
+  <div class="partners-inner">
+    <span class="partners-label">// In partnership with</span>
+    <div class="partners-logos">
+      <div class="plogo"><img src="{% static 'logo/scsc-logo.png' %}" alt="Strathmore Cybersecurity Club"></div>
+      <div class="plogo"><img src="{% static 'logo/Strath.png' %}" alt="Strathmore University"></div>
+      <div class="plogo"><img src="{% static 'logo/KCA.png' %}" alt="KCA Cybersecurity Club"></div>
+      <div class="plogo"><img src="{% static 'logo/SheLeadsTech_Logo.png' %}" alt="She Leads Tech"></div>
+      <div class="plogo"><img src="{% static 'logo/scesa.png' %}" alt="She Leads Tech"></div>
+      <div class="plogo"><img src="{% static 'logo/isg-strathmore.png' %}" alt="ISACA Student Chapter Strathmore"></div>
+    </div>
+  </div>
+</div>
+
 <div class="ticker" aria-hidden="true">
   <div class="ticker-track">
-    <span class="ti g">APT_SIMULATION</span><span class="ti">APPLICATION_SECURITY</span><span class="ti g">RED_VS_BLUE</span><span class="ti">SOCIAL_ENGINEERING</span><span class="ti g">PRIVILEGE_ESCALATION</span><span class="ti">KIKAO_PANEL</span><span class="ti g">MAARIFA_SESSIONS</span><span class="ti">MORANI_HUNTING_GROUNDS</span><span class="ti g">JENGABANK</span><span class="ti">INSIDER_THREAT</span><span class="ti g">350+_PARTICIPANTS</span><span class="ti">FREE_ENTRY</span><span class="ti g">KENYA_PROVING_GROUND</span>
-    <span class="ti g">APT_SIMULATION</span><span class="ti">APPLICATION_SECURITY</span><span class="ti g">RED_VS_BLUE</span><span class="ti">SOCIAL_ENGINEERING</span><span class="ti g">PRIVILEGE_ESCALATION</span><span class="ti">KIKAO_PANEL</span><span class="ti g">MAARIFA_SESSIONS</span><span class="ti">MORANI_HUNTING_GROUNDS</span><span class="ti g">JENGABANK</span><span class="ti">INSIDER_THREAT</span><span class="ti g">350+_PARTICIPANTS</span><span class="ti">FREE_ENTRY</span><span class="ti g">KENYA_PROVING_GROUND</span>
+    <span class="ti g">APT_SIMULATION</span><span class="ti">CLOUD_SECURITY</span><span class="ti g">RED_VS_BLUE</span><span class="ti">SOCIAL_ENGINEERING</span><span class="ti g">PRIVILEGE_ESCALATION</span><span class="ti">KIKAO_PANEL</span><span class="ti g">MAARIFA_SESSIONS</span><span class="ti">MORANI_HUNTING_GROUNDS</span><span class="ti g">JENGABANK</span><span class="ti">INSIDER_THREAT</span><span class="ti g">350+_PARTICIPANTS</span><span class="ti">FREE_ENTRY</span><span class="ti g">KENYA_PROVING_GROUND</span>
+    <span class="ti g">APT_SIMULATION</span><span class="ti">CLOUD_SECURITY</span><span class="ti g">RED_VS_BLUE</span><span class="ti">SOCIAL_ENGINEERING</span><span class="ti g">PRIVILEGE_ESCALATION</span><span class="ti">KIKAO_PANEL</span><span class="ti g">MAARIFA_SESSIONS</span><span class="ti">MORANI_HUNTING_GROUNDS</span><span class="ti g">JENGABANK</span><span class="ti">INSIDER_THREAT</span><span class="ti g">350+_PARTICIPANTS</span><span class="ti">FREE_ENTRY</span><span class="ti g">KENYA_PROVING_GROUND</span>
   </div>
 </div>
 <div class="ticker" aria-hidden="true">
   <div class="ticker-track rev">
-    <span class="ti au">SQL_INJECTION</span><span class="ti">LATERAL_MOVEMENT</span><span class="ti au">AI_DEFENCE</span><span class="ti">AI_ASSISTED_HYBRID</span><span class="ti au">SERIKALI_SYSTEMS</span><span class="ti">CASCADING_DEPENDENCIES</span><span class="ti au">EXECUTIVE_REVIEW</span><span class="ti">STRATHMORE_NAIROBI</span><span class="ti au">BUILD_ATTACK_DEFEND</span><span class="ti">OCT_2026</span>
-    <span class="ti au">SQL_INJECTION</span><span class="ti">LATERAL_MOVEMENT</span><span class="ti au">AI_DEFENCE</span><span class="ti">AI_ASSISTED_HYBRID</span><span class="ti au">SERIKALI_SYSTEMS</span><span class="ti">CASCADING_DEPENDENCIES</span><span class="ti au">EXECUTIVE_REVIEW</span><span class="ti">STRATHMORE_NAIROBI</span><span class="ti au">BUILD_ATTACK_DEFEND</span><span class="ti">OCT_2026</span>
+    <span class="ti au">SQL_INJECTION</span><span class="ti">LATERAL_MOVEMENT</span><span class="ti au">CLOUD_EXPLOITATION</span><span class="ti">AI_ASSISTED_HYBRID</span><span class="ti au">SERIKALI_SYSTEMS</span><span class="ti">CASCADING_DEPENDENCIES</span><span class="ti au">EXECUTIVE_REVIEW</span><span class="ti">STRATHMORE_NAIROBI</span><span class="ti au">BUILD_ATTACK_DEFEND</span><span class="ti">OCT_2026</span>
+    <span class="ti au">SQL_INJECTION</span><span class="ti">LATERAL_MOVEMENT</span><span class="ti au">CLOUD_EXPLOITATION</span><span class="ti">AI_ASSISTED_HYBRID</span><span class="ti au">SERIKALI_SYSTEMS</span><span class="ti">CASCADING_DEPENDENCIES</span><span class="ti au">EXECUTIVE_REVIEW</span><span class="ti">STRATHMORE_NAIROBI</span><span class="ti au">BUILD_ATTACK_DEFEND</span><span class="ti">OCT_2026</span>
   </div>
 </div>
 
@@ -1130,23 +1298,26 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
 
     <!-- Phase 01 — Build (Pre-Event) -->
     <!-- Icon: icons/build.png — place in /icons/ folder -->
-    <div class="how-card tilt slide-l">
+    <div class="how-card tilt slide-l phase-link" id="phase-build-card" data-status="lit" tabindex="0" role="link" aria-label="Prepare now for JengaSec 2026, opens the preparation guide">
       <div class="spot"></div>
       <span class="cnr cnr-tl"></span><span class="cnr cnr-br"></span>
       <div class="how-bg-num">01</div>
-      <span class="how-tag">// Phase_01 — Pre-Event</span>
+      <span class="how-tag">// Phase_01 :: Pre-Event</span>
+      <div class="fire-status" aria-hidden="true"></div>
       <img src="{% static 'icons/build.png' %}" alt="Build" class="how-icon">
       <div class="how-name">Build</div>
       <div class="how-swahili">// Construction</div>
       <p class="how-desc">Blue teams architect and construct their assigned enterprise before the event: full-stack systems with login screens, APIs, databases and core business logic. Organic vulnerabilities emerge from genuine architectural decisions, not planted traps.</p>
+      <span class="how-prep-tag" style="color:var(--gl)">&gt; PREPARE_NOW →</span>
     </div>
 
     <!-- Phase 02 — Maarifa (During Event) -->
-    <div class="how-card tilt slide-r" style="transition-delay:0.08s">
+    <div class="how-card tilt slide-r" style="transition-delay:0.08s" data-status="dormant">
       <div class="spot"></div>
       <span class="cnr cnr-tl"></span><span class="cnr cnr-br"></span>
       <div class="how-bg-num">02</div>
-      <span class="how-tag">// Phase_02 — During Event</span>
+      <span class="how-tag">// Phase_02 :: During Event</span>
+      <div class="fire-status" aria-hidden="true"></div>
       <img src="{% static 'icons/Maarifa.png' %}" alt="Maarifa" class="how-icon">
       <div class="how-name">Maarifa</div>
       <div class="how-swahili">// Knowledge</div>
@@ -1154,23 +1325,26 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
     </div>
 
     <!-- Phase 03 — Morani Hunting Grounds (During Event) -->
-    <div class="how-card tilt slide-l" style="transition-delay:0.16s">
+    <div class="how-card tilt slide-l phase-link" id="phase-morani-card" data-status="arming" style="transition-delay:0.16s" tabindex="0" role="link" aria-label="Red team registration opens 21 September, opens the preparation guide">
       <div class="spot"></div>
       <span class="cnr cnr-tl"></span><span class="cnr cnr-br"></span>
       <div class="how-bg-num">03</div>
-      <span class="how-tag">// Phase_03 — During Event</span>
-      <img src="{% static 'icons/Morani hunting.png' %}" alt="Morani Hunting Grounds" class="how-icon">
-      <div class="how-name">Morani Hunting Grounds</div>
+      <span class="how-tag">// Phase_03 :: During Event</span>
+      <div class="fire-status" aria-hidden="true"></div>
+      <img src="{% static 'icons/morani-hunting.png' %}" alt="Morani Hunting Grounds" class="how-icon">
+      <div class="how-name glitch" data-text="Morani Hunting Grounds">Morani Hunting Grounds</div>
       <div class="how-swahili">// Mastery_Under_Pressure</div>
-      <p class="how-desc">Red teams execute APT-style attacks on systems they did not build: social engineering, SQL injection, privilege escalation, lateral movement, and attacks on the AI defence agent itself. Blue teams defend in real time. AI assists both sides, but human judgment is what gets scored.</p>
+      <p class="how-desc">Red teams execute APT-style attacks on systems they did not build: social engineering, cloud exploitation, SQL injection, privilege escalation, lateral movement. Blue teams defend in real time. AI assists both sides, but human judgment is what gets scored.</p>
+      <span class="how-prep-tag" style="color:var(--red)">&gt; RED_REG_OPENS :: 21_SEP</span>
     </div>
 
     <!-- Phase 04 — Kikao (During Event) -->
-    <div class="how-card tilt slide-r" style="transition-delay:0.24s">
+    <div class="how-card tilt slide-r" style="transition-delay:0.24s" data-status="dormant">
       <div class="spot"></div>
       <span class="cnr cnr-tl"></span><span class="cnr cnr-br"></span>
       <div class="how-bg-num">04</div>
-      <span class="how-tag">// Phase_04 — During Event</span>
+      <span class="how-tag">// Phase_04 :: During Event</span>
+      <div class="fire-status" aria-hidden="true"></div>
       <img src="{% static 'icons/Kikao.png' %}" alt="Kikao" class="how-icon">
       <div class="how-name">Kikao</div>
       <div class="how-swahili">// Dialogue_&_Reflection</div>
@@ -1204,7 +1378,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
       <div class="road-dot"></div>
       <div class="road-when">// Pre-Event</div>
       <div class="road-what">Build <em>phase</em></div>
-      <p class="road-note">Blue teams build one JengaBank service each — logins, APIs, payments, ledgers — or the AI agent that defends the whole bank. What you build is what gets attacked.</p>
+      <p class="road-note">Blue teams construct their enterprise: logins, APIs, databases, cloud layer. What you build is what gets attacked.</p>
     </div>
     <div class="road-item">
       <div class="road-dot"></div>
@@ -1214,11 +1388,12 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
     </div>
   </div>
   <div class="join fade-up">
+    <div class="term-sweep" aria-hidden="true"></div>
     <div class="join-txt">
       <div class="join-cmd">&gt; ./register --interest --team=4 <span class="badge-cursor"></span></div>
       <div class="join-sub">// Participants :: free entry :: medium-to-advanced</div>
     </div>
-    <a href="mailto:sucybersec@strathmore.edu?subject=JengaSec%202026%20Participant%20Interest" class="btn-green magnetic">Register Interest</a>
+    <a href="{% url 'prepare' %}" class="btn-green magnetic">PREPARE FOR THE EVENT</a>
   </div>
 </section>
 
@@ -1328,7 +1503,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
     </div>
     <div class="faq-item">
       <button class="faq-q" aria-expanded="false"><span><span class="pfx">&gt;</span>how_do_i_register?</span><span class="faq-x">+</span></button>
-      <div class="faq-a"><div class="faq-a-in">Email <a href="mailto:sucybersec@strathmore.edu?subject=JengaSec%202026%20Participant%20Interest" style="color:var(--gl);text-decoration:none">sucybersec@strathmore.edu</a> with your name, institution and team status, or hit Register Interest above. Slots are limited.</div></div>
+      <div class="faq-a"><div class="faq-a-in">Email <a href="mailto:sucybersec@strathmore.edu?subject=JengaSec%202026%20Participant%20Interest" style="color:var(--gl);text-decoration:none">sucybersec@strathmore.edu</a> with your name, institution and team status, or hit Register Interest above. Slots are limited. <a href="{% url 'prepare' %}" style="color:var(--gl);text-decoration:none">Start here: Prepare Your Team</a></div></div>
     </div>
   </div>
 </section>
@@ -1394,11 +1569,69 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
 'use strict';
 /* Effects always run. No motion gating — this is a show. */
 const finePointer=window.matchMedia('(pointer: fine)').matches;
+const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const CH="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./\\[]{}><_#@!";
 
 /* ---------- consistent load position: never restore a mid-page scroll on reload ---------- */
 if('scrollRestoration' in history)history.scrollRestoration='manual';
 if(!location.hash)window.scrollTo(0,0);
+
+/* ---------- shared: initRain(canvas) — subtle digital rain inside terminal panels only ---------- */
+/* Duplicated identically in index.html, prepare.html and partner.html. */
+function initRain(canvas){
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const RCH='01JENGASEC';
+  const TRAIL=5;
+  let rw,rh,cols,drops,raf=null,running=false;
+  function size(){
+    const box=canvas.parentElement;
+    rw=canvas.width=box.clientWidth||1;
+    rh=canvas.height=box.clientHeight||1;
+    const spacing=18+Math.random()*4;
+    cols=Math.max(1,Math.floor(rw/spacing));
+    drops=Array.from({length:cols},(_,i)=>({
+      x:Math.round((i+0.5)*(rw/cols)),
+      y:Math.random()*-40,
+      speed:2+Math.random()*2,
+      chars:[]
+    }));
+  }
+  size();
+  canvas.style.opacity='0.18';
+  function drawFrame(){
+    ctx.clearRect(0,0,rw,rh);
+    ctx.font='11px "Space Mono",monospace';
+    for(const d of drops){
+      d.chars.unshift(RCH[Math.floor(Math.random()*RCH.length)]);
+      if(d.chars.length>TRAIL)d.chars.pop();
+      for(let t=0;t<d.chars.length;t++){
+        ctx.fillStyle=t===0?'rgba(0,200,83,0.9)':'rgba(0,122,61,'+(0.5*(1-t/TRAIL))+')';
+        ctx.fillText(d.chars[t],d.x,d.y-t*13);
+      }
+      d.y+=d.speed;
+      if(d.y-TRAIL*13>rh&&Math.random()>0.96){d.y=Math.random()*-30;d.chars=[];d.speed=2+Math.random()*2;}
+    }
+  }
+  function loop(){if(!running)return;drawFrame();raf=requestAnimationFrame(loop);}
+  if(reduceMotion){
+    ctx.clearRect(0,0,rw,rh);
+    ctx.font='11px "Space Mono",monospace';
+    drops.forEach(d=>{
+      ctx.fillStyle='rgba(0,122,61,0.4)';
+      ctx.fillText(RCH[Math.floor(Math.random()*RCH.length)],d.x,Math.random()*rh);
+    });
+    return;
+  }
+  function start(){if(!running){size();running=true;loop();}}
+  function stop(){running=false;if(raf)cancelAnimationFrame(raf);}
+  const io=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{e.isIntersecting?start():stop();});
+  },{threshold:0});
+  io.observe(canvas);
+  window.addEventListener('resize',size,{passive:true});
+}
+initRain(document.getElementById('termRain'));
 
 /* ---------- terminal boot (runs every load, identical every time) ---------- */
 const boot=document.getElementById('boot');
@@ -1466,7 +1699,7 @@ if(document.documentElement.scrollTop>40)nav.classList.add('scrolled');
 
 /* ---------- active nav link ---------- */
 const navAnchors=[...document.querySelectorAll('#navlinks a')];
-const navSections=navAnchors.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
+const navSections=navAnchors.map(a=>{const h=a.getAttribute('href');return h&&h.charAt(0)==='#'?document.querySelector(h):null;}).filter(Boolean);
 const navObs=new IntersectionObserver(entries=>{
   entries.forEach(e=>{
     if(e.isIntersecting){
@@ -1605,7 +1838,7 @@ if(termBody){
     ['au','[KIKAO]','documentation snapshot committed'],
     ['au','[AUDIT]','attack chain entry appended :: step {N}'],
     ['dim','[SYS]','cascading dependency check :: serikali.gov.sim'],
-    ['dim','[SYS]','enterprise heartbeat :: OK'],
+    ['dim','[SYS]','cloud env heartbeat :: OK'],
     ['dim','[AI]','agent assist invoked :: human review pending']
   ];
   function rnd(n){return Math.floor(Math.random()*n)}
@@ -1787,15 +2020,19 @@ if(finePointer){
 }
 
 /* ---------- 3D tilt + spotlight on cards ---------- */
+/* Lit/arming cards sit permanently lifted (-10px, CSS); their hover lift (-16px) must be
+   baked into this same inline transform so the tilt never overwrites the resting lift. */
 if(finePointer){
   document.querySelectorAll('.tilt').forEach(card=>{
+    const isNeon=card.dataset.status==='lit'||card.dataset.status==='arming';
+    const lift=isNeon?-16:-6;
     card.addEventListener('mousemove',e=>{
       const r=card.getBoundingClientRect();
       const x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
       card.style.setProperty('--mx',(x*100)+'%');
       card.style.setProperty('--my',(y*100)+'%');
       const rx=(0.5-y)*7,ry=(x-0.5)*7;
-      card.style.transform='translateY(-6px) rotateX('+rx+'deg) rotateY('+ry+'deg)';
+      card.style.transform='translateY('+lift+'px) rotateX('+rx+'deg) rotateY('+ry+'deg)';
     });
     card.addEventListener('mouseleave',()=>{card.style.transform='';});
   });
@@ -1913,6 +2150,17 @@ egg.addEventListener('click',()=>{
   egg.setAttribute('aria-hidden','true');
 });
 
+/* ---------- phase cards → prepare.html ---------- */
+function cardLink(id,url){
+  const card=document.getElementById(id);
+  if(!card)return;
+  card.addEventListener('click',()=>{window.location=url;});
+  card.addEventListener('keydown',e=>{
+    if(e.key==='Enter'||e.key===' '){e.preventDefault();window.location=url;}
+  });
+}
+cardLink('phase-build-card','{% url "prepare" %}');
+cardLink('phase-morani-card','{% url "prepare" %}#tracks');
 </script>
 </body>
 </html>

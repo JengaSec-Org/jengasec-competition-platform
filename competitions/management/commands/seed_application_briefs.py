@@ -3,13 +3,17 @@
     python manage.py seed_application_briefs --competition 1
     python manage.py seed_application_briefs --competition 1 --cap 10
 
-Entry Guide section 5. Both enterprises run the JengaBank architecture,
-so the same nine briefs are seeded into ENTA and ENTB under the same
-codes -- every brief is built twice, by two different teams. Seven are
-core; Fraud Monitoring and Notifications & Statements are optional.
+Entry Guide section 5. Nine briefs, one row each: a brief describes an
+application, not a copy of one. Both enterprises run the same JengaBank
+architecture, so each brief is built twice -- but which enterprise a team
+builds in is decided when its proposal is selected, not while it is still
+choosing what to propose. Seven are core; Fraud Monitoring and
+Notifications & Statements are optional.
+
 Briefs are per-competition, so this is a command rather than a data
 migration -- run it once per competition and edit the results in the
-admin. Re-running updates in place.
+admin. Re-running updates in place, and folds away the per-enterprise
+duplicates an earlier version of this command created.
 """
 from django.core.management.base import BaseCommand, CommandError
 
@@ -172,35 +176,51 @@ class Command(BaseCommand):
             raise CommandError(f"No competition with id {options['competition']}.")
 
         created = updated = 0
-        for enterprise, _label in Enterprise.choices:
-            for code, name, summary, requirements, red_exposure, optional in BRIEFS:
-                _, was_created = ApplicationBrief.objects.update_or_create(
-                    competition=competition,
-                    enterprise=enterprise,
-                    code=code,
-                    defaults={
-                        "name": name,
-                        "track": Track.APPLICATION,
-                        "summary": summary,
-                        "requirements": requirements,
-                        "red_exposure": red_exposure,
-                        "is_optional": optional,
-                        "proposal_cap": options["cap"],
-                        "is_open": True,
-                    },
-                )
-                created += was_created
-                updated += not was_created
+        for code, name, summary, requirements, red_exposure, optional in BRIEFS:
+            _, was_created = ApplicationBrief.objects.update_or_create(
+                competition=competition,
+                enterprise="",
+                code=code,
+                defaults={
+                    "name": name,
+                    "track": Track.APPLICATION,
+                    "summary": summary,
+                    "requirements": requirements,
+                    "red_exposure": red_exposure,
+                    "is_optional": optional,
+                    "proposal_cap": options["cap"],
+                    "is_open": True,
+                },
+            )
+            created += was_created
+            updated += not was_created
 
-        # Legacy rows from the earlier catalogue (APP-A1 ... / healthcare) close.
-        stale = ApplicationBrief.objects.filter(competition=competition).exclude(
-            code__in=[b[0] for b in BRIEFS]
-        )
-        closed = stale.update(is_open=False)
+        # Per-enterprise copies from the earlier catalogue, and legacy rows
+        # (APP-A1... / healthcare), close rather than delete: a proposal may
+        # already point at one, and closing keeps that history readable.
+        superseded = ApplicationBrief.objects.filter(
+            competition=competition, is_open=True
+        ).exclude(enterprise="")
+        stale = ApplicationBrief.objects.filter(
+            competition=competition, enterprise=""
+        ).exclude(code__in=[b[0] for b in BRIEFS])
+        closed = superseded.update(is_open=False) + stale.update(is_open=False)
+
+        # Proposals already filed against a per-enterprise copy move to the
+        # single brief with the same code, so nobody loses their choice.
+        from submissions.models import Submission
+
+        moved = 0
+        for brief in ApplicationBrief.objects.filter(competition=competition, enterprise=""):
+            moved += Submission.objects.filter(
+                competition=competition,
+                application_brief__code=brief.code,
+            ).exclude(application_brief=brief).update(application_brief=brief)
 
         self.stdout.write(
             self.style.SUCCESS(
                 f"{competition.name}: {created} brief(s) created, {updated} updated, "
-                f"{closed} legacy brief(s) closed (cap {options['cap']} proposals each)."
+                f"{closed} superseded/legacy brief(s) closed, {moved} proposal(s) remapped "
+                f"(cap {options['cap']} proposals each)."
             )
         )

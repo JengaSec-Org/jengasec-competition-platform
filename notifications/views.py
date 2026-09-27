@@ -1,7 +1,7 @@
 """The notification dashboard: list, read-receipts, and the unread badge."""
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -76,3 +76,52 @@ def unread_count(request):
     """Feeds the sidebar badge."""
     count = request.user.notifications.filter(is_read=False).count()
     return JsonResponse({"unread": count})
+
+
+@login_required
+def email_preview(request, notification_type=None):
+    """Staff-only rendering of a branded email, for checking the design.
+
+    Email clients are unforgiving and unpreviewable from the code, so the
+    templates need somewhere to be looked at. Uses a real notification of
+    the requested type when one exists, and a representative sample
+    otherwise, so the layout is exercised with the shapes the catalogue
+    actually produces: field rows, bullet lists and prose.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        raise Http404("Not found")
+
+    from services import email_render
+
+    types = [t for t, _ in Notification.Type.choices]
+    notification_type = notification_type or request.GET.get("type") or Notification.Type.REGISTRATION_APPROVED
+    notification = (
+        Notification.objects.filter(type=notification_type)
+        .select_related("user")
+        .order_by("-created_at")
+        .first()
+    )
+    if notification is None:
+        notification = Notification(
+            user=request.user,
+            type=notification_type,
+            subject="Sample: registration received",
+            body=(
+                "Reference JS26-B-014\n\n"
+                "Registered for: JengaSec 2026\n"
+                "Team: Nyati Defenders (Blue Team)\n"
+                "Track preference: Application Blue, AI Defence Blue\n\n"
+                "Still outstanding for your team:\n"
+                "  - Upload your student ID\n"
+                "  - Accept the code of conduct\n\n"
+                "Organisers review registrations within 3 working days."
+            ),
+            link="/dashboard/",
+        )
+
+    html = email_render.render_html(notification)
+    if not html:
+        raise Http404("Could not render this email")
+    if request.GET.get("format") == "text":
+        return HttpResponse(email_render.parts(notification)[0], content_type="text/plain; charset=utf-8")
+    return HttpResponse(html)

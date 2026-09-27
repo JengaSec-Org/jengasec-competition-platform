@@ -443,3 +443,131 @@ class OrganiserDecisionTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(b"".join(resp.streaming_content)[:8], TINY_PNG[:8])
         self.assertTrue(staff.is_staff)
+
+
+class BriefPlacementTests(TestCase):
+    """A brief is one application, and the enterprise is decided at
+    selection -- not while teams are still choosing what to propose."""
+
+    def setUp(self):
+        from competitions.models import ApplicationBrief
+
+        self.comp = make_competition()
+        self.brief = ApplicationBrief.objects.create(
+            competition=self.comp, code="APP03", name="Identity Service", enterprise=""
+        )
+
+    def blue_team(self, name, user):
+        team = Team.objects.create(
+            competition=self.comp, team_name=name, team_type=Team.TeamType.BLUE,
+            track=Team.Track.APPLICATION, application_brief=self.brief, captain=user,
+        )
+        TeamMember.objects.create(
+            team=team, user=user, student_name=user.get_full_name(),
+            email=user.email, role=TeamMember.MemberRole.CAPTAIN,
+        )
+        return team
+
+    def test_catalogue_lists_each_application_once(self):
+        from services import competition_service
+
+        team = self.blue_team("First", make_user("one"))
+        codes = [b.code for b in competition_service.briefs_for(team)]
+        self.assertEqual(codes, ["APP03"])
+        # ...and still once after the team has been placed in an enterprise
+        team.enterprise = "a"
+        team.save()
+        self.assertEqual([b.code for b in competition_service.briefs_for(team)], ["APP03"])
+
+    def test_same_brief_is_built_once_per_enterprise(self):
+        first = self.blue_team("First", make_user("one"))
+        second = self.blue_team("Second", make_user("two"))
+        third = self.blue_team("Third", make_user("three"))
+
+        team_service.assign_cell(first)
+        team_service.assign_cell(second)
+        self.assertEqual(first.cell_id, "APP03")
+        self.assertEqual(second.cell_id, "APP03")
+        # Two builders, one per instance -- never the same one twice.
+        self.assertNotEqual(first.enterprise, second.enterprise)
+        self.assertEqual({first.enterprise, second.enterprise}, {"a", "b"})
+
+        with self.assertRaisesMessage(team_service.TeamRuleError, "both enterprises"):
+            team_service.assign_cell(third)
+
+    def test_pinned_brief_is_honoured_while_that_side_is_free(self):
+        self.brief.enterprise = "b"
+        self.brief.save()
+        team = self.blue_team("First", make_user("one"))
+        team_service.assign_cell(team)
+        self.assertEqual(team.enterprise, "b")
+
+    def test_placement_balances_the_two_instances(self):
+        from competitions.models import ApplicationBrief
+
+        # Load ENTA up with other teams, then place a team whose brief is
+        # free on both sides: it should go to the lighter instance.
+        for i in range(3):
+            Team.objects.create(
+                competition=self.comp, team_name=f"Filler {i}", team_type=Team.TeamType.BLUE,
+                track=Team.Track.APPLICATION, enterprise="a", cell_id=f"APP0{i + 4}",
+            )
+        other = ApplicationBrief.objects.create(
+            competition=self.comp, code="APP01", name="Portal", enterprise=""
+        )
+        team = self.blue_team("Balanced", make_user("bal"))
+        team.application_brief = other
+        team.save()
+        team_service.assign_cell(team)
+        self.assertEqual(team.enterprise, "b")
+
+
+class RegistrationDeadlineTests(CommitMixin, TestCase):
+    """The published deadline actually closes registration -- it used to
+    drive only the reminder emails."""
+
+    def setUp(self):
+        self.comp = make_competition()
+        self.policy = publish_policy("1.0")
+        self.captain = make_user("wanjiru")
+
+    def close_registration(self):
+        row = self.comp.settings
+        row.registration_deadline = timezone.now() - timedelta(minutes=5)
+        row.save()
+        self.comp.refresh_from_db()
+
+    def test_open_while_inside_the_deadline(self):
+        self.assertTrue(self.comp.registration_open)
+        self.assertIsNone(self.comp.registration_closed_at)
+
+    def test_closed_once_the_deadline_passes(self):
+        self.close_registration()
+        self.assertFalse(self.comp.registration_open)
+        self.assertIsNotNone(self.comp.registration_closed_at)
+
+    def test_team_cannot_be_created_after_the_deadline(self):
+        from accounts.forms import TeamCreateForm
+
+        self.close_registration()
+        form = TeamCreateForm({
+            "competition": self.comp.pk, "team_name": "Latecomers",
+            "team_type": Team.TeamType.RED, "track": Team.Track.AI, "institution": "Strathmore",
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+        with self.assertRaisesMessage(team_service.TeamRuleError, "closed on"):
+            team_service.create_team_for_captain(form, self.captain)
+
+    def test_registration_cannot_be_submitted_after_the_deadline(self):
+        team = make_team(self.comp, self.captain)
+        for name in ("juma", "zawadi"):
+            team_service.add_member(team, make_user(name))
+        for user in [self.captain] + list(User.objects.filter(username__in=("juma", "zawadi"))):
+            account_service.accept_policy(user, self.policy)
+        self.close_registration()
+        team.competition.refresh_from_db()
+        with self.assertRaisesMessage(team_service.TeamRuleError, "closed on"):
+            team_service.submit_registration(
+                team, track_preferences=["application"], enterprise_preference="",
+                skills_declaration=SKILLS,
+            )

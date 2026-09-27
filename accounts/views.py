@@ -703,8 +703,10 @@ def team_decide(request, pk):
     if d["decision"] == Team.Status.APPROVED:
         team_service.assign_identifier(team)
         try:
-            if team.application_brief_id or d.get("enterprise"):
-                team.enterprise = d.get("enterprise") or team.application_brief.enterprise
+            # A brief no longer implies an enterprise, so only an explicit
+            # choice sets one here; otherwise assign_cell balances the two.
+            if d.get("enterprise"):
+                team.enterprise = d["enterprise"]
             # Only Application Red is placed at registration; everyone else
             # gets a cell when their proposal is selected (Guide section 4).
             if not team.submits_proposal or d.get("cell_id"):

@@ -200,6 +200,7 @@ class Command(BaseCommand):
         row.submissions_open = True
         row.registration_deadline = now + timedelta(days=5)
         row.build_deadline = datetime.datetime(2026, 10, 10, 17, 0, tzinfo=datetime.timezone.utc)
+        row.proposal_deadline = now + timedelta(days=12)
         row.submission_deadline = now + timedelta(days=45)
         row.save()
         call_command("seed_application_briefs", competition=comp.pk, stdout=self.stdout)
@@ -231,7 +232,7 @@ class Command(BaseCommand):
         return user
 
     def teams(self, comp, u):
-        app03 = ApplicationBrief.objects.get(competition=comp, enterprise="a", code="APP03")
+        app03 = ApplicationBrief.objects.get(competition=comp, enterprise="", code="APP03")
 
         # Application Blue, registration approved and (via a selected
         # proposal) placed in ENTA APP03.

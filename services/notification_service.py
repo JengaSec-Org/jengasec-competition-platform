@@ -20,7 +20,7 @@ import threading
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.mail import EmailMessage, get_connection
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.db import IntegrityError, close_old_connections, transaction
 from django.db.models import Q
 from django.template import TemplateDoesNotExist
@@ -29,6 +29,7 @@ from django.utils import timezone
 
 from accounts.models import UserProfile
 from notifications.models import Notification
+from services import email_render
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -227,26 +228,12 @@ def notify_judges(
 # ---------------------------------------------------------------------------
 
 def render_email_body(notification):
-    """Body text for one notification.
+    """The plain-text part of one notification's email.
 
-    Uses `notifications/email/<type>.txt` when a template exists for the
-    type, and falls back to a generic one, so a new notification type is
-    never undeliverable just because nobody wrote its template yet.
+    Kept as the module's public name for it; the per-type templates and
+    the branded HTML alternative both live in services.email_render.
     """
-    context = {
-        "notification": notification,
-        "user": notification.user,
-        "site_url": getattr(settings, "SITE_URL", ""),
-    }
-    for name in (
-        f"notifications/email/{notification.type}.txt",
-        "notifications/email/default.txt",
-    ):
-        try:
-            return render_to_string(name, context)
-        except TemplateDoesNotExist:
-            continue
-    return notification.body
+    return email_render.parts(notification)[0]
 
 
 def pending_email_queryset():
@@ -328,12 +315,15 @@ def send_pending_emails(limit=None, dry_run=False, queryset=None):
     try:
         connection.open()
         for notification in notifications:
-            message = EmailMessage(
+            text, html = email_render.parts(notification)
+            message = EmailMultiAlternatives(
                 subject=notification.subject,
-                body=render_email_body(notification),
+                body=text,
                 to=[notification.user.email],
                 connection=connection,
             )
+            if html:
+                message.attach_alternative(html, "text/html")
             try:
                 message.send(fail_silently=False)
             except Exception:

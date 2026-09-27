@@ -21,6 +21,8 @@ Replace "#" with {% url %} tags as each module ships its views.
     <a class="side-link" href="{% url 'accounts:role_list' %}"><span class="glyph">&#9919;</span> Roles</a>
     <a class="side-link" href="{% url 'submissions:list' %}"><span class="glyph">&#9776;</span> Submissions</a>
     <a class="side-link" href="{% url 'submissions:proposal_review' %}"><span class="glyph">&#9998;</span> Proposal Review</a>
+    <a class="side-link" href="{% url 'analytics:registration' %}"><span class="glyph">&#9650;</span> Analytics</a>
+    <a class="side-link" href="{% url 'reports:index' %}"><span class="glyph">&#8681;</span> Exports</a>
   </div>
   {% endif %}
 
