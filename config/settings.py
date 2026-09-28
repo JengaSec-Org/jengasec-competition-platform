@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "notifications",
     "dashboard",
     "audit",
+    "cyberrange",
 ]
 
 MIDDLEWARE = [

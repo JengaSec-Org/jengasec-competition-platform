@@ -18,6 +18,7 @@ class AuditLog(models.Model):
         SUBMISSION = "submission", "Submission"
         COMPETITION = "competition", "Competition"
         JUDGING = "judging", "Judging"
+        RANGE = "range", "Cyber range"
         ADMIN = "admin", "Administration"
 
     class Action(models.TextChoices):
@@ -38,6 +39,11 @@ class AuditLog(models.Model):
         LIFECYCLE_CHANGED = "lifecycle_changed", "Lifecycle changed"
         # judging
         SCORE_OVERRIDDEN = "score_overridden", "Score overridden"
+        # cyber range
+        FINDING_SUBMITTED = "finding_submitted", "Finding submitted"
+        FINDING_REVIEWED = "finding_reviewed", "Finding reviewed"
+        WIREGUARD_DOWNLOADED = "wireguard_downloaded", "WireGuard profile downloaded"
+        RANGE_EXPORTED = "range_exported", "Range files exported"
 
     # Denormalised alongside the FK so the trail survives user deletion.
     actor = models.ForeignKey(

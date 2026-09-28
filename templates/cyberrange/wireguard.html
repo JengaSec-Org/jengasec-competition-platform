@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}WireGuard | JengaSec Evaluation Platform{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with tag="RANGE_ACCESS" title="Your WireGuard Configuration" %}
+
+<div class="card">
+  {% if profile and not profile.revoked %}
+    <p>This file connects <strong>your laptop</strong> to the range on the venue network. It is personal: it identifies you and your team, so never share it or copy it to a teammate.</p>
+    <table class="table" style="margin:1rem 0;">
+      <tbody>
+        <tr><th>Tunnel address</th><td class="cell-mono">{{ profile.address|default:"—" }}</td></tr>
+        <tr><th>Issued</th><td class="cell-mono">{{ profile.issued_at|date:"Y-m-d H:i" }}</td></tr>
+        <tr><th>Last downloaded</th><td class="cell-mono">{{ profile.downloaded_at|date:"Y-m-d H:i"|default:"Never" }}</td></tr>
+      </tbody>
+    </table>
+    <a href="{% url 'cyberrange:wireguard_download' %}" class="btn btn-primary">Download my configuration</a>
+    <p class="form-help" style="margin-top:1rem;">Import it into the WireGuard app. Turn it on only at the venue, during the engagement days. Steps are in the info pack.</p>
+  {% elif profile and profile.revoked %}
+    {% include "components/alert.html" with level="warning" text="Your configuration has been revoked." %}
+  {% else %}
+    <p class="text-muted">Configurations are issued before the first engagement day. You will get an email when yours is ready.</p>
+  {% endif %}
+</div>
+{% endblock %}

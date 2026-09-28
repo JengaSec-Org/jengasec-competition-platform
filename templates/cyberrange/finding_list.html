@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Findings | JengaSec Evaluation Platform{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with tag="RANGE_FINDINGS" title="Findings" %}
+
+{% if reviewer %}
+<form method="get" class="card" style="display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap; margin-bottom:1.5rem;">
+  <div class="form-group" style="margin:0;">
+    <label class="form-label" for="f-round">Round</label>
+    <select id="f-round" name="round" class="input">
+      <option value="">All days</option>
+      {% for value, label in rounds %}<option value="{{ value }}"{% if round_filter == value|stringformat:"s" %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="form-group" style="margin:0;">
+    <label class="form-label" for="f-status">Status</label>
+    <select id="f-status" name="status" class="input">
+      <option value="">Any status</option>
+      {% for value, label in statuses %}<option value="{{ value }}"{% if status_filter == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  {% include "components/button.html" with label="Filter" variant="ghost" type="submit" %}
+</form>
+{% else %}
+<div style="margin-bottom:1.5rem;">
+  {% if has_scope %}
+    <a href="{% url 'cyberrange:finding_new' %}" class="btn btn-primary btn-sm">+ Report a Finding</a>
+  {% else %}
+    {% include "components/alert.html" with level="info" text="Findings open when the engagement window opens for your team's targets." %}
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr><th>#</th><th>Day</th>{% if reviewer %}<th>Red team</th>{% endif %}<th>Target cell</th><th>Title</th><th>Status</th><th>Severity</th><th>Submitted</th></tr>
+    </thead>
+    <tbody>
+      {% for f in findings %}
+      <tr>
+        <td class="cell-mono"><a href="{% url 'cyberrange:finding_detail' f.pk %}">{{ f.pk }}</a></td>
+        <td>{{ f.round }}</td>
+        {% if reviewer %}<td>{{ f.red_team.cell_id|default:f.red_team.team_name }}</td>{% endif %}
+        <td class="cell-mono">{{ f.target_team.cell_label }}</td>
+        <td><a href="{% url 'cyberrange:finding_detail' f.pk %}">{{ f.title }}</a></td>
+        <td>
+          {% if f.status == "valid" %}{% include "components/badge.html" with label=f.get_status_display color="green" %}
+          {% elif f.status == "submitted" %}{% include "components/badge.html" with label=f.get_status_display color="gold" %}
+          {% else %}{% include "components/badge.html" with label=f.get_status_display color="muted" %}{% endif %}
+        </td>
+        <td>{{ f.get_severity_display|default:"—" }}</td>
+        <td class="cell-mono">{{ f.created_at|date:"Y-m-d H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8"><div class="table-empty">// No findings yet</div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

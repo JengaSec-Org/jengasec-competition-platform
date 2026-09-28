@@ -84,6 +84,7 @@ urlpatterns = [
     path("analytics/", include("analytics.urls")),
     path("notifications/", include("notifications.urls")),
     path("audit/", include("audit.urls")),
+    path("range/", include("cyberrange.urls")),
     # Built-in auth until the accounts module ships its own views.
     # Throttled: repeated failures lock the username+IP pair for a window.
     path(

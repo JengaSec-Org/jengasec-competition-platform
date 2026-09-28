@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Finding #{{ finding.pk }} | JengaSec Evaluation Platform{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with tag="RANGE_FINDING" title=finding.title %}
+
+<div class="card">
+  <span class="tlabel">DAY {{ finding.round }} · {{ finding.target_team.cell_label }} · {{ finding.get_status_display|upper }}</span>
+  <table class="table" style="margin-top:1rem;">
+    <tbody>
+      <tr><th>Red team</th><td>{{ finding.red_team.display_label }}</td></tr>
+      <tr><th>Target</th><td>{{ finding.target_team.display_label }}</td></tr>
+      <tr><th>Window</th><td class="cell-mono">{{ finding.started_at|date:"Y-m-d H:i" }} → {{ finding.ended_at|date:"H:i" }}</td></tr>
+      <tr><th>Technique</th><td>{{ finding.technique }}{% if finding.attack_id %} <span class="cell-mono">({{ finding.attack_id }})</span>{% endif %}</td></tr>
+      <tr><th>Severity</th><td>{{ finding.get_severity_display|default:"Not yet set" }}</td></tr>
+      {% if finding.duplicate_of %}<tr><th>Duplicate of</th><td><a href="{% url 'cyberrange:finding_detail' finding.duplicate_of.pk %}">#{{ finding.duplicate_of.pk }}</a></td></tr>{% endif %}
+    </tbody>
+  </table>
+
+  <h3 class="card-title">Steps to reproduce</h3>
+  <p style="white-space:pre-wrap;">{{ finding.steps }}</p>
+  <h3 class="card-title">Evidence</h3>
+  <p style="white-space:pre-wrap;">{{ finding.evidence }}</p>
+  {% if finding.evidence_file %}<p><a href="{% url 'cyberrange:finding_evidence' finding.pk %}" class="btn btn-ghost btn-sm">Download evidence file</a></p>{% endif %}
+  <h3 class="card-title">Impact</h3>
+  <p style="white-space:pre-wrap;">{{ finding.impact }}</p>
+  {% if finding.suggested_fix %}<h3 class="card-title">Suggested fix</h3><p style="white-space:pre-wrap;">{{ finding.suggested_fix }}</p>{% endif %}
+  {% if finding.reviewer_notes and not review_form %}<h3 class="card-title">Reviewer notes</h3><p style="white-space:pre-wrap;">{{ finding.reviewer_notes }}</p>{% endif %}
+</div>
+
+{% if review_form %}
+<div class="card" style="margin-top:1.5rem;">
+  <span class="tlabel">FINDINGS DESK</span>
+  <h3 class="card-title">Review</h3>
+  <form method="post">
+    {% csrf_token %}
+    {% for field in review_form %}
+      {% include "components/form_field.html" with field=field %}
+    {% endfor %}
+    <div class="form-actions">
+      {% include "components/button.html" with label="Save Review" variant="primary" type="submit" %}
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<p style="margin-top:1.5rem;"><a href="{% url 'cyberrange:finding_list' %}">← All findings</a></p>
+{% endblock %}

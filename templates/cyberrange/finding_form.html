@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Report a Finding | JengaSec Evaluation Platform{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with tag="RANGE_FINDINGS" title="Report a Finding" %}
+
+<div class="card">
+  <p class="text-muted">
+    Reporting as <strong>{{ red_team.display_label }}</strong>. You can only report against cells in your
+    team's active scope. Times are the platform clock. The first valid report of an issue wins, and judges set the severity.
+  </p>
+
+  {% if not has_scope %}
+    {% include "components/alert.html" with level="warning" text="Your team has no active targets right now. Findings open when the engagement window opens." %}
+  {% else %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-error" role="alert"><span class="alert-tag">[ERR]</span><span>{{ form.non_field_errors.0 }}</span></div>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% for field in form %}
+        {% include "components/form_field.html" with field=field %}
+      {% endfor %}
+      <hr>
+      <div class="form-actions">
+        {% include "components/button.html" with label="Submit Finding" variant="primary" type="submit" %}
+        <a href="{% url 'cyberrange:finding_list' %}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}
