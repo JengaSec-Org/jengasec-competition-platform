@@ -36,6 +36,11 @@ INSTALLED_APPS = [
     "analytics",
     "notifications",
     "dashboard",
+
+
+    "django_q",
+
+
 ]
 
 MIDDLEWARE = [
@@ -133,3 +138,16 @@ DEFAULT_FROM_EMAIL = "JengaSec <sucybersec@strathmore.edu>"
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 # OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3.5:4b") 
+
+
+
+
+
+
+Q_CLUSTER = {
+    "name": "jengasec",
+    "workers": 1,          # matches reality -- Ollama can't usefully parallelize on this hardware
+    "timeout": 600,        # 10 min ceiling per task, given ~5 min observed runs
+    "retry": 620,          # must be > timeout
+    "orm": "default",      # uses existing DB as the broker 
+}

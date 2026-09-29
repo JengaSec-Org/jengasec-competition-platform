@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Assign Submissions{% endblock %}
+
+{% block content %}
+
+
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// ASSIGNMENTS</span></div>
+  <h1>Assign <span class="text-gold">Submissions</span></h1>
+  <p class="text-muted" style="margin-bottom:1rem;">
+    Select one or more submitted submissions and a judge. AI evaluation runs automatically
+    once assigned — for many submissions at once, expect a real wait before all AI results
+    are ready (roughly 5 minutes each, processed one at a time).
+  </p>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h3 class="card-title">Judge</h3>
+    <select class="input" name="judge_id" required>
+      <option value="">Select a judge…</option>
+      {% for judge in judges %}
+        <option value="{{ judge.id }}">{{ judge.get_full_name|default:judge.username }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h3 class="card-title">Submissions Awaiting Assignment</h3>
+    <table style="width:100%; border-collapse:collapse; margin-top:1rem;">
+      <thead>
+        <tr style="text-align:left;">
+          <th class="tlabel" style="padding-bottom:0.5rem;"></th>
+          <th class="tlabel" style="padding-bottom:0.5rem;">Team</th>
+          <th class="tlabel" style="padding-bottom:0.5rem;">Competition</th>
+          <th class="tlabel" style="padding-bottom:0.5rem;">Type</th>
+          <th class="tlabel" style="padding-bottom:0.5rem;">Assigned Judges</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in submissions %}
+          <tr class="criterion-row">
+            <td style="padding:0.6rem 0.5rem 0.6rem 0;">
+              <input type="checkbox" name="submission_ids" value="{{ s.id }}">
+            </td>
+            <td style="padding:0.6rem;">{{ s.team.team_name }}</td>
+            <td style="padding:0.6rem;" class="text-muted">{{ s.competition.name }}</td>
+            <td style="padding:0.6rem;" class="text-muted">{{ s.submission_type.name }}</td>
+            <td style="padding:0.6rem;" class="text-muted">
+              {% for e in s.evaluations.all %}
+                {{ e.judge.username|default:"unassigned" }}{% if not forloop.last %}, {% endif %}
+              {% empty %}
+                &mdash;
+              {% endfor %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-muted" style="padding:1rem 0;">No submitted submissions awaiting assignment.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Assign Selected</button>
+</form>
+
+<div class="card" style="margin-top:2rem;">
+  <h3 class="card-title">Recent Assignments</h3>
+  <table style="width:100%; border-collapse:collapse; margin-top:1rem;">
+    <thead>
+      <tr style="text-align:left;">
+        <th class="tlabel" style="padding-bottom:0.5rem;">Team</th>
+        <th class="tlabel" style="padding-bottom:0.5rem;">Judge</th>
+        <th class="tlabel" style="padding-bottom:0.5rem;">Rubric</th>
+        <th class="tlabel" style="padding-bottom:0.5rem;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in existing_assignments %}
+        <tr class="criterion-row">
+          <td style="padding:0.6rem 0.6rem 0.6rem 0;">{{ e.submission.team.team_name }}</td>
+          <td style="padding:0.6rem;" class="text-muted">{{ e.judge.username|default:"unassigned" }}</td>
+          <td style="padding:0.6rem;" class="text-muted">{{ e.rubric.title }}</td>
+          <td style="padding:0.6rem;">{{ e.get_status_display }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-muted" style="padding:1rem 0;">No assignments yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

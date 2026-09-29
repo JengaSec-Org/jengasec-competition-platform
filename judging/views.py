@@ -1,6 +1,4 @@
 ﻿from decimal import Decimal
-from django.db import transaction, IntegrityError
-from django.db.models import Max
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -8,86 +6,10 @@ from django.db.models import Avg
 from django.http import Http404
 from django.shortcuts import render, redirect, get_object_or_404
 
-from rubrics.models import Rubric, RubricCriterion
 from competitions.models import Competition
 from submissions.models import SubmissionType
 from .models import Evaluation
 from . import mock_data
-
-
-def rubric_builder(request):
-    """
-    Screen 1: Rubric Builder.
-    Lists real rubrics + criteria from the database. Both 'Add Criterion'
-    and 'New Rubric' POST and persist.
-    """
-    if request.method == "POST":
-        action = request.POST.get("action")
-
-        if action == "add_criterion":
-            rubric_id = request.POST.get("rubric_id")
-            rubric = Rubric.objects.filter(pk=rubric_id).first()
-            if rubric is None:
-                messages.error(request, "That rubric no longer exists.")
-                return redirect("judging:rubric_builder")
-
-            criterion_name = request.POST.get("criterion_name")
-            description = request.POST.get("description", "")
-            max_points = request.POST.get("max_points") or 100
-            weight = request.POST.get("weight") or 0
-
-            saved = False
-            for _ in range(5):
-                try:
-                    with transaction.atomic():
-                        current_max = rubric.criteria.aggregate(m=Max("display_order"))["m"]
-                        next_order = 0 if current_max is None else current_max + 1
-                        RubricCriterion.objects.create(
-                            rubric=rubric,
-                            criterion=criterion_name,
-                            description=description,
-                            max_score=max_points,
-                            weight=weight,
-                            display_order=next_order,
-                        )
-                    saved = True
-                    break
-                except IntegrityError:
-                    continue
-
-            if saved:
-                messages.success(request, f"Added criterion '{criterion_name}' to '{rubric.title}'.")
-            else:
-                messages.error(request, "Could not save the criterion after several attempts.")
-
-        elif action == "new_rubric":
-            title = request.POST.get("rubric_name")
-            competition = Competition.objects.filter(pk=request.POST.get("competition_id")).first()
-            submission_type = SubmissionType.objects.filter(pk=request.POST.get("submission_type_id")).first()
-
-            if not (title and competition and submission_type):
-                messages.error(request, "Rubric name, competition, and submission type are all required.")
-            else:
-                Rubric.objects.create(
-                    title=title,
-                    competition=competition,
-                    submission_type=submission_type,
-                )
-                messages.success(request, f"Created rubric '{title}'.")
-
-        return redirect("judging:rubric_builder")
-
-    rubrics = Rubric.objects.select_related("competition", "submission_type").prefetch_related("criteria")
-    competition_options = [{"value": c.id, "label": c.name} for c in Competition.objects.all()]
-    submission_type_options = [{"value": st.id, "label": st.name} for st in SubmissionType.objects.all()]
-
-    context = {
-        "rubrics": rubrics,
-        "competition_options": competition_options,
-        "submission_type_options": submission_type_options,
-        "active_tab": "rubrics",
-    }
-    return render(request, "judging/rubric_builder.html", context)
 
 
 @login_required
@@ -215,3 +137,15 @@ def scoring_configuration(request):
         "active_tab": "scoring_config",
     }
     return render(request, "judging/scoring_configuration.html", context)
+
+
+
+from django_q.tasks import async_task
+
+@login_required
+def run_ai_evaluation(request, eval_id):
+    evaluation = get_object_or_404(Evaluation, pk=eval_id)
+    if request.method == "POST":
+        async_task("judging.tasks.run_ai_evaluation_task", evaluation.id)
+        messages.success(request, "AI evaluation queued — refresh in a few minutes to see results.")
+    return redirect("judging:ai_result_detail", eval_id=eval_id)

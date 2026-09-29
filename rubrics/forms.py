@@ -23,6 +23,16 @@ class RubricCriterionForm(forms.ModelForm):
         model = RubricCriterion
         fields = ["criterion", "description", "weight", "max_score", "display_order"]
 
+# just added for check 
+        widgets = {
+            "criterion": forms.TextInput(attrs={"class": "input"}),
+            "description": forms.TextInput(attrs={"class": "input"}),
+            "weight": forms.NumberInput(attrs={"class": "input", "step": "0.01"}),
+            "max_score": forms.NumberInput(attrs={"class": "input", "step": "0.01"}),
+            "display_order": forms.NumberInput(attrs={"class": "input"}),
+        }
+
+
 
 class BaseRubricCriterionFormSet(forms.BaseInlineFormSet):
     """Enforces the rule the schema can't: weights must sum to 100."""

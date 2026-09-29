@@ -11,5 +11,11 @@ urlpatterns = [
     path("blue/", views.blue_dashboard, name="blue_dashboard"),
     path("red/", views.red_dashboard, name="red_dashboard"),
     path("insights/", views.insights_dashboard, name="insights_dashboard"),
+
+
+
+    path("assign/", views.assign_submissions, name="assign_submissions"),
+
+
 ]
 

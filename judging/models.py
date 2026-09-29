@@ -218,3 +218,33 @@ class Appeal(models.Model):
 
     def __str__(self):
         return f"Appeal #{self.pk} :: {self.team.team_name} ({self.get_status_display()})"
+
+
+
+
+class ScoringConfig(models.Model):
+    class TeamType(models.TextChoices):
+        BLUE = "blue", "Blue Team"
+        RED = "red", "Red Team"
+
+    competition = models.ForeignKey(
+        "competitions.Competition", on_delete=models.CASCADE, related_name="scoring_configs"
+    )
+    team_type = models.CharField(max_length=10, choices=TeamType.choices)
+    proposal_weight = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("20.00"))
+    documentation_weight = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("50.00"))
+    report_weight = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("30.00"))
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["competition", "team_type"], name="unique_config_per_team_type")
+        ]
+
+    def __str__(self):
+        return f"{self.competition} - {self.get_team_type_display()}"
+
+    def weights_valid(self):
+        return (self.proposal_weight + self.documentation_weight + self.report_weight) == Decimal("100.00")

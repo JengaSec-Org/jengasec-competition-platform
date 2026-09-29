@@ -77,52 +77,60 @@
             Run status: {{ latest_run.get_status_display|upper }}
           </p>
         {% endif %}
+
+        <form method="post" action="{% url 'judging:run_ai_evaluation' evaluation.id %}" style="margin-top:0.75rem;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost btn-sm">Re-run AI Evaluation</button>
+        </form>
       </div>
 
       <div class="card">
         <h3 class="card-title">Judge Review</h3>
 
-         {% if evaluation.status == "pending" %}
-          <p class="ai-confidence" style="margin-top:0.75rem;">
-            Waiting on the AI evaluation to run before judge review becomes available.
-          </p>  
-        
-         {% else %}
-           <form method="post">
-             {% csrf_token %}
+        {% if evaluation.status == "pending" %}
+          <form method="post" action="{% url 'judging:run_ai_evaluation' evaluation.id %}">
+            {% csrf_token %}
+            <p class="ai-confidence" style="margin-bottom:0.75rem;">
+              No AI evaluation has run yet.
+            </p>
+            <button type="submit" class="btn btn-primary">Run AI Evaluation</button>
+          </form>
+        {% else %}
+          <form method="post">
+            {% csrf_token %}
 
-             {% for cs in criterion_scores %}
-               <div class="criterion-row">
-                 <div class="criterion-name">{{ cs.criterion.criterion }}</div>
-                 <input
-                   class="score-input"
-                   type="number"
-                   step="0.01"
-                   name="score_{{ cs.criterion.id }}"
-                   value="{% if cs.final_score is not None %}{{ cs.final_score }}{% elif cs.ai_score is not None %}{{ cs.ai_score }}{% endif %}">
-             </div>
-           {% endfor %}
+            {% for cs in criterion_scores %}
+              <div class="criterion-row">
+                <div class="criterion-name">{{ cs.criterion.criterion }}</div>
+                <input
+                  class="score-input"
+                  type="number"
+                  step="0.01"
+                  name="score_{{ cs.criterion.id }}"
+                  value="{% if cs.final_score is not None %}{{ cs.final_score }}{% elif cs.ai_score is not None %}{{ cs.ai_score }}{% endif %}">
+              </div>
+            {% endfor %}
 
-           <div style="margin-top:1rem;">
-             <label class="form-label" for="id_override_reason">Reason (required only if you change a score)</label>
-             <textarea class="input" id="id_override_reason" name="override_reason" rows="2"
-                       placeholder="Why are you adjusting the AI's score(s)?"></textarea>
-           </div>
+            <div style="margin-top:1rem;">
+              <label class="form-label" for="id_override_reason">Reason (required only if you change a score)</label>
+              <textarea class="input" id="id_override_reason" name="override_reason" rows="2"
+                        placeholder="Why are you adjusting the AI's score(s)?"></textarea>
+            </div>
 
-           <div style="display:flex; align-items:baseline; justify-content:space-between; margin-top:1rem;">
-             <span class="criterion-weight">Current Score</span>
-             <span class="score-final">
-               {% if evaluation.weighted_total is not None %}{{ evaluation.weighted_total }}{% else %}—{% endif %}
-             </span>
-           </div>
+            <div style="display:flex; align-items:baseline; justify-content:space-between; margin-top:1rem;">
+              <span class="criterion-weight">Current Score</span>
+              <span class="score-final">
+                {% if evaluation.weighted_total is not None %}{{ evaluation.weighted_total }}{% else %}—{% endif %}
+              </span>
+            </div>
 
-           <div style="display:flex; gap:0.6rem; margin-top:1.25rem;">
-             <button type="submit" name="review_action" value="approve" class="btn btn-primary">Approve AI Scores</button>
-             <button type="submit" name="review_action" value="save_overrides" class="btn btn-ghost">Save Overrides</button>
-           </div>
-         </form>
-       {% endif %}
-     </div>
+            <div style="display:flex; gap:0.6rem; margin-top:1.25rem;">
+              <button type="submit" name="review_action" value="approve" class="btn btn-primary">Approve AI Scores</button>
+              <button type="submit" name="review_action" value="save_overrides" class="btn btn-ghost">Save Overrides</button>
+            </div>
+          </form>
+        {% endif %}
+      </div>
 
     </div>
   </div>

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if rubric %}Edit Rubric{% else %}New Rubric{% endif %}{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// RUBRICS</span></div>
+  <h1>{% if rubric %}Edit{% else %}New{% endif %} <span class="text-gold">Rubric</span></h1>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h3 class="card-title">Rubric Details</h3>
+    {{ form.non_field_errors }}
+
+    <div class="form-group">
+      <label class="form-label" for="{{ form.title.id_for_label }}">Title</label>
+      {{ form.title }}
+      {{ form.title.errors }}
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="{{ form.competition.id_for_label }}">Competition</label>
+      {{ form.competition }}
+      {{ form.competition.errors }}
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="{{ form.submission_type.id_for_label }}">Submission Type</label>
+      {{ form.submission_type }}
+      {{ form.submission_type.errors }}
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+      {{ form.description }}
+      {{ form.description.errors }}
+    </div>
+
+    <div class="form-group" style="display:flex; align-items:center; gap:0.5rem;">
+      {{ form.is_active }}
+      <label class="form-label" for="{{ form.is_active.id_for_label }}" style="margin:0;">Active</label>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h3 class="card-title">Criteria</h3>
+    <p class="text-muted" style="margin-bottom:1rem;">Weights must sum to exactly 100.</p>
+
+    {{ formset.management_form }}
+    {{ formset.non_form_errors }}
+
+
+
+
+    <div style="display:grid; grid-template-columns:2fr 3fr 1fr 1fr 1fr auto; gap:0.75rem; margin-bottom:0.5rem;">
+      <span class="tlabel">Criterion</span>
+      <span class="tlabel">Description</span>
+      <span class="tlabel">Weight (%)</span>
+      <span class="tlabel">Max Score</span>
+      <span class="tlabel">Order</span>
+      <span class="tlabel"></span>
+    </div>
+
+
+
+
+    {% for crit_form in formset %}
+      <div style="display:grid; grid-template-columns:2fr 3fr 1fr 1fr 1fr auto; gap:0.75rem; align-items:start; margin-bottom:0.75rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border);">
+        {{ crit_form.id }}
+        <div>
+          {{ crit_form.criterion }}
+          {{ crit_form.criterion.errors }}
+        </div>
+        <div>
+          {{ crit_form.description }}
+          {{ crit_form.description.errors }}
+        </div>
+        <div>
+          {{ crit_form.weight }}
+          {{ crit_form.weight.errors }}
+        </div>
+        <div>
+          {{ crit_form.max_score }}
+          {{ crit_form.max_score.errors }}
+        </div>
+        <div>
+          {{ crit_form.display_order }}
+          {{ crit_form.display_order.errors }}
+        </div>
+        <div>
+          {% if crit_form.instance.pk %}
+            <label class="form-label" style="margin:0;">
+              {{ crit_form.DELETE }} Delete
+            </label>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+
+  <div style="display:flex; gap:0.6rem; margin-top:1rem;">
+    <button type="submit" class="btn btn-primary">Save Rubric</button>
+    {% url 'rubrics:rubric_list' as list_url %}
+    {% include "components/button.html" with label="Cancel" href=list_url variant="ghost" %}
+  </div>
+  
+</form>
+
+{% endblock %}
