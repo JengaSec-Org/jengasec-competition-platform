@@ -5,13 +5,14 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import Group, User
 from django.db.models import Count, Q
-from django.http import FileResponse, Http404
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
 from services import account_service
 from services import notification_catalogue as cat
+from services import stored_files
 from services import team_service
 from notifications.management.commands.send_outstanding_digest import outstanding_for_member
 from notifications.management.commands.send_registration_reminders import outstanding_for
@@ -600,10 +601,8 @@ def identity_document(request, pk):
     profile_obj = get_object_or_404(UserProfile, user__pk=pk)
     if not profile_obj.identity_document:
         raise Http404
-    return FileResponse(
-        profile_obj.identity_document.open("rb"),
-        as_attachment=True,
-        filename=profile_obj.identity_document.name.rsplit("/", 1)[-1],
+    return stored_files.serve(
+        request, profile_obj.identity_document, label="identity document"
     )
 
 

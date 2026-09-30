@@ -7,7 +7,7 @@ Staff and judges see every finding. Routes that a user may not use return
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse, Http404
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -15,6 +15,7 @@ from accounts.models import Team
 from accounts.roles import JUDGE, user_in_role
 from audit.models import AuditLog
 from competitions.models import TargetAssignment
+from services import stored_files
 from services.audit_service import record as audit
 from services.submission_service import teams_for
 
@@ -170,7 +171,7 @@ def finding_evidence(request, pk):
     finding = get_object_or_404(Finding, pk=pk)
     if not finding.evidence_file or not _can_view(request.user, finding):
         raise Http404("Not found")
-    return FileResponse(finding.evidence_file.open("rb"), as_attachment=True)
+    return stored_files.serve(request, finding.evidence_file, label="evidence file")
 
 
 # ----------------------------------------------------------------- WireGuard
@@ -195,8 +196,9 @@ def wireguard_download(request):
     profile.downloaded_at = timezone.now()
     profile.save(update_fields=["downloaded_at"])
     audit(AuditLog.Action.WIREGUARD_DOWNLOADED, request=request, target=profile)
-    return FileResponse(
-        profile.config.open("rb"),
-        as_attachment=True,
+    return stored_files.serve(
+        request,
+        profile.config,
         filename=f"jengasec-{request.user.username}.conf",
+        label="WireGuard configuration",
     )

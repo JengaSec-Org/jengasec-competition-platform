@@ -571,3 +571,50 @@ class RegistrationDeadlineTests(CommitMixin, TestCase):
                 team, track_preferences=["application"], enterprise_preference="",
                 skills_declaration=SKILLS,
             )
+
+
+class IdentityDocumentDeliveryTests(TestCase):
+    """A row whose bytes are gone must explain itself, not return a 500.
+
+    Uploads taken before the site moved onto object storage did not
+    survive -- the host's disk is wiped on every deploy while the
+    Postgres row is not -- so organisers open ID links that point at
+    objects the bucket has never held.
+    """
+
+    def setUp(self):
+        self.staff = User.objects.create_user("organiser", password="x", is_staff=True)
+        self.competitor = make_user("subject")
+        self.profile = self.competitor.profile
+        self.profile.identity_document.save(
+            "id.png", SimpleUploadedFile("id.png", b"\x89PNG\r\n\x1a\n" + b"0" * 64),
+            save=True,
+        )
+        self.client.force_login(self.staff)
+        self.url = reverse("accounts:identity_document", kwargs={"pk": self.competitor.pk})
+
+    def tearDown(self):
+        self.profile.identity_document.delete(save=False)
+
+    def test_present_document_is_streamed(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment", response["Content-Disposition"])
+        # Windows will not unlink a file whose handle is still open, and
+        # a streaming response holds one until it is consumed.
+        response.close()
+
+    def test_missing_file_is_410_with_an_explanation(self):
+        UserProfile.objects.filter(pk=self.profile.pk).update(
+            identity_document="identity/2026/not-in-the-bucket.png"
+        )
+        with self.assertLogs("services.stored_files", level="WARNING"):
+            response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 410)
+        body = response.content.decode()
+        self.assertIn("not-in-the-bucket.png", body)
+        self.assertIn("upload it again", body)
+
+    def test_blank_field_is_still_404(self):
+        UserProfile.objects.filter(pk=self.profile.pk).update(identity_document="")
+        self.assertEqual(self.client.get(self.url).status_code, 404)

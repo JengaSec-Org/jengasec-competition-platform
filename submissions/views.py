@@ -11,13 +11,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.http import FileResponse, Http404, HttpResponseNotAllowed
+from django.http import Http404, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from services import appeal_service
 from services import competition_service as comp_svc
+from services import stored_files
 from services import submission_service as svc
 from services import team_service
 
@@ -242,10 +243,11 @@ def download_file(request, pk):
         description=f"Downloaded {submission_file.filename} (v{submission_file.version})",
         file_id=submission_file.pk,
     )
-    return FileResponse(
-        submission_file.file.open("rb"),
-        as_attachment=True,
+    return stored_files.serve(
+        request,
+        submission_file.file,
         filename=submission_file.filename,
+        label="submission file",
     )
 
 
@@ -523,7 +525,9 @@ def figure_image(request, pk):
     submission = figure.parsed_document.submission_file.submission
     if not svc.can_view(request.user, submission):
         raise Http404("Figure not found")
-    return FileResponse(figure.image.open("rb"))
+    return stored_files.serve(
+        request, figure.image, as_attachment=False, label="figure"
+    )
 
 
 # ------------------------------------------------------- organiser screens

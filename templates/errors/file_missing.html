@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}File unavailable — JengaSec{% endblock %}
+
+{% comment %}
+Shown instead of a 500 when the database holds a file row whose bytes are
+not in storage. Two causes, told apart so the organiser knows whether to
+chase the competitor or the configuration.
+{% endcomment %}
+
+{% block content %}
+<div class="page-narrow">
+  <h1>This {{ label }} is not available</h1>
+
+  {% if reason == "missing" %}
+    <p>
+      The record for this {{ label }} still exists, but the file itself is no
+      longer in storage. This happens to anything uploaded before the site was
+      moved onto object storage: the host's own disk is wiped on every deploy,
+      so those uploads did not survive, while their database rows did.
+    </p>
+    <p><strong>It cannot be recovered.</strong> Ask the account holder to upload it again.</p>
+  {% else %}
+    <p>
+      The file store could not be reached, so this {{ label }} cannot be served
+      right now. The file is most likely fine — this is a configuration or
+      connectivity problem, not a lost upload.
+    </p>
+    <p>Check the <code>S3_*</code> environment variables and the server log for the reason.</p>
+  {% endif %}
+
+  <p class="muted"><small>Reference: <code>{{ name }}</code></small></p>
+  <p><a href="javascript:history.back()">Go back</a></p>
+</div>
+{% endblock %}
