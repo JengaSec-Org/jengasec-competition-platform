@@ -9,6 +9,7 @@ on a download link -- but have opposite answers. This separates them:
   storage, which is what remains of uploads taken while the app was still
   writing to the host's own ephemeral disk.
 """
+import os
 import uuid
 
 from django.apps import apps
@@ -49,10 +50,16 @@ class Command(BaseCommand):
                 f"region={opts.get('region_name')}"
             )
         else:
-            self.stdout.write(self.style.WARNING(
-                "  Not object storage. On a host with an ephemeral disk every "
-                "upload is deleted at the next deploy -- set the S3_* variables."
+            self.stdout.write(self.style.ERROR(
+                "  NOT object storage: uploads are going to this container's own disk."
             ))
+            self.stdout.write(self.style.ERROR(
+                "  On Render that disk is wiped at every deploy and every restart, so "
+                "an upload appears to work, writes its database row, and the file is "
+                "gone minutes later. The bucket stays empty because nothing was ever "
+                "sent to it."
+            ))
+            self._env_report()
 
         if not options["skip_probe"]:
             self._probe(keep=options["keep_probe"])
@@ -93,6 +100,43 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS(
                 "  round trip OK (write, read, delete -- nothing left behind)"
+            ))
+
+    # ------------------------------------------------------------ env vars
+    def _env_report(self):
+        """Which S3 variables the process can actually see.
+
+        `settings.py` switches to object storage only when S3_BUCKET is
+        present in the environment, so a missing name here is the whole
+        explanation for uploads not arriving. Presence only -- a secret
+        is never printed.
+        """
+        required = (
+            "S3_BUCKET",
+            "S3_ENDPOINT_URL",
+            "S3_ACCESS_KEY_ID",
+            "S3_SECRET_ACCESS_KEY",
+        )
+        optional = ("S3_REGION",)
+        self.stdout.write("")
+        self.stdout.write("  Environment variables this process can see:")
+        for name in required + optional:
+            value = os.environ.get(name)
+            if value is None:
+                mark, note = self.style.ERROR("not set"), ""
+            elif not value.strip():
+                mark, note = self.style.ERROR("set but empty"), ""
+            else:
+                mark = self.style.SUCCESS("set")
+                # Safe to echo: a bucket name and an endpoint are not secrets.
+                note = f" ({value})" if name in ("S3_BUCKET", "S3_ENDPOINT_URL", "S3_REGION") else ""
+            self.stdout.write(f"    {name:<22} {mark}{note}")
+        if not os.environ.get("S3_BUCKET"):
+            self.stdout.write("")
+            self.stdout.write(self.style.ERROR(
+                "  S3_BUCKET is what turns object storage on. Until it is set in the "
+                "service's own Environment tab -- a render.yaml blueprint only applies "
+                "to services created from it -- nothing will reach the bucket."
             ))
 
     # ------------------------------------------------------------ listing
