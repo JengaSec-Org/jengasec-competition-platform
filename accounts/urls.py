@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import views as auth_views
-from django.urls import path, reverse_lazy
+from django.urls import path, register_converter, reverse_lazy
 
 from competitions.constants import EDITION
 
@@ -39,22 +39,27 @@ def password_reset_email_context():
 
 app_name = "accounts"
 
+from .converters import TokenConverter
+
+# Named "token" so routes read `<token:token>`.
+register_converter(TokenConverter, "token")
+
 urlpatterns = [
     # Public competitor sign-up: Team Member or Captain, never staff.
     path("register/", views.register, name="register"),
     # Email verification (Guide s.6 step 1): the account is inert until done.
     path("verify/", views.verify_pending, name="verify_pending"),
     path("verify/resend/", views.resend_verification, name="resend_verification"),
-    path("verify/<str:token>/", views.verify_email, name="verify_email"),
+    path("verify/<token:token>/", views.verify_email, name="verify_email"),
     # Code of conduct (Guide s.6 step 4)
     path("conduct/", views.conduct, name="conduct"),
     path("choose-role/", views.choose_role, name="choose_role"),
     path("team-form/", views.team_form, name="team_form"),
     # Members wait for their captain's invitation here (Guide s.6 step 7).
     path("choose-team/", views.choose_team, name="choose_team"),
-    path("invitations/<str:token>/", views.invitation_open, name="invitation_open"),
+    path("invitations/<token:token>/", views.invitation_open, name="invitation_open"),
     path(
-        "invitations/<str:token>/<str:decision>/",
+        "invitations/<token:token>/<str:decision>/",
         views.invitation_respond,
         name="invitation_respond",
     ),

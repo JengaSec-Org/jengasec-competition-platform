@@ -9,12 +9,13 @@ submit step (blockers, lock, receipt, resubmission after rejection); the
 organiser's pre-populated rejection reasons; and the welcome pack.
 """
 import datetime
+import secrets
 from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
-from django.urls import reverse
+from django.urls import Resolver404, resolve, reverse
 from django.utils import timezone
 
 from accounts.forms import ProfileForm, TeamDecisionForm
@@ -741,3 +742,65 @@ class StorageStatusPageTests(TestCase):
         self.client.force_login(self.staff)
         body = self.client.post(self.url).content.decode()
         self.assertIn("Round trip OK", body)
+
+
+class InvitationUrlRoutingTests(TestCase):
+    """`invitations/revoke/<pk>/` must reach the revoke view.
+
+    It used to be captured by `invitations/<token>/<decision>/` as
+    token="revoke", decision="2", so withdrawing an invitation answered
+    404 from a view that had no business running.
+    """
+
+    def test_revoke_resolves_to_the_revoke_view(self):
+        match = resolve("/accounts/invitations/revoke/2/")
+        self.assertEqual(match.view_name, "accounts:invitation_revoke")
+        self.assertEqual(match.kwargs, {"pk": 2})
+
+    def test_a_real_token_still_resolves(self):
+        token = secrets.token_urlsafe(32)
+        self.assertEqual(
+            resolve(f"/accounts/invitations/{token}/").view_name,
+            "accounts:invitation_open",
+        )
+        self.assertEqual(
+            resolve(f"/accounts/invitations/{token}/accept/").view_name,
+            "accounts:invitation_respond",
+        )
+        self.assertEqual(
+            resolve(f"/accounts/verify/{token}/").view_name, "accounts:verify_email"
+        )
+
+    def test_a_word_is_no_longer_mistaken_for_a_token(self):
+        with self.assertRaises(Resolver404):
+            resolve("/accounts/invitations/revoke/")
+
+
+class InvitationRevokeTests(TestCase):
+    """The captain withdraws a pending invitation."""
+
+    def setUp(self):
+        self.captain = make_user("skipper")
+        self.team = make_team(make_competition(), self.captain)
+        self.invitation = team_service.invite(
+            self.team, "recruit@strathmore.edu", self.captain
+        )
+        self.client.force_login(self.captain)
+        self.url = reverse(
+            "accounts:invitation_revoke", kwargs={"pk": self.invitation.pk}
+        )
+
+    def test_post_revokes_it(self):
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.invitation.refresh_from_db()
+        self.assertEqual(self.invitation.status, TeamInvitation.Status.REVOKED)
+        self.assertIsNotNone(self.invitation.decided_at)
+
+    def test_another_captain_cannot_revoke_it(self):
+        other = make_user("interloper")
+        make_team(self.team.competition, other, name="Nyati")
+        self.client.force_login(other)
+        self.assertEqual(self.client.post(self.url).status_code, 404)
+        self.invitation.refresh_from_db()
+        self.assertEqual(self.invitation.status, TeamInvitation.Status.PENDING)
