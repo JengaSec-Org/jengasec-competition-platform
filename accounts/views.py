@@ -32,6 +32,7 @@ from .forms import (
 )
 from .models import PolicyVersion, Team, TeamInvitation, TeamMember, UserProfile
 from .roles import ALL_ROLES, TEAM_ROLES
+from . import storage_diagnostics
 from .security import client_ip
 
 
@@ -742,3 +743,24 @@ def team_welcome_pack(request, pk):
     pack_form.save()
     messages.success(request, f"Welcome pack for {team.team_name} saved.")
     return redirect("accounts:team_detail", pk=pk)
+
+
+@login_required
+@staff_required
+def storage_status(request):
+    """Which file store the process serving uploads is actually using.
+
+    Separate from `manage.py check_media` on purpose: that runs in a
+    shell, which on Render is a fresh process with the current
+    environment, while the workers handling uploads keep the environment
+    they booted with. After adding the S3 variables the two disagree
+    until the service restarts, and the symptom -- uploads that succeed
+    and never appear in the bucket -- gives no hint which side is wrong.
+
+    POST runs a live write/read/delete through this process.
+    """
+    return render(
+        request,
+        "accounts/storage_status.html",
+        {"report": storage_diagnostics.report(probe=request.method == "POST")},
+    )

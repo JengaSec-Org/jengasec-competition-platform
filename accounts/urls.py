@@ -121,6 +121,8 @@ urlpatterns = [
     path("users/new/", views.user_create, name="user_create"),
     path("users/<int:pk>/edit/", views.user_edit, name="user_edit"),
     path("users/<int:pk>/identity/", views.identity_document, name="identity_document"),
+    # Staff-only deployment diagnostic: what store this process writes to.
+    path("storage/", views.storage_status, name="storage_status"),
     path("roles/", views.role_list, name="role_list"),
     path("teams/", views.team_list, name="team_list"),
     path("teams/<int:pk>/", views.team_detail, name="team_detail"),

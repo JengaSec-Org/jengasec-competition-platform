@@ -704,3 +704,40 @@ class IdentityReuploadSweepTests(TestCase):
         self.lose_the_file()
         self.run_command("--confirm")
         self.assertEqual(Notification.objects.filter(user=self.user).count(), 1)
+
+
+class StorageStatusPageTests(TestCase):
+    """The upload-side view of storage, and who may see it."""
+
+    def setUp(self):
+        self.staff = User.objects.create_user("sysop", password="x", is_staff=True)
+        self.url = reverse("accounts:storage_status")
+
+    def test_staff_only(self):
+        self.assertEqual(self.client.get(self.url).status_code, 302)
+        self.client.force_login(make_user("nosy"))
+        self.assertEqual(self.client.get(self.url).status_code, 302)
+
+    def test_reports_the_backend_and_the_variable_names(self):
+        self.client.force_login(self.staff)
+        body = self.client.get(self.url).content.decode()
+        self.assertIn("S3_BUCKET", body)
+        self.assertIn("FileSystemStorage", body)
+
+    def test_a_secret_value_is_never_rendered(self):
+        self.client.force_login(self.staff)
+        with override_settings():
+            import os
+
+            os.environ["S3_SECRET_ACCESS_KEY"] = "super-secret-value"
+            try:
+                body = self.client.get(self.url).content.decode()
+            finally:
+                del os.environ["S3_SECRET_ACCESS_KEY"]
+        self.assertIn("S3_SECRET_ACCESS_KEY", body)
+        self.assertNotIn("super-secret-value", body)
+
+    def test_post_runs_a_round_trip(self):
+        self.client.force_login(self.staff)
+        body = self.client.post(self.url).content.decode()
+        self.assertIn("Round trip OK", body)

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}File storage — JengaSec{% endblock %}
+
+{% block content %}
+<div class="page-narrow">
+  <h1>File storage</h1>
+  <p class="muted">
+    Reported by the process that handles uploads. A shell session can report
+    something different: it starts with the current environment, while the
+    running workers keep the one they booted with.
+  </p>
+
+  {% if report.is_object_store %}
+    <p><strong>Uploads go to object storage.</strong> They survive a deploy.</p>
+    <dl>
+      <dt>Backend</dt><dd><code>{{ report.backend }}</code></dd>
+      <dt>Bucket</dt><dd><code>{{ report.options.bucket }}</code></dd>
+      <dt>Endpoint</dt><dd><code>{{ report.options.endpoint }}</code></dd>
+      <dt>Region</dt><dd><code>{{ report.options.region }}</code></dd>
+    </dl>
+  {% else %}
+    <p><strong>Uploads go to this container's own disk.</strong></p>
+    <p>
+      On a host with an ephemeral filesystem every upload is deleted at the next
+      deploy or restart. The upload form still succeeds and still writes its
+      database row, so nothing looks wrong until the file is wanted.
+    </p>
+    <dl>
+      <dt>Backend</dt><dd><code>{{ report.backend }}</code></dd>
+      <dt>Path</dt><dd><code>{{ report.media_root }}</code></dd>
+    </dl>
+    <p>
+      If the <code>S3_*</code> variables below are all set, this process started
+      before they were added — <strong>restart the service</strong> and check again.
+    </p>
+  {% endif %}
+
+  <h2>Environment</h2>
+  <table>
+    <thead><tr><th>Variable</th><th>State</th><th>Value</th></tr></thead>
+    <tbody>
+      {% for item in report.variables %}
+        <tr>
+          <td><code>{{ item.name }}</code></td>
+          <td>{{ item.state }}</td>
+          <td>{% if item.value %}<code>{{ item.value }}</code>{% else %}—{% endif %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted"><small>
+    The access key and secret are shown as set or missing only; their values are
+    never displayed. <code>DEBUG</code> is
+    <strong>{% if report.debug %}ON — this must be off in production{% else %}off{% endif %}</strong>.
+  </small></p>
+
+  <h2>Live test</h2>
+  <p>Writes one small file, reads it back and deletes it, from this process.</p>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit">Run the test</button>
+  </form>
+
+  {% if report.probe %}
+    {% if report.probe.ok %}
+      <p><strong>Round trip OK.</strong> This process can write to and read from the
+      store, so a competitor's upload will land there too.</p>
+    {% else %}
+      <p><strong>Failed at the {{ report.probe.stage }} stage.</strong></p>
+      <p><code>{{ report.probe.detail }}</code></p>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
