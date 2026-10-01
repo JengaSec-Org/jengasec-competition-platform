@@ -346,6 +346,40 @@ def outstanding_items(user, team, items):
     )
 
 
+def identity_document_lost(user):
+    """Their ID upload is gone from storage and has to be taken again.
+
+    Not their mistake and not a rejection, so the wording says so
+    plainly: an apology, the reason, and one thing to do. Anything that
+    reads like "your document was invalid" produces a support queue of
+    people asking what they did wrong.
+
+    The caller clears `identity_document` first, which puts the item
+    back on the profile checklist and the daily digest -- so this mail
+    is a heads-up, not the only route back.
+    """
+    return ns.notify_user(
+        user,
+        subject="Please re-upload your ID document",
+        body=(
+            "Your identity document is no longer on file and we need you to "
+            "upload it again. This is our fault, not yours -- the file was "
+            "lost when the platform moved to its permanent storage, and it "
+            "cannot be recovered. Nothing else on your profile was affected "
+            "and your registration is not at risk.\n\n"
+            "Open your profile and upload your student or national ID again: "
+            "PDF, JPG or PNG, up to 5 MB. It is seen only by organisers and "
+            "is used to confirm your student status.\n\n"
+            "Sorry for the inconvenience."
+        ),
+        link=reverse("accounts:profile"),
+        notification_type=Type.OUTSTANDING_ITEMS,
+        send_email=True,
+        # One request per person, however many times the sweep is run.
+        dedupe_key=f"identity-reupload:{user.pk}",
+    )
+
+
 def membership_changed(team, member_name, member_user=None, withdrew=False):
     """Somebody left a team. Both sides hear, and both hear the consequence."""
     settings_row = team.competition.settings

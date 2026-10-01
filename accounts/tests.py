@@ -618,3 +618,89 @@ class IdentityDocumentDeliveryTests(TestCase):
     def test_blank_field_is_still_404(self):
         UserProfile.objects.filter(pk=self.profile.pk).update(identity_document="")
         self.assertEqual(self.client.get(self.url).status_code, 404)
+
+
+class IdentityReuploadSweepTests(TestCase):
+    """Bringing the database back in line with what storage actually holds.
+
+    A row claiming a document that is not there is worse than a blank
+    one: the checklist counts it as done and the registration can be
+    submitted with nothing behind it.
+    """
+
+    def setUp(self):
+        self.user = make_user("mislaid")
+        self.profile = self.user.profile
+        self.profile.identity_document.save(
+            "id.png", SimpleUploadedFile("id.png", b"\x89PNG\r\n\x1a\n" + b"0" * 32),
+            save=True,
+        )
+
+    def tearDown(self):
+        if self.profile.identity_document:
+            self.profile.identity_document.delete(save=False)
+
+    def lose_the_file(self):
+        UserProfile.objects.filter(pk=self.profile.pk).update(
+            identity_document="identity/2026/never-arrived.png"
+        )
+
+    def run_command(self, *args):
+        from io import StringIO
+        from django.core.management import call_command
+
+        out = StringIO()
+        call_command("request_identity_reupload", *args, stdout=out)
+        return out.getvalue()
+
+    def test_present_document_is_left_alone(self):
+        output = self.run_command("--confirm")
+        self.assertIn("Nothing to do", output)
+        self.profile.refresh_from_db()
+        self.assertTrue(self.profile.identity_document)
+
+    def test_preview_changes_nothing(self):
+        self.lose_the_file()
+        output = self.run_command()
+        self.assertIn("Preview only", output)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.identity_document.name, "identity/2026/never-arrived.png")
+        self.assertFalse(Notification.objects.filter(user=self.user).exists())
+
+    def test_confirm_clears_the_row_and_asks_for_a_new_upload(self):
+        self.lose_the_file()
+        self.run_command("--confirm")
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.identity_document.name, "")
+        self.assertIsNone(self.profile.identity_uploaded_at)
+
+        note = Notification.objects.get(user=self.user)
+        self.assertIn("re-upload", note.subject.lower())
+        self.assertIn("not yours", note.body)
+
+    def test_the_item_goes_back_on_the_checklist(self):
+        from notifications.management.commands.send_outstanding_digest import (
+            outstanding_for_member,
+        )
+
+        team = make_team(make_competition(), make_user("skipper"))
+        member, _ = team_service.add_member(team, self.user)
+        self.assertNotIn(
+            "Upload your student or national ID (PDF, JPG or PNG, up to 5 MB).",
+            outstanding_for_member(member),
+        )
+
+        self.lose_the_file()
+        self.run_command("--confirm")
+        member.refresh_from_db()
+        self.assertIn(
+            "Upload your student or national ID (PDF, JPG or PNG, up to 5 MB).",
+            outstanding_for_member(member),
+        )
+
+    def test_asking_twice_does_not_mail_twice(self):
+        self.lose_the_file()
+        self.run_command("--confirm")
+        self.lose_the_file()
+        self.run_command("--confirm")
+        self.assertEqual(Notification.objects.filter(user=self.user).count(), 1)
