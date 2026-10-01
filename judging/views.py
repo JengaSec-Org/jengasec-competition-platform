@@ -8,8 +8,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 
 from competitions.models import Competition
 from submissions.models import SubmissionType
-from .models import Evaluation
-from . import mock_data
+from .models import Evaluation, ScoringConfig
 
 
 @login_required
@@ -124,18 +123,15 @@ def ai_evaluation_detail(request, eval_id):
     }
     return render(request, "judging/ai_evaluation_detail.html", context)
 
+
+
 def scoring_configuration(request):
     """
     Screen 3: Scoring Configuration.
-    Still on mock_data -- no real model exists for this yet.
-    See team notes re: where this should actually live and what its
-    schema should be.
+    Real ScoringConfig rows -- no longer mock data.
     """
-    configs = mock_data.get_scoring_configs()
-    context = {
-        "configs": configs,
-        "active_tab": "scoring_config",
-    }
+    configs = ScoringConfig.objects.select_related("competition")
+    context = {"configs": configs, "active_tab": "scoring_config"}
     return render(request, "judging/scoring_configuration.html", context)
 
 

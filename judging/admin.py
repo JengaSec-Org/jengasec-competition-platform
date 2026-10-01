@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Appeal, CriterionScore, Evaluation, ScoreOverride
+from .models import Appeal, CriterionScore, Evaluation, ScoreOverride, ScoringConfig
 
 
 class CriterionScoreInline(admin.TabularInline):
@@ -58,3 +58,10 @@ class AppealAdmin(admin.ModelAdmin):
     list_display = ("id", "team", "submission", "status", "created_at", "resolved_by")
     list_filter = ("status",)
     search_fields = ("team__team_name", "reason")
+
+
+
+@admin.register(ScoringConfig)
+class ScoringConfigAdmin(admin.ModelAdmin):
+    list_display = ("competition", "team_type", "proposal_weight", "documentation_weight", "report_weight", "is_active")
+    list_filter = ("competition", "team_type", "is_active")
