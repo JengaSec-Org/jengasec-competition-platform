@@ -384,11 +384,18 @@ def key_dates(competition, team=None):
     planned = [
         ("registration", "Registration closes", row.registration_deadline),
         ("proposal", "Proposals due", row.proposal_deadline),
+        ("qualifier", "HTB qualifier opens", row.red_qualifier_opens_at),
         ("build", "Build ends", row.build_deadline),
         ("submission", "Documents due", row.submission_deadline),
     ]
-    if team is not None and not team.submits_proposal:
-        planned = [r for r in planned if r[0] != "proposal"]
+    if team is not None:
+        # A team is only shown the route it is actually on. Application Red
+        # files no proposal and earns its place through the qualifier;
+        # everyone else proposes and never sees the qualifier.
+        if team.submits_proposal:
+            planned = [r for r in planned if r[0] != "qualifier"]
+        else:
+            planned = [r for r in planned if r[0] != "proposal"]
 
     dates = []
     for kind, label, when in planned:

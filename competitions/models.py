@@ -189,6 +189,15 @@ class CompetitionSettings(models.Model):
         null=True, blank=True,
         help_text="Proposals only. Falls back to the submission deadline when blank.",
     )
+    # When the Hack The Box qualifier opens for Application Red, who file no
+    # proposal and earn their place through it instead (Entry Guide s.3).
+    # A field rather than a date in the template: the previous one was
+    # hardcoded in three places and went stale without anyone noticing.
+    red_qualifier_opens_at = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name="Application Red qualifier opens",
+        help_text="When the HTB challenges open. Shown to Application Red teams only.",
+    )
     build_deadline = models.DateTimeField(null=True, blank=True)
     submission_deadline = models.DateTimeField(
         null=True, blank=True,

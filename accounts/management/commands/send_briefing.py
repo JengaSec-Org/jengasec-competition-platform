@@ -27,6 +27,7 @@ from django.db import transaction
 from accounts.models import Team, TeamMember, UserProfile
 from notifications.management.commands.send_outstanding_digest import (
     outstanding_for_member,
+    outstanding_for_user,
 )
 from services import competition_service, notification_catalogue as cat
 
@@ -84,6 +85,10 @@ class Command(BaseCommand):
                 )
             self.stdout.write("")
 
+        from competitions.models import Competition
+
+        competition = Competition.objects.order_by("-start_date").first()
+
         members = (
             TeamMember.objects.exclude(user__isnull=True)
             .exclude(team__status=Team.Status.WITHDRAWN)
@@ -94,10 +99,12 @@ class Command(BaseCommand):
         plan, unreachable = [], []
         for member in members:
             if not member.user.email:
-                unreachable.append(member)
+                unreachable.append(member.user)
                 continue
             plan.append({
-                "member": member,
+                "user": member.user,
+                "team": member.team,
+                "label": member.team.team_name,
                 "items": outstanding_for_member(member),
                 "dates": competition_service.key_dates(member.team.competition, member.team),
                 # Only for a document that existed and is gone -- never for one
@@ -106,24 +113,46 @@ class Command(BaseCommand):
                 "extra": extra_red if member.team.team_type == Team.TeamType.RED else extra_blue,
             })
 
+        # Accounts that signed up and stopped. They hold no TeamMember row, so
+        # every reminder the platform sends has been passing them by -- the
+        # digest, the closing reminder and the deadline chase all start from a
+        # team. They are the people most at risk of missing the deadline.
+        for user in self._teamless_competitors():
+            if not user.email:
+                unreachable.append(user)
+                continue
+            items = ["Join a team, or create one and invite your team-mates."]
+            items += outstanding_for_user(user)
+            plan.append({
+                "user": user,
+                "team": None,
+                "label": "no team yet",
+                "items": items,
+                "dates": competition_service.key_dates(competition) if competition else [],
+                "identity_lost": user.pk in lost_user_ids,
+                # Side-specific notes need a side, and these people have none.
+                "extra": "",
+            })
+
         self.stdout.write(f"Competitors to brief: {len(plan)}")
         if unreachable:
             self.stdout.write(self.style.WARNING(
                 f"{len(unreachable)} have no email address and cannot be reached: "
-                + ", ".join(m.user.username for m in unreachable)
+                + ", ".join(u.username for u in unreachable)
             ))
 
         for row in plan:
-            member = row["member"]
             flags = []
             if row["identity_lost"]:
                 flags.append("needs ID again")
-            if member.team.is_locked:
+            if row["team"] is None:
+                flags.append("NO TEAM")
+            elif row["team"].is_locked:
                 flags.append("locked registration")
             suffix = f" [{', '.join(flags)}]" if flags else ""
             self.stdout.write(
-                f"  {member.user.username} <{member.user.email}> - "
-                f"{member.team.team_name}: {len(row['items'])} outstanding{suffix}"
+                f"  {row['user'].username} <{row['user'].email}> - "
+                f"{row['label']}: {len(row['items'])} outstanding{suffix}"
             )
 
         if not plan:
@@ -141,10 +170,10 @@ class Command(BaseCommand):
         with transaction.atomic():
             for row in plan:
                 result = cat.briefing(
-                    row["member"].user,
+                    row["user"],
                     items=row["items"],
                     dates=row["dates"],
-                    team=row["member"].team,
+                    team=row["team"],
                     identity_lost=row["identity_lost"],
                     extra=row["extra"],
                     slug=options["slug"],
@@ -158,6 +187,25 @@ class Command(BaseCommand):
                 f"{len(plan) - sent} had already had this briefing (slug "
                 f"{options['slug']!r}); pass a different --slug to send a new one."
             )
+
+    @staticmethod
+    def _teamless_competitors():
+        """Active accounts that are here to compete but hold no team place.
+
+        Judges, partners and organisers are excluded by their function
+        role: they are not supposed to be on a team, so chasing them to
+        join one would be noise. Everyone else with an account and no
+        team is a competitor who has not finished signing up.
+        """
+        from services.account_service import competitor_accounts
+
+        return (
+            competitor_accounts()
+            .filter(team_memberships__isnull=True)
+            .select_related("profile")
+            .order_by("username")
+            .distinct()
+        )
 
     @staticmethod
     def _lost_documents():
@@ -193,8 +241,8 @@ class Command(BaseCommand):
 
         with patch.object(cat.ns, "notify_user", fake):
             cat.briefing(
-                row["member"].user,
-                items=row["items"], dates=row["dates"], team=row["member"].team,
+                row["user"],
+                items=row["items"], dates=row["dates"], team=row["team"],
                 identity_lost=row["identity_lost"], extra=row["extra"], slug=slug,
             )
         return f"Subject: {captured.get('subject','')}\n\n{captured.get('body','')}"

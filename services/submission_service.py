@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 # Submission types (Entry Guide section 3). Three registration-phase
 # proposal types, one per track that submits one; Application Red is
-# registration-only and goes through challenges from 1 October instead.
+# registration-only; its place is earned through the HTB qualifier instead
+# (CompetitionSettings.red_qualifier_opens_at).
 APPLICATION_BLUE_PROPOSAL = "Application Blue Proposal"
 AI_DEFENCE_PROPOSAL = "AI Defence Proposal"
 AI_RED_PROPOSAL = "AI Red Proposal"

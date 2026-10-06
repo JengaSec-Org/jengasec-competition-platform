@@ -24,22 +24,22 @@ from accounts.models import Team, TeamMember
 from services import notification_catalogue as cat
 
 
-def outstanding_for_member(member, on_date=None):
-    """What this member personally still owes. Empty list means done.
+def outstanding_for_user(user, on_date=None, contact_role=""):
+    """What one person still owes on their own account.
 
     Entry Guide section 6, steps 1-7: verified email, recognised (or
     manually confirmed) institution, profile details, ID document within
-    the age band, the current code of conduct, and -- for the captain and
-    deputy -- a phone number. `on_date` is the registration date the age
-    rule is checked against; today when not given.
+    the age band, and the current code of conduct. `on_date` is the
+    registration date the age rule is checked against; today when not
+    given. `contact_role` adds the phone-number requirement that applies
+    to a captain or deputy, and is blank for anyone else.
+
+    Split out from `outstanding_for_member` so the same checklist can be
+    applied to somebody who has no team yet -- an account that signed up
+    and stopped has exactly these gaps plus a team to join, and was
+    previously invisible to every reminder the platform sends.
     """
     missing = []
-    if member.user is None:
-        # Nothing to send in-app to, but recorded so the captain's view of
-        # the team is honest about it.
-        missing.append("Create a platform account using this email address.")
-        return missing
-    user = member.user
     if not user.email:
         missing.append("Add an email address to your account.")
     if not user.first_name and not user.last_name:
@@ -71,16 +71,33 @@ def outstanding_for_member(member, on_date=None):
         missing.append("Add your repository handle (GitHub / GitLab) to your profile.")
     if not profile.identity_document:
         missing.append("Upload your student or national ID (PDF, JPG or PNG, up to 5 MB).")
-    if member.role in member.CONTACT_ROLES and not profile.phone:
+    if contact_role and not profile.phone:
         missing.append(
-            f"As {member.get_role_display().lower()} you must add a phone number "
-            f"in international format."
+            f"As {contact_role} you must add a phone number in international format."
         )
     from services.account_service import has_accepted_current_policy
 
     if not has_accepted_current_policy(user):
         missing.append("Read and accept the current code of conduct.")
     return missing
+
+
+def outstanding_for_member(member, on_date=None):
+    """What this member personally still owes. Empty list means done.
+
+    The account checklist, plus the one item that depends on where they
+    stand in the team.
+    """
+    if member.user is None:
+        # Nothing to send in-app to, but recorded so the captain's view of
+        # the team is honest about it.
+        return ["Create a platform account using this email address."]
+    contact_role = (
+        member.get_role_display().lower()
+        if member.role in member.CONTACT_ROLES
+        else ""
+    )
+    return outstanding_for_user(member.user, on_date=on_date, contact_role=contact_role)
 
 
 class Command(BaseCommand):

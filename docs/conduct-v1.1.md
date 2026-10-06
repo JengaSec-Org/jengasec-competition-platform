@@ -28,7 +28,7 @@
 
 7.8 How long we keep it. For the JengaSec 2026 season and the period afterwards needed to settle appeals, satisfy audit and report on the event. After that it is securely disposed of, except for anonymised figures that can no longer identify you, which we may keep indefinitely.
 
-7.9 Your rights. Under the Data Protection Act, 2019 you may ask to be told how your data is used, to see the data we hold about you, to object to our processing of some or all of it, to have inaccurate data corrected, and to have false or misleading data deleted. Write to the university's Data Protection Officer at dpo@strathmore.edu. You also have the right to complain to the Office of the Data Protection Commissioner.
+7.9 Your rights. Under the Data Protection Act, 2019 you may ask to be told how your data is used, to see the data we hold about you, to object to our processing of some or all of it, to have inaccurate data corrected, and to have false or misleading data deleted. Write to the university's Data Protection Officer at dpo@strathmore.edu or sucybersec@strathmore.edu . You also have the right to complain to the Office of the Data Protection Commissioner.
 
 7.10 Keeping it accurate. Please keep your own profile up to date. An incomplete or inaccurate record is the usual reason a registration cannot be verified or a competitor cannot be admitted to the venue.
 

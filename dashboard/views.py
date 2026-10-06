@@ -189,6 +189,7 @@ def _red_context(request, team, phase):
     if phase == Competition.Phase.REGISTRATION:
         return {
             "qualifier_locked": comp.red_qualifier_locked(team),
+            "qualifier_opens": team.competition.settings.red_qualifier_opens_at,
             "proposal": comp.proposal_for(team),
             "registration_open": team.competition.registration_open,
             "deadline": team.competition.settings.registration_deadline,

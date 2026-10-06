@@ -132,8 +132,8 @@ class TeamCreateForm(forms.ModelForm):
         help_texts = {
             "team_name": "Three to forty characters.",
             "track": "Application Blue and AI Defence Blue submit a proposal. "
-                     "AI Red submits a proposal; Application Red goes through "
-                     "challenges from 1 October.",
+                     "AI Red submits a proposal; Application Red files none and "
+                     "earns its place through the Hack The Box qualifier.",
         }
 
     def __init__(self, *args, **kwargs):

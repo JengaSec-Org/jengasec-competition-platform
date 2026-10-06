@@ -13,21 +13,33 @@
 {% include "dashboard/_team_ident.html" %}
 
 {% if qualifier_locked %}
-  {# ---- Application Red: registration only; challenges from 1 October (Entry Guide s.3) ---- #}
+  {# ---- Application Red: no proposal. Places are earned through the Hack
+       The Box qualifier, then a cell is assigned (Entry Guide s.3). The date
+       comes from CompetitionSettings.red_qualifier_opens_at -- it used to be
+       hardcoded here and in two other files, and went stale unnoticed. ---- #}
   <div class="card" style="max-width:760px;">
     <span class="tlabel" style="color: var(--gold);">// APPLICATION_RED</span>
     <h3 class="card-title">
-      Challenges open 1 October 2026
+      {% if qualifier_opens %}
+        HTB qualifier opens {{ qualifier_opens|date:"D j M Y, H:i" }} EAT
+      {% else %}
+        HTB qualifier — date to be announced
+      {% endif %}
       {% if team.cell_id %}{% include "components/badge.html" with label=team.cell_label color="green" %}{% else %}{% include "components/badge.html" with label="Cell pending approval" color="gold" %}{% endif %}
     </h3>
     <p class="text-muted">
-      Application Red teams do not submit a proposal. Once your registration is
-      approved you are assigned a cell; from <strong>1 October 2026</strong> you attack
-      that cell's application within a scheduled window and report your findings to a
-      professional standard.
+      Application Red teams do not submit a proposal. You earn your place by
+      competing in Hack The Box challenges{% if qualifier_opens %}, opening
+      <strong>{{ qualifier_opens|date:"l j F Y" }}</strong>{% endif %}. Teams that
+      qualify are assigned a cell, and then attack that cell's application within a
+      scheduled window and report their findings to a professional standard.
+    </p>
+    <p class="text-muted">
+      Your registration still has to be complete and approved before the qualifier —
+      the checklist below is what stands between you and a place.
     </p>
     {% if team.application_brief %}
-      <p class="form-help" style="margin-top:1rem;">// TARGET :: {{ team.application_brief.code }} — {{ team.application_brief.name }}</p>
+      <p class="form-help" style="margin-top:1rem;">// TARGET_IF_PLACED :: {{ team.application_brief.code }} — {{ team.application_brief.name }}</p>
       {% if team.application_brief.red_exposure_list %}
         <p class="text-muted" style="margin-top:0.5rem;"><strong>What Red will try</strong> (from the brief):</p>
         <ul style="margin:0.25rem 0 0 1.25rem;">

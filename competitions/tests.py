@@ -195,3 +195,108 @@ class LandingPageTests(TestCase):
         response = self.client.get(reverse("landing"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["key_dates"], [])
+
+
+class RedQualifierTests(TestCase):
+    """Application Red earns its place through the HTB qualifier.
+
+    The date used to be hardcoded in three files ("1 October 2026") and
+    went stale without anyone noticing, so it now lives on
+    CompetitionSettings and reaches the page from there.
+    """
+
+    def setUp(self):
+        from django.utils import timezone
+
+        self.comp = make_competition()
+        row = self.comp.settings
+        row.registration_deadline = timezone.now() + datetime.timedelta(days=1)
+        row.proposal_deadline = timezone.now() + datetime.timedelta(days=2)
+        row.red_qualifier_opens_at = timezone.now() + datetime.timedelta(days=2)
+        row.build_deadline = timezone.now() + datetime.timedelta(days=8)
+        row.save()
+        self.comp.refresh_from_db()
+
+    def team(self, team_type, track, name):
+        from accounts.models import Team
+        from django.contrib.auth.models import User
+
+        captain = User.objects.create_user(name, password="x")
+        return Team.objects.create(
+            competition=self.comp, team_name=name.title(), team_type=team_type,
+            track=track, captain=captain, institution="Strathmore",
+        )
+
+    def kinds(self, team):
+        from services import competition_service
+
+        return [d["kind"] for d in competition_service.key_dates(self.comp, team)]
+
+    def test_application_red_sees_the_qualifier_and_no_proposal(self):
+        from accounts.models import Team
+        from competitions.constants import Track
+
+        team = self.team(Team.TeamType.RED, Track.APPLICATION, "appred")
+        kinds = self.kinds(team)
+        self.assertIn("qualifier", kinds)
+        self.assertNotIn("proposal", kinds)
+
+    def test_ai_red_sees_the_proposal_and_no_qualifier(self):
+        from accounts.models import Team
+        from competitions.constants import Track
+
+        team = self.team(Team.TeamType.RED, Track.AI, "aired")
+        kinds = self.kinds(team)
+        self.assertIn("proposal", kinds)
+        self.assertNotIn("qualifier", kinds)
+
+    def test_blue_teams_never_see_the_qualifier(self):
+        from accounts.models import Team
+        from competitions.constants import Track
+
+        for track in (Track.APPLICATION, Track.AI):
+            team = self.team(Team.TeamType.BLUE, track, f"blue{track}")
+            self.assertNotIn("qualifier", self.kinds(team))
+
+    def test_the_organiser_form_can_set_it(self):
+        form = CompetitionSettingsForm(
+            {**TIMELINE, **OTHER_FIELDS, "red_qualifier_opens_at": "2026-10-08T09:00"},
+            instance=self.comp.settings,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        row = form.save()
+        from django.utils import timezone
+
+        local = timezone.localtime(row.red_qualifier_opens_at)
+        self.assertEqual(local.date(), datetime.date(2026, 10, 8))
+        self.assertEqual((local.hour, local.minute), (9, 0))
+
+    def test_it_is_optional(self):
+        """Blank is honest when the date is not fixed; the page says TBA."""
+        form = CompetitionSettingsForm(
+            {**TIMELINE, **OTHER_FIELDS, "red_qualifier_opens_at": ""},
+            instance=self.comp.settings,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertNotIn("qualifier", [d["kind"] for d in self.kinds_for_blank()])
+
+    def kinds_for_blank(self):
+        from services import competition_service
+
+        row = self.comp.settings
+        row.red_qualifier_opens_at = None
+        row.save()
+        self.comp.refresh_from_db()
+        return competition_service.key_dates(self.comp)
+
+    def test_no_stale_hardcoded_date_remains(self):
+        """The old copy named a date in three files; none may name one."""
+        from pathlib import Path
+
+        for path in (
+            "templates/dashboard/red/registration.html",
+            "accounts/forms.py",
+            "services/submission_service.py",
+        ):
+            text = Path(path).read_text(encoding="utf-8")
+            self.assertNotIn("1 October", text, f"{path} still hardcodes a date")

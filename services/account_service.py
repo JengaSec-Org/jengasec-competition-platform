@@ -189,21 +189,44 @@ def accept_policy(user, version, ip_address=None):
 
 
 @transaction.atomic
+def competitor_accounts():
+    """Every active account that is here to compete.
+
+    Defined by exclusion rather than by a positive role, because an
+    account that signed up and stopped before choosing a side has a blank
+    `UserProfile.role` -- and filtering on blue_team/red_team quietly left
+    exactly those people out of the policy notice, which is the one
+    message they most need. Judges, partners and organisers are excluded
+    by their own role, which they do have.
+    """
+    from accounts.models import UserProfile
+
+    return (
+        User.objects.filter(is_active=True)
+        .exclude(is_staff=True)
+        .exclude(is_superuser=True)
+        .exclude(
+            profile__role__in=(
+                UserProfile.Role.JUDGE,
+                UserProfile.Role.PARTNER,
+                UserProfile.Role.ADMIN,
+            )
+        )
+    )
+
+
 def publish_policy(version):
     """Make `version` the current one and tell every competitor to re-accept."""
     from django.utils import timezone
 
-    from accounts.models import PolicyVersion, UserProfile
+    from accounts.models import PolicyVersion
 
     PolicyVersion.objects.filter(is_current=True).exclude(pk=version.pk).update(is_current=False)
     version.is_current = True
     version.published_at = version.published_at or timezone.now()
     version.save(update_fields=["is_current", "published_at"])
 
-    competitors = User.objects.filter(
-        profile__role__in=(UserProfile.Role.BLUE_TEAM, UserProfile.Role.RED_TEAM),
-        is_active=True,
-    )
+    competitors = competitor_accounts()
     accept_url = settings.SITE_URL.rstrip("/") + reverse("accounts:conduct")
     transaction.on_commit(
         lambda: cat.policy_updated(

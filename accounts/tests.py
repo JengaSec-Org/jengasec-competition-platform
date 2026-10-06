@@ -1024,3 +1024,82 @@ class BriefingTests(CommitMixin, TestCase):
         self.team.save()
         self.run_command("--confirm")
         self.assertTrue(Notification.objects.filter(user=self.gappy).exists())
+
+
+class TeamlessCompetitorTests(CommitMixin, TestCase):
+    """People who signed up and stopped.
+
+    They hold no TeamMember row, so the digest, the closing reminder and
+    the deadline chase -- all of which start from a team -- passed them
+    by entirely. They are the people most likely to miss the deadline.
+    """
+
+    def setUp(self):
+        self.comp = make_competition()
+        self.policy = PolicyVersion.objects.create(
+            version="9.0", title="Conduct", body="Text", is_current=True,
+            published_at=timezone.now(),
+        )
+        self.drifter = make_user("drifter")
+        UserProfile.objects.filter(user=self.drifter).update(role="")
+        self.judge = make_user("beak")
+        UserProfile.objects.filter(user=self.judge).update(role=UserProfile.Role.JUDGE)
+
+    def run_briefing(self, *args):
+        from io import StringIO
+        from django.core.management import call_command
+
+        out = StringIO()
+        call_command("send_briefing", *args, stdout=out)
+        return out.getvalue()
+
+    def test_a_teamless_competitor_is_briefed(self):
+        output = self.run_briefing()
+        self.assertIn("drifter", output)
+        self.assertIn("NO TEAM", output)
+
+    def test_they_are_told_to_join_a_team_first(self):
+        self.run_briefing("--confirm")
+        body = Notification.objects.get(user=self.drifter).body
+        self.assertIn("Join a team", body)
+        self.assertIn("Registration closes", body)
+
+    def test_judges_are_not_chased_to_join_a_team(self):
+        output = self.run_briefing()
+        self.assertNotIn("beak", output)
+
+    def test_the_policy_notice_reaches_a_competitor_with_no_role_yet(self):
+        """Filtering on blue_team/red_team used to leave these people out."""
+        version = PolicyVersion.objects.create(
+            version="9.1", title="Conduct", body="New text",
+        )
+        with self.committed():
+            account_service.publish_policy(version)
+        self.assertTrue(
+            Notification.objects.filter(
+                user=self.drifter, type=Notification.Type.POLICY_UPDATED
+            ).exists()
+        )
+
+    def test_the_policy_notice_does_not_go_to_judges(self):
+        version = PolicyVersion.objects.create(version="9.2", title="C", body="T")
+        with self.committed():
+            account_service.publish_policy(version)
+        self.assertFalse(
+            Notification.objects.filter(
+                user=self.judge, type=Notification.Type.POLICY_UPDATED
+            ).exists()
+        )
+
+    def test_publishing_leaves_an_approved_team_approved(self):
+        captain = make_user("skipper")
+        team = make_team(self.comp, captain)
+        team.status = Team.Status.APPROVED
+        team.save()
+        version = PolicyVersion.objects.create(version="9.3", title="C", body="T")
+        with self.committed():
+            account_service.publish_policy(version)
+        team.refresh_from_db()
+        self.assertEqual(team.status, Team.Status.APPROVED)
+        # ...but everyone now shows as owing an acceptance.
+        self.assertFalse(account_service.has_accepted_current_policy(captain))
