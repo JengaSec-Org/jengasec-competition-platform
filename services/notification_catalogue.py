@@ -19,6 +19,7 @@ Every function is idempotent through `dedupe_key`; calling one twice for
 the same event is safe and is the intended way to handle retries.
 """
 from django.urls import reverse
+from django.utils import timezone
 
 from notifications.models import Notification
 from services import notification_service as ns
@@ -299,15 +300,192 @@ def registration_rejected(team):
     )
 
 
-def registration_closing(team, hours, outstanding):
-    """Registration deadline nearing and this team is not finished."""
+def complete_your_details(user, items, policy_url=""):
+    """One-off push to finish capturing a competitor's own details.
+
+    Distinct from `outstanding_items`, the daily digest: that chases a
+    team member about their place on a team, this explains *why* the
+    platform is asking for the data at all and on what basis it is held.
+    Competitors on an already-submitted registration get it too -- venue
+    access depends on the same record, and profile editing is not locked.
+    """
+    if not items:
+        return None
+    listed = "\n".join(f"  - {item}" for item in items)
+    policy = policy_url or "https://strathmore.edu/privacy-policy/"
+    return ns.notify_user(
+        user,
+        subject="Finish setting up your JengaSec account",
+        body=(
+            "Your account is not yet complete. We need every competitor's "
+            "details captured in full before the event: they confirm you are "
+            "eligible, they put you on the right team, and they are what gets "
+            "you through the gate at Strathmore on the day.\n\n"
+            f"Still outstanding for you:\n{listed}\n\n"
+            "All of it is handled under the Strathmore University Data Privacy "
+            "Policy and the Data Protection Act 2019. In short: the data is used "
+            "to run this competition and nothing else, it is seen by organisers "
+            "and judges rather than published, and it is kept only as long as the "
+            "season and its appeals need. You can ask to see, correct or object to "
+            "any of it by writing to dpo@strathmore.edu.\n\n"
+            f"The full policy: {policy}\n"
+            "The notice specific to this competition is in the code of conduct on "
+            "the platform, which you are asked to accept before submitting.\n\n"
+            "Open your profile to fill in what is missing."
+        ),
+        link=reverse("accounts:profile"),
+        notification_type=Type.OUTSTANDING_ITEMS,
+        send_email=True,
+        # One request per person; re-running the sweep does not re-send.
+        dedupe_key=f"complete-details:{user.pk}",
+    )
+
+
+def briefing(user, *, items, dates, team=None, identity_lost=False, extra="", slug="brief"):
+    """Everything one competitor needs to know, in a single email.
+
+    The alternative was four sends in a day -- complete your details,
+    re-upload your ID, the new deadlines, the privacy notice -- which is
+    how people learn to ignore mail from the organisers. The alternative
+    to *that* is one broadcast, which cannot say what any particular
+    person still owes, and so gets ignored by everyone who has already
+    done it.
+
+    This is one email per person, assembled from their own record: their
+    outstanding items, their own missing ID, the dates that apply to
+    their team. Someone with nothing outstanding gets the dates and
+    nothing that reads like a telling-off.
+
+    `slug` keys the deduplication, so a later briefing with a different
+    slug is a new message rather than a suppressed duplicate.
+    """
+    lines = []
+
+    if dates:
+        listed = "\n".join(
+            f"  - {d['label']}: {timezone.localtime(d['when']):%a %d %b %Y at %H:%M} (EAT)"
+            for d in dates if not d["passed"]
+        )
+        if listed:
+            lines.append("The dates that matter:\n" + listed)
+
+    if identity_lost:
+        lines.append(
+            "Your identity document is no longer on file and has to be uploaded "
+            "again. That is our fault, not yours: the file was lost when the "
+            "platform moved to its permanent storage and cannot be recovered."
+        )
+
+    if items:
+        listed = "\n".join(f"  - {item}" for item in items)
+        lines.append(
+            "Before the registration deadline, your account still needs:\n" + listed
+        )
+    else:
+        lines.append(
+            "Your own details are complete -- there is nothing outstanding for you."
+        )
+
+    if extra:
+        lines.append(extra)
+
+    lines.append(
+        "Why we ask for this: the details confirm you are eligible, place you on "
+        "the right team, and are what gets you through the gate at Strathmore on "
+        "the day. They are held by Strathmore University under its Data Privacy "
+        "Policy and the Data Protection Act 2019, used only to run this "
+        "competition, and seen by organisers and judges rather than published. "
+        "Section 7 of the code of conduct on the platform is the full notice. To "
+        "see, correct or object to anything we hold, write to dpo@strathmore.edu.\n\n"
+        "https://strathmore.edu/privacy-policy/"
+    )
+
+    lines.append("Open your profile on the platform to fill in anything missing.")
+
+    return ns.notify_user(
+        user,
+        subject=f"JengaSec: what you need to do before registration closes",
+        body="\n\n".join(lines),
+        link=reverse("accounts:profile"),
+        notification_type=Type.OUTSTANDING_ITEMS,
+        send_email=True,
+        dedupe_key=f"briefing:{slug}:{user.pk}",
+    )
+
+
+def announcement(team, subject, body, slug):
+    """An organiser's own message to one side of the competition.
+
+    Everything else in this module is an event the platform noticed.
+    This is the case where a human has something to say -- a delay, a
+    venue change -- and needs it to reach teams who are not logged in.
+    """
+    return ns.notify_team(
+        team,
+        subject=subject,
+        body=body,
+        link=reverse("dashboard:main_dashboard"),
+        notification_type=Type.GENERAL,
+        dedupe_key=f"announce:{slug}:{team.pk}",
+    )
+
+
+def registration_returned(team, note=""):
+    """Handed back for edits rather than refused.
+
+    A rejection and a return are different messages and must not share
+    wording: this one says the registration is unlocked, what to change
+    and that resubmitting is expected. Called straight from the view --
+    `notifications.signals` only reacts to APPROVED and REJECTED, since a
+    return lands on the same REGISTERED status a team starts life in.
+
+    The dedupe key carries the note, so a second return for a different
+    reason is delivered rather than suppressed as a duplicate.
+    """
+    if not team.captain:
+        return 0
+    reason = note or team.rejection_reason or "Contact the organisers for details."
+    deadline = team.competition.settings.registration_deadline
+    if deadline:
+        window = (
+            f"Registration closes on {deadline:%d %b %Y at %H:%M} (EAT) -- "
+            f"resubmit before then and it will be reviewed again."
+        )
+    else:
+        window = "Resubmit once it is corrected."
+    return ns.notify_user(
+        team.captain,
+        subject=f"{team.team_name}: registration returned for changes",
+        body=(
+            f"Reference {registration_reference(team)}\n\n"
+            f"Your registration has been returned so you can edit it. It has "
+            f"not been refused, and your roster is unlocked again.\n\n"
+            f"What to change:\n{reason}\n\n{window}"
+        ),
+        link=reverse("accounts:team_requests"),
+        notification_type=Type.REGISTRATION_REJECTED,
+        send_email=True,
+        # sha256, not hash(): string hashing is salted per process, so
+        # built-in hash() would give a different key on every restart and
+        # the suppression would stop working.
+        dedupe_key=f"team:{team.pk}:returned:{_digest(reason)}",
+    )
+
+
+def registration_closing(team, hours, outstanding, remaining=None):
+    """Registration deadline nearing and this team is not finished.
+
+    `hours` is the threshold that fired and keys the deduplication;
+    `remaining` is the real gap, which is what the subject quotes.
+    """
     if not team.captain:
         return 0
     deadline = team.competition.settings.registration_deadline
     items = "\n".join(f"  - {item}" for item in outstanding)
+    when = time_left(remaining) if remaining is not None else f"in {hours} hours"
     return ns.notify_user(
         team.captain,
-        subject=f"Registration closes in {hours} hours -- {team.team_name}",
+        subject=f"Registration closes {when} -- {team.team_name}",
         body=(
             f"Registration for {team.competition.name} closes on "
             f"{deadline:%d %b %Y at %H:%M}.\n\n"
@@ -461,3 +639,29 @@ def _today():
     from django.utils import timezone
 
     return timezone.localdate().isoformat()
+
+
+def _digest(text, length=12):
+    """A short, process-stable fingerprint for a dedupe key."""
+    import hashlib
+
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:length]
+
+
+def time_left(delta):
+    """How long is left, in words, for a subject line.
+
+    The reminders fire at fixed thresholds but can run well after one is
+    crossed, so quoting the threshold tells competitors the wrong thing:
+    a 72-hour notice sent with 48 hours to go said "in 72 hours". This
+    describes the actual gap, while the threshold stays as the dedupe
+    key so once-only delivery is unaffected.
+    """
+    seconds = max(int(delta.total_seconds()), 0)
+    hours = seconds // 3600
+    if hours < 1:
+        return "in under an hour"
+    if hours < 48:
+        return f"in {hours} hour{'s' if hours != 1 else ''}"
+    days = hours // 24
+    return f"in {days} days"

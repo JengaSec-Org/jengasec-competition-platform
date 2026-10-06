@@ -5,6 +5,8 @@
 {% block content %}
 {% include "components/page_header.html" with tag="MY_TEAM" title=team.team_name %}
 
+{% include "dashboard/_key_dates.html" %}
+
 <p class="text-muted" style="margin-bottom:1.5rem;">
   {% if team.team_identifier %}<code class="tlabel">{{ team.team_identifier }}</code> &middot;{% endif %}
   {{ team.track_label|default:team.get_team_type_display }} &middot; {{ team.competition.name }}

@@ -50,6 +50,8 @@
       {% endif %}
       {% include "components/form_field.html" with field=form.identity_document %}
 
+      {% include "components/privacy_note.html" %}
+
       {% include "components/button.html" with label="Save" variant="primary" type="submit" %}
     </form>
   </div>

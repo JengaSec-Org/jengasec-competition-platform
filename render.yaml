@@ -61,6 +61,16 @@ services:
       # Setting the key selects config.email_backends.BrevoAPIBackend.
       - key: BREVO_API_KEY
         sync: false
+
+      # ── Scheduled notifications ───────────────────────────────────────────
+      # Render's free plan has no cron service, so the reminder jobs are
+      # driven by GitHub Actions posting to /tasks/run/ hourly (see
+      # .github/workflows/scheduled-tasks.yml). Generate the value with
+      #   python -c "import secrets; print(secrets.token_urlsafe(32))"
+      # and set the SAME value as the repository secret JENGASEC_CRON_TOKEN.
+      # Left unset the endpoint answers 404 and no reminder is ever sent.
+      - key: DJANGO_CRON_TOKEN
+        sync: false
       - key: DJANGO_EMAIL_HOST_USER
         value: sucybersec@strathmore.edu   # the verified sender; also the From address
       - key: DJANGO_SITE_URL

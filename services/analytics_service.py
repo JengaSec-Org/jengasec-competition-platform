@@ -214,7 +214,12 @@ def headline(competition):
         "people": members.count(),
         "verified": verified,
         "submitted": submitted,
-        "awaiting_review": teams.filter(status=Team.Status.SUBMITTED).count(),
+        # Both states are waiting on an organiser's decision; a review that
+        # has been picked up is still outstanding work.
+        "awaiting_review": teams.filter(
+            status__in=(Team.Status.SUBMITTED, Team.Status.UNDER_REVIEW)
+        ).count(),
+        "under_review": teams.filter(status=Team.Status.UNDER_REVIEW).count(),
         "approved": teams.filter(status=Team.Status.APPROVED).count(),
         "proposals": Submission.objects.filter(competition=competition).count(),
         "open_invitations": TeamInvitation.objects.filter(

@@ -265,12 +265,17 @@ class Team(models.Model):
         REGISTERED = "registered", "In progress"
         # Captain submitted the registration; locked while organisers review.
         SUBMITTED = "submitted", "Submitted"
+        # An organiser has picked it up. Internal marker, so two reviewers
+        # do not work the same registration; the team sees no difference.
+        UNDER_REVIEW = "under_review", "Under review"
         APPROVED = "approved", "Approved"
         REJECTED = "rejected", "Rejected"
         WITHDRAWN = "withdrawn", "Withdrawn"
 
-    # Roster and registration details cannot change in these states.
-    LOCKED_STATUSES = ("submitted", "approved")
+    # Roster and registration details cannot change in these states. A
+    # review in progress counts: the roster must not move under the
+    # organiser reading it.
+    LOCKED_STATUSES = ("submitted", "under_review", "approved")
 
     # Guide section 6, step 9: the skills declaration length band.
     SKILLS_MIN = 100

@@ -10,6 +10,7 @@ from django.views.decorators.cache import never_cache
 from django.views.generic import TemplateView
 
 from accounts.security import ThrottledLoginView
+from config import tasks
 
 
 @never_cache
@@ -37,18 +38,54 @@ def healthz(request):
     return JsonResponse({"status": "ok", "database": "ok"})
 
 
+class LandingView(TemplateView):
+    """The public landing page, plus the published deadlines.
+
+    A bare TemplateView until now, which is why the dates were only ever
+    on the hardcoded countdown. Competitors ask "when does registration
+    close" far more often than they ask anything else, and the answer has
+    to come from the database or it goes stale the first time a deadline
+    moves.
+
+    Degrades to no dates rather than erroring: the public site must come
+    up even with no competition configured.
+    """
+
+    template_name = "website_landing_page.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["key_dates"] = []
+        context["registration_open"] = False
+        try:
+            from competitions.models import Competition
+            from services import competition_service
+
+            competition = (
+                Competition.objects.filter(status=Competition.Status.OPEN)
+                .order_by("-start_date")
+                .first()
+            )
+            if competition:
+                context["competition"] = competition
+                context["key_dates"] = competition_service.key_dates(competition)
+                context["registration_open"] = competition.registration_open
+        except Exception:  # noqa: BLE001 — a public page, never a 500
+            pass
+        return context
+
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     # Health check. Unauthenticated, because a load balancer cannot log in, and
     # never cached. Exposes no data beyond up/down.
     path("healthz/", healthz, name="healthz"),
+    # Scheduled notification jobs, driven by an external cron because
+    # Render's free plan has none. Token-guarded; see config/tasks.py.
+    path("tasks/run/", tasks.run, name="tasks_run"),
     # Public event website — served by Django directly so the whole
     # platform ships as one app (fewer moving parts, fewer attack surfaces).
-    path(
-        "",
-        TemplateView.as_view(template_name="website_landing_page.html"),
-        name="landing",
-    ),
+    path("", LandingView.as_view(), name="landing"),
     # The rest of the public event website. Each is a standalone page from
     # the design repo (its own inline CSS/JS, like the landing page), served
     # here so the whole site ships as one app on one domain.

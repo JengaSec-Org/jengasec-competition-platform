@@ -26,6 +26,8 @@
   {% include "components/input.html" with name="email" label="Email Address" type="email" required=True value=form.email.value error=form.email.errors.0 %}
   {% include "components/input.html" with name="password1" label="Password" type="password" required=True error=form.password1.errors.0 %}
   {% include "components/input.html" with name="password2" label="Confirm Password" type="password" required=True error=form.password2.errors.0 %}
+  {% include "components/privacy_note.html" %}
+
   <button type="submit" class="btn btn-primary btn-block">Create Account</button>
 </form>
 

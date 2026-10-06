@@ -359,3 +359,51 @@ def enterprise_peers(team):
         .exclude(pk=team.pk)
         .order_by("cell_id", "team_name")
     )
+
+
+# ---------------------------------------------------------------- key dates
+
+
+def key_dates(competition, team=None):
+    """The published timeline, labelled, for display.
+
+    One shape serves the public landing page, the team dashboards and the
+    My Team panel, so the dates cannot disagree between them -- which is
+    how the dashboards came to show `competition.end_date` under the
+    heading "registration closes".
+
+    Rows a team has nothing to do with are dropped: Application Red files
+    no proposal (`Team.submits_proposal`), so it is not told when
+    proposals are due.
+    """
+    from django.utils import timezone
+
+    row = competition.settings
+    now = timezone.now()
+
+    planned = [
+        ("registration", "Registration closes", row.registration_deadline),
+        ("proposal", "Proposals due", row.proposal_deadline),
+        ("build", "Build ends", row.build_deadline),
+        ("submission", "Documents due", row.submission_deadline),
+    ]
+    if team is not None and not team.submits_proposal:
+        planned = [r for r in planned if r[0] != "proposal"]
+
+    dates = []
+    for kind, label, when in planned:
+        if when is None:
+            continue
+        dates.append({
+            "kind": kind,
+            "label": label,
+            "when": when,
+            "passed": when < now,
+            # The next deadline still ahead, for highlighting one row.
+            "next": False,
+        })
+
+    upcoming = [d for d in dates if not d["passed"]]
+    if upcoming:
+        upcoming[0]["next"] = True
+    return dates

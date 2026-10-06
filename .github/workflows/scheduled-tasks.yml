@@ -1,0 +1,73 @@
+# Hourly notification jobs.
+#
+# Render's free plan has no cron service, so nothing was running the
+# reminder commands and no reminder had ever been sent. This posts to the
+# token-guarded runner at /tasks/run/ instead, which runs the same jobs
+# the staff console offers (notifications/jobs.py).
+#
+# Setup, once:
+#   1. Generate a token:  python -c "import secrets; print(secrets.token_urlsafe(32))"
+#   2. Render   -> Environment -> DJANGO_CRON_TOKEN = that value
+#   3. GitHub   -> Settings -> Secrets and variables -> Actions
+#                  -> New repository secret -> JENGASEC_CRON_TOKEN = the same value
+#   4. Optional -> Variables -> JENGASEC_SITE_URL if the site is not
+#      https://jengasec.com
+#
+# GitHub's scheduler is best-effort and can run 5-15 minutes late, and may
+# skip runs when the service is busy. That is harmless here: every notice
+# is deduplicated per recipient and threshold, so a late or repeated run
+# sends nothing twice, and the thresholds are hours wide.
+
+name: Scheduled notifications
+
+on:
+  schedule:
+    # Every hour, on the hour (UTC).
+    - cron: "0 * * * *"
+  # So the setup can be proved without waiting for the next hour.
+  workflow_dispatch:
+
+# One at a time: two overlapping runs would do the same work twice.
+concurrency:
+  group: scheduled-notifications
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Post to the scheduled runner
+        env:
+          SITE_URL: ${{ vars.JENGASEC_SITE_URL || 'https://jengasec.com' }}
+          CRON_TOKEN: ${{ secrets.JENGASEC_CRON_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CRON_TOKEN}" ]; then
+            echo "::error::JENGASEC_CRON_TOKEN is not set as a repository secret."
+            exit 1
+          fi
+
+          # --max-time guards against a hung request holding the runner.
+          # The token goes in a header, never the URL, so it stays out of
+          # access logs. Body to a file so a failure can still print it.
+          status=$(curl --silent --show-error \
+                        --output response.json \
+                        --write-out '%{http_code}' \
+                        --max-time 300 \
+                        --request POST \
+                        --header "X-Cron-Token: ${CRON_TOKEN}" \
+                        "${SITE_URL}/tasks/run/")
+
+          echo "HTTP ${status}"
+          cat response.json || true
+          echo
+
+          case "${status}" in
+            200) echo "All scheduled jobs ran." ;;
+            207) echo "::warning::Some jobs failed; see the response above." ;;
+            403) echo "::error::Token rejected. The Render and GitHub values differ."; exit 1 ;;
+            404) echo "::error::DJANGO_CRON_TOKEN is not set on the server, so the runner is disabled."; exit 1 ;;
+            *)   echo "::error::Unexpected HTTP ${status}."; exit 1 ;;
+          esac

@@ -256,6 +256,13 @@ LOGOUT_REDIRECT_URL = "login"
 # (config/email_backends.py). Setting BREVO_API_KEY is enough to select it;
 # DJANGO_EMAIL_BACKEND still overrides everything.
 BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
+
+# Shared secret for the scheduled notification runner at /tasks/run/.
+# Render's free plan has no cron service, so an external scheduler posts
+# there hourly instead. Left blank the endpoint answers 404, so a deploy
+# that has not set it cannot expose an unauthenticated job runner --
+# which also means reminders stay unsent until it *is* set.
+CRON_TOKEN = os.environ.get("DJANGO_CRON_TOKEN", "")
 EMAIL_BACKEND = os.environ.get("DJANGO_EMAIL_BACKEND") or (
     "config.email_backends.BrevoAPIBackend"
     if BREVO_API_KEY

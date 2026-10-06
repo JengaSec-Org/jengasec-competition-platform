@@ -94,6 +94,8 @@ def admin_dashboard(request):
 
 def _base_context(team, team_type, phase):
     """Context every phase dashboard needs."""
+    from notifications.models import Announcement
+
     active = comp.current_phase(team)
     return {
         "team": team,
@@ -103,6 +105,11 @@ def _base_context(team, team_type, phase):
         "read_only": phase != active,
         "phase_rail": comp.phase_rail(team) if team else [],
         "is_blue": team_type == Team.TeamType.BLUE,
+        # Both of these belong on every phase, not just registration: an
+        # organiser's notice and the timeline are what a team opens the
+        # dashboard to check.
+        "announcements": Announcement.active_for(team),
+        "key_dates": comp.key_dates(team.competition, team) if team else [],
     }
 
 
@@ -136,7 +143,14 @@ def _blue_context(request, team, phase):
             "briefs": briefs,
             "proposal": comp.proposal_for(team),
             "registration_open": team.competition.registration_open,
-            "deadline": team.competition.end_date,
+            "deadline": team.competition.settings.registration_deadline,
+            # The proposal card quotes the deadline that actually governs a
+            # proposal: its own when set, otherwise the submission one, which
+            # is the fallback `deadline_for_type` applies for proposal types.
+            "proposal_due": (
+                team.competition.settings.proposal_deadline
+                or team.competition.settings.submission_deadline
+            ),
         }
     if phase == Competition.Phase.BUILD:
         submissions = Submission.objects.filter(team=team).select_related(
@@ -177,7 +191,14 @@ def _red_context(request, team, phase):
             "qualifier_locked": comp.red_qualifier_locked(team),
             "proposal": comp.proposal_for(team),
             "registration_open": team.competition.registration_open,
-            "deadline": team.competition.end_date,
+            "deadline": team.competition.settings.registration_deadline,
+            # The proposal card quotes the deadline that actually governs a
+            # proposal: its own when set, otherwise the submission one, which
+            # is the fallback `deadline_for_type` applies for proposal types.
+            "proposal_due": (
+                team.competition.settings.proposal_deadline
+                or team.competition.settings.submission_deadline
+            ),
         }
     if phase == Competition.Phase.BUILD:
         return {

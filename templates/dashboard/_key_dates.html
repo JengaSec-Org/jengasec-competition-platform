@@ -1,0 +1,31 @@
+{% comment %}
+The published timeline. Times are shown with the zone because a hard
+close at 13:00 is only unambiguous if it says which 13:00.
+
+Context: `key_dates` from services.competition_service.key_dates().
+{% endcomment %}
+{% if key_dates %}
+  <div class="card">
+    <span class="tlabel">// KEY_DATES</span>
+    <h3 class="card-title">Deadlines</h3>
+    <table>
+      <tbody>
+        {% for date in key_dates %}
+          <tr{% if date.passed %} class="text-muted"{% endif %}>
+            <td>
+              {{ date.label }}
+              {% if date.next %}<strong>&nbsp;— next</strong>{% endif %}
+            </td>
+            <td>
+              {{ date.when|date:"D j M Y, H:i" }} EAT
+              {% if date.passed %}<span class="text-muted">(closed)</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-muted"><small>
+      The platform clock decides. Work uploaded after a deadline is refused.
+    </small></p>
+  </div>
+{% endif %}

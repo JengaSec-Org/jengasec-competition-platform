@@ -425,6 +425,20 @@ nav.scrolled .nav-register:hover{color:var(--g)}
 @media(max-width:560px){.nav-register{padding:0.4rem 0.75rem;font-size:10px;letter-spacing:0.04em}}
 .magnetic{will-change:transform}
 
+/* key dates — the published deadlines, beneath the countdown */
+.hero-dates{margin-top:1.4rem;text-align:left;display:inline-block}
+.hd-list{list-style:none;margin:.5rem 0 0;padding:0;display:flex;flex-direction:column;gap:.35rem}
+.hd-item{display:flex;gap:.75rem;align-items:baseline;font-size:.82rem;letter-spacing:.02em}
+.hd-when{font-family:var(--mono,monospace);color:var(--sec,#39ff14);min-width:10.5rem;flex:0 0 auto}
+.hd-what{color:rgba(255,255,255,.72)}
+.hd-done .hd-when,.hd-done .hd-what{color:rgba(255,255,255,.34)}
+.hd-next .hd-when{font-weight:700}
+.hd-next .hd-what{color:#fff}
+@media (max-width:640px){
+  .hero-dates{display:block;text-align:left}
+  .hd-item{flex-direction:column;gap:.1rem}
+  .hd-when{min-width:0}
+}
 /* countdown */
 .hero-count{margin-top:1.75rem;display:inline-flex;align-items:center;gap:1.4rem;
   padding:0.85rem 1.4rem;flex-wrap:wrap;position:relative;overflow:hidden;
@@ -1185,6 +1199,22 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
       <span class="cd-sep">:</span>
       <div class="cd-unit"><span class="cd-num" id="cd-s">--</span><span class="cd-u">Sec</span></div>
     </div>
+
+    {# Published deadlines, from the database rather than the hardcoded
+       countdown above, so moving one in the organiser form moves it here. #}
+    {% if key_dates %}
+      <div class="hero-dates" aria-label="Key dates">
+        <span class="cd-label">// KEY_DATES :: EAT</span>
+        <ul class="hd-list">
+          {% for date in key_dates %}
+            <li class="hd-item{% if date.passed %} hd-done{% endif %}{% if date.next %} hd-next{% endif %}">
+              <span class="hd-when">{{ date.when|date:"D j M" }} &middot; {{ date.when|date:"H:i" }}</span>
+              <span class="hd-what">{{ date.label }}{% if date.passed %} &mdash; closed{% endif %}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
   </div>
 </section>
 

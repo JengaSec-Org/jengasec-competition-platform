@@ -7,6 +7,9 @@
 {% block content %}
 {% include "components/page_header.html" with tag="BLUE_TEAM :: REGISTRATION" title="Choose What You'll Build" %}
 {% include "dashboard/_phase_rail.html" %}
+
+{% include "dashboard/_announcements.html" %}
+{% include "dashboard/_key_dates.html" %}
 {% include "dashboard/_team_ident.html" %}
 
 {# ---- Your proposal ---- #}
@@ -54,9 +57,14 @@
       propose for the same application — the strongest proposals are selected
       after review, so make yours count.
     </p>
-    {% if deadline %}
+    {% if proposal_due %}
       <p class="form-help" style="margin-top:0.75rem;">
-        // REGISTRATION_CLOSES :: {{ deadline|date:"F j, Y" }}
+        // PROPOSALS_DUE :: {{ proposal_due|date:"D j M Y, H:i" }} EAT
+      </p>
+    {% endif %}
+    {% if deadline %}
+      <p class="form-help">
+        // REGISTRATION_CLOSES :: {{ deadline|date:"D j M Y, H:i" }} EAT
       </p>
     {% endif %}
   {% endif %}

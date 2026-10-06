@@ -88,3 +88,75 @@ class Notification(models.Model):
     @property
     def email_pending(self):
         return self.send_email and self.sent_at is None
+
+
+class Announcement(models.Model):
+    """A notice pinned to the dashboards of one side, or of everybody.
+
+    `send_announcement` already reaches teams by email and in-app, but an
+    email is read once and a notification scrolls away. Something a team
+    needs to see every time they open the platform -- "the challenges are
+    delayed, word by Wednesday" -- has to live on the dashboard.
+
+    It is a row rather than a block of template text because the whole
+    point is that it comes down again: organisers clear `is_active` (or
+    let `expires_at` pass) from the admin, with no deploy.
+    """
+
+    class Audience(models.TextChoices):
+        ALL = "all", "Everybody"
+        RED = "red", "Red teams"
+        BLUE = "blue", "Blue teams"
+
+    # Blank means every competition, so a notice outlives one edition.
+    competition = models.ForeignKey(
+        "competitions.Competition",
+        on_delete=models.CASCADE,
+        related_name="announcements",
+        null=True,
+        blank=True,
+        help_text="Leave blank to show in every competition.",
+    )
+    audience = models.CharField(
+        max_length=10, choices=Audience.choices, default=Audience.ALL
+    )
+    title = models.CharField(max_length=200)
+    body = models.TextField(help_text="Plain text. Blank lines separate paragraphs.")
+    is_active = models.BooleanField(
+        default=True, help_text="Untick to take it down immediately."
+    )
+    expires_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Optional: stops showing after this moment, without anyone remembering to.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["is_active", "audience"])]
+
+    def __str__(self):
+        return f"{self.title} ({self.get_audience_display()})"
+
+    @property
+    def paragraphs(self):
+        """The body split for templates, so no `linebreaks` filter is needed."""
+        return [p.strip() for p in self.body.split("\n\n") if p.strip()]
+
+    @classmethod
+    def active_for(cls, team):
+        """Live announcements this team should see, newest first.
+
+        Matches the team's side plus anything addressed to everybody, and
+        a notice scoped to this competition plus anything unscoped.
+        """
+        from django.utils import timezone
+
+        if team is None:
+            return cls.objects.none()
+        return cls.objects.filter(
+            models.Q(audience=cls.Audience.ALL) | models.Q(audience=team.team_type),
+            models.Q(competition__isnull=True) | models.Q(competition=team.competition),
+            models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=timezone.now()),
+            is_active=True,
+        )

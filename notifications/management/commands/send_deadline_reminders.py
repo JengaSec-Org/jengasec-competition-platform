@@ -1,6 +1,6 @@
 """Warn teams whose submission deadline is close.
 
-    python manage.py send_deadline_reminders              # 72h and 24h notices
+    python manage.py send_deadline_reminders              # 72/48/24/12h notices
     python manage.py send_deadline_reminders --dry-run    # report only
 
 Run hourly from cron:
@@ -24,13 +24,14 @@ from django.utils import timezone
 from accounts.models import Team
 from competitions.models import CompetitionSettings
 from notifications.models import Notification
+from services import notification_catalogue as cat
 from services import notification_service as ns
 from submissions.models import Submission
 
 # Hours before the deadline at which a reminder goes out, most distant
 # first. Only the most urgent *due* threshold fires on any given run, so
 # starting the cron late sends one warning rather than a backlog of them.
-THRESHOLDS_HOURS = (168, 48, 12)  # 7 days, 2 days, 12 hours -- as for registration
+THRESHOLDS_HOURS = (72, 48, 24, 12)  # as for registration
 
 # A team that has reached one of these has submitted something real. A
 # proposal returned incomplete has not, and its team needs the reminder.
@@ -93,7 +94,9 @@ class Command(BaseCommand):
                 for team in teams:
                     ns.notify_team(
                         team,
-                        subject=f"{noun.rstrip('s')} deadline in {hours} hours",
+                        subject=(
+                            f"{noun.rstrip('s')} deadline {cat.time_left(remaining)}"
+                        ),
                         body=(
                             f"{noun} for {row.competition.name} close on "
                             f"{deadline_text} (EAT). Your team has not submitted "

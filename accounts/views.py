@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from services import account_service
+from services import competition_service
 from services import notification_catalogue as cat
 from services import stored_files
 from services import team_service
@@ -299,6 +300,9 @@ def team_requests(request):
             "min_members": team_service.MIN_MEMBERS,
             "max_members": team_service.MAX_MEMBERS,
             "policy": PolicyVersion.current(),
+            # Captains plan around the timeline from this page, so it is
+            # here rather than only on the dashboard.
+            "key_dates": competition_service.key_dates(team.competition, team),
         },
     )
 
@@ -719,11 +723,34 @@ def team_decide(request, pk):
         team.save()  # notifications/signals -> registration_approved
         placed = f" Cell {team.cell_label}." if team.cell_id else " A cell is assigned at proposal selection."
         messages.success(request, f"{team.team_name} approved as {team.team_identifier}.{placed}")
-    else:
+    elif d["decision"] == Team.Status.REJECTED:
         team.status = Team.Status.REJECTED
         team.rejection_reason = d["rejection_reason"].strip()
         team.save()  # notifications/signals -> registration_rejected
         messages.success(request, f"{team.team_name} rejected; the captain has been told why.")
+    elif d["decision"] == Team.Status.UNDER_REVIEW:
+        # An internal marker, so two organisers do not read the same
+        # registration. Deliberately silent: the team has done its part and
+        # hearing "we have started looking" is noise.
+        team.status = Team.Status.UNDER_REVIEW
+        team.save()
+        messages.success(
+            request,
+            f"{team.team_name} marked as under review. The team is not notified "
+            f"and its roster stays locked.",
+        )
+    else:
+        # Returned for edits. Not a rejection: the roster unlocks and the
+        # team is expected to resubmit, so it says so in its own words.
+        note = d["rejection_reason"].strip()
+        team.status = Team.Status.REGISTERED
+        team.rejection_reason = note
+        team.save()
+        cat.registration_returned(team, note=note)
+        messages.success(
+            request,
+            f"{team.team_name} returned for edits; the captain has been told what to change.",
+        )
     return redirect("accounts:team_detail", pk=pk)
 
 

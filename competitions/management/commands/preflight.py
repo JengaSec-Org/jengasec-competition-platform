@@ -35,6 +35,7 @@ class Command(BaseCommand):
         self.check_database()
         self.check_storage()
         self.check_email()
+        self.check_scheduler()
         self.check_competition()
         self.check_accounts()
 
@@ -145,6 +146,31 @@ class Command(BaseCommand):
             )
             return
         self.notes.append(f"Email goes out through {'Brevo' if brevo else 'SMTP'}.")
+
+    def check_scheduler(self):
+        """Whether anything will ever run the reminder jobs.
+
+        Worth its own check because the failure is silent: with no token
+        the runner at /tasks/run/ answers 404, every scheduled job simply
+        never runs, and the first anyone knows is that no competitor was
+        reminded about a deadline that has already passed.
+        """
+        token = (getattr(settings, "CRON_TOKEN", "") or "").strip()
+        if not token:
+            self.warnings.append(
+                "DJANGO_CRON_TOKEN is not set, so /tasks/run/ is disabled and no "
+                "deadline or digest reminder will ever be sent. Set it here and as "
+                "the JENGASEC_CRON_TOKEN repository secret, or run the jobs by hand "
+                "from the notification console."
+            )
+            return
+        if len(token) < 16:
+            self.warnings.append(
+                f"DJANGO_CRON_TOKEN is only {len(token)} characters; it guards an "
+                f"endpoint that emails every competitor. Use at least 32."
+            )
+            return
+        self.notes.append("Scheduled notification runner is enabled.")
 
     def check_competition(self):
         competitions = Competition.objects.filter(

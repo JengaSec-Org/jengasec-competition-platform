@@ -804,3 +804,223 @@ class InvitationRevokeTests(TestCase):
         self.assertEqual(self.client.post(self.url).status_code, 404)
         self.invitation.refresh_from_db()
         self.assertEqual(self.invitation.status, TeamInvitation.Status.PENDING)
+
+
+class TeamReviewStateTests(TestCase):
+    """The two organiser actions that are not approve or reject."""
+
+    def setUp(self):
+        self.staff = User.objects.create_user("organiser", password="x", is_staff=True)
+        self.captain = make_user("skipper")
+        self.comp = make_competition()
+        self.team = make_team(self.comp, self.captain)
+        self.team.status = Team.Status.SUBMITTED
+        self.team.save()
+        self.client.force_login(self.staff)
+        self.url = reverse("accounts:team_decide", kwargs={"pk": self.team.pk})
+
+    def decide(self, decision, **extra):
+        return self.client.post(self.url, {"decision": decision, **extra})
+
+    def test_under_review_locks_and_says_nothing_to_the_team(self):
+        self.decide(Team.Status.UNDER_REVIEW)
+        self.team.refresh_from_db()
+        self.assertEqual(self.team.status, Team.Status.UNDER_REVIEW)
+        self.assertTrue(self.team.is_locked)
+        self.assertFalse(Notification.objects.filter(user=self.captain).exists())
+
+    def test_a_team_under_review_cannot_change_its_roster(self):
+        self.decide(Team.Status.UNDER_REVIEW)
+        self.team.refresh_from_db()
+        with self.assertRaises(team_service.TeamRuleError):
+            team_service.check_unlocked(self.team, "invite anyone")
+
+    def test_returning_unlocks_and_tells_the_captain_what_to_change(self):
+        self.decide(Team.Status.REGISTERED, rejection_reason="The skills declaration is too short.")
+        self.team.refresh_from_db()
+        self.assertEqual(self.team.status, Team.Status.REGISTERED)
+        self.assertFalse(self.team.is_locked)
+        self.assertTrue(self.team.can_submit)
+
+        note = Notification.objects.get(user=self.captain)
+        self.assertIn("returned", note.subject)
+        self.assertIn("too short", note.body)
+        # A return is not a refusal, and must not read like one.
+        self.assertNotIn("not accepted", note.subject)
+        self.assertTrue(note.send_email)
+
+    def test_returning_requires_a_reason(self):
+        response = self.decide(Team.Status.REGISTERED)
+        self.assertEqual(response.status_code, 200)  # redisplayed with the error
+        self.team.refresh_from_db()
+        self.assertEqual(self.team.status, Team.Status.SUBMITTED)
+
+    def test_a_second_return_for_a_different_reason_is_delivered(self):
+        """The dedupe key carries the note, so a new reason is not suppressed."""
+        self.decide(Team.Status.REGISTERED, rejection_reason="Fix the roster.")
+        self.team.status = Team.Status.SUBMITTED
+        self.team.save()
+        self.decide(Team.Status.REGISTERED, rejection_reason="Now fix the declaration.")
+        self.assertEqual(Notification.objects.filter(user=self.captain).count(), 2)
+
+    def test_the_return_dedupe_key_is_stable_across_processes(self):
+        """It must not use built-in hash(), which is salted per process."""
+        from services.notification_catalogue import _digest
+
+        self.assertEqual(_digest("same text"), _digest("same text"))
+        self.assertNotEqual(_digest("one"), _digest("two"))
+
+
+class DataCompletionNoticeTests(CommitMixin, TestCase):
+    """Chasing the person record, including on locked registrations."""
+
+    def setUp(self):
+        self.comp = make_competition()
+        self.captain = make_user("skipper")
+        self.team = make_team(self.comp, self.captain)
+        # A member with a deliberate gap in their own record.
+        self.gappy = make_user("gappy")
+        team_service.add_member(self.team, self.gappy)
+        UserProfile.objects.filter(user=self.gappy).update(programme="")
+
+    def run_command(self, *args):
+        from io import StringIO
+        from django.core.management import call_command
+
+        out = StringIO()
+        call_command("send_data_completion_notice", *args, stdout=out)
+        return out.getvalue()
+
+    def test_preview_sends_nothing(self):
+        output = self.run_command()
+        self.assertIn("Preview only", output)
+        self.assertFalse(Notification.objects.filter(user=self.gappy).exists())
+
+    def test_confirm_asks_the_person_with_the_gap(self):
+        self.run_command("--confirm")
+        note = Notification.objects.get(user=self.gappy)
+        self.assertIn("Finish setting up", note.subject)
+        self.assertIn("programme", note.body)
+        self.assertTrue(note.send_email)
+
+    def test_the_notice_explains_the_basis_and_names_the_dpo(self):
+        self.run_command("--confirm")
+        body = Notification.objects.get(user=self.gappy).body
+        self.assertIn("Data Protection Act 2019", body)
+        self.assertIn("dpo@strathmore.edu", body)
+        self.assertIn("gate at Strathmore", body)
+
+    def test_a_locked_registration_is_still_chased(self):
+        """Campus access depends on the record, and profiles are not locked."""
+        self.team.status = Team.Status.SUBMITTED
+        self.team.save()
+        self.assertTrue(self.team.is_locked)
+        self.run_command("--confirm")
+        self.assertTrue(Notification.objects.filter(user=self.gappy).exists())
+
+    def test_withdrawn_teams_are_left_alone(self):
+        self.team.status = Team.Status.WITHDRAWN
+        self.team.save()
+        self.run_command("--confirm")
+        self.assertFalse(Notification.objects.filter(user=self.gappy).exists())
+
+    def test_asking_twice_does_not_mail_twice(self):
+        self.run_command("--confirm")
+        self.run_command("--confirm")
+        self.assertEqual(Notification.objects.filter(user=self.gappy).count(), 1)
+
+    def test_dry_run_overrides_confirm(self):
+        self.run_command("--confirm", "--dry-run")
+        self.assertFalse(Notification.objects.filter(user=self.gappy).exists())
+
+
+class BriefingTests(CommitMixin, TestCase):
+    """One email per competitor, assembled from their own record."""
+
+    def setUp(self):
+        self.comp = make_competition()
+        self.captain = make_user("skipper")
+        self.team = make_team(self.comp, self.captain)
+        self.gappy = make_user("gappy")
+        team_service.add_member(self.team, self.gappy)
+        UserProfile.objects.filter(user=self.gappy).update(programme="")
+
+    def run_command(self, *args):
+        from io import StringIO
+        from django.core.management import call_command
+
+        out = StringIO()
+        call_command("send_briefing", *args, stdout=out)
+        return out.getvalue()
+
+    def body_for(self, user):
+        return Notification.objects.get(user=user).body
+
+    def test_preview_sends_nothing_but_shows_a_sample(self):
+        output = self.run_command()
+        self.assertIn("as the first recipient would read it", output)
+        self.assertIn("Preview only", output)
+        self.assertFalse(Notification.objects.exists())
+
+    def test_one_email_each_covering_dates_and_their_own_items(self):
+        self.run_command("--confirm")
+        body = self.body_for(self.gappy)
+        self.assertIn("Registration closes", body)
+        self.assertIn("programme", body)
+        self.assertIn("dpo@strathmore.edu", body)
+        # One message, not one per topic.
+        self.assertEqual(Notification.objects.filter(user=self.gappy).count(), 1)
+
+    def test_someone_with_nothing_outstanding_is_not_told_off(self):
+        self.run_command("--confirm")
+        body = self.body_for(self.captain)
+        self.assertIn("nothing outstanding for you", body)
+        self.assertIn("Registration closes", body)
+
+    def test_a_competitor_who_never_uploaded_an_id_gets_no_apology(self):
+        """The lost-file wording must not reach someone who never sent one."""
+        self.run_command("--confirm")
+        self.assertNotIn("our fault", self.body_for(self.gappy))
+
+    def test_a_genuinely_lost_document_does_get_the_apology(self):
+        UserProfile.objects.filter(user=self.gappy).update(
+            identity_document="identity/2026/never-arrived.png"
+        )
+        self.run_command("--confirm")
+        body = self.body_for(self.gappy)
+        self.assertIn("our fault, not yours", body)
+        # And the sweep cleared the dead reference, so the checklist chases it.
+        self.gappy.profile.refresh_from_db()
+        self.assertEqual(self.gappy.profile.identity_document.name, "")
+
+    def test_an_extra_note_reaches_only_that_side(self):
+        import tempfile, os
+
+        blue = make_user("bluecap")
+        blue_team = make_team(self.comp, blue, name="Nyati", team_type=Team.TeamType.BLUE)
+        fd, path = tempfile.mkstemp(suffix=".md", text=True)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write("Challenges are delayed; word by Wednesday.")
+        try:
+            self.run_command("--confirm", "--extra-red", path)
+        finally:
+            os.unlink(path)
+
+        self.assertIn("Challenges are delayed", self.body_for(self.captain))   # red
+        self.assertNotIn("Challenges are delayed", self.body_for(blue))        # blue
+
+    def test_briefing_twice_with_the_same_slug_does_not_resend(self):
+        self.run_command("--confirm")
+        self.run_command("--confirm")
+        self.assertEqual(Notification.objects.filter(user=self.gappy).count(), 1)
+
+    def test_a_new_slug_sends_a_fresh_briefing(self):
+        self.run_command("--confirm")
+        self.run_command("--confirm", "--slug", "second-call")
+        self.assertEqual(Notification.objects.filter(user=self.gappy).count(), 2)
+
+    def test_locked_registrations_are_briefed_too(self):
+        self.team.status = Team.Status.SUBMITTED
+        self.team.save()
+        self.run_command("--confirm")
+        self.assertTrue(Notification.objects.filter(user=self.gappy).exists())

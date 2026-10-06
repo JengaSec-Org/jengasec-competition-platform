@@ -7,10 +7,10 @@ Run hourly from cron:
 
     30 * * * * cd /srv/jengasec && .venv/bin/python manage.py send_registration_reminders
 
-Notices go out at 7 days, 2 days and 12 hours before
+Notices go out at 72, 48, 24 and 12 hours before
 `CompetitionSettings.registration_deadline`. Only the most urgent *due*
 threshold fires on a run, so starting the cron late sends one warning
-rather than a backlog of three. Each notice is deduplicated per team and
+rather than a backlog. Each notice is deduplicated per team and
 threshold, so running this more often changes nothing.
 """
 from datetime import timedelta
@@ -22,8 +22,9 @@ from accounts.models import Team
 from competitions.models import CompetitionSettings
 from services import notification_catalogue as cat
 
-# Hours before the registration deadline at which a captain is warned.
-THRESHOLDS_HOURS = (168, 48, 12)  # 7 days, 2 days, 12 hours
+# Hours before the registration deadline at which a captain is warned,
+# most distant first.
+THRESHOLDS_HOURS = (72, 48, 24, 12)
 
 def outstanding_for(team):
     """What still stands between this team and a complete registration.
@@ -115,7 +116,7 @@ class Command(BaseCommand):
                 if dry_run:
                     total += 1
                     continue
-                cat.registration_closing(team, hours, missing)
+                cat.registration_closing(team, hours, missing, remaining=remaining)
                 total += 1
 
         verb = "would warn" if dry_run else "warned"

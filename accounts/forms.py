@@ -254,7 +254,11 @@ class ProfileForm(forms.ModelForm):
         }
         help_texts = {
             "date_of_birth": "Competitors must be 18 to 25 on the registration date.",
-            "identity_document": "PDF, JPG or PNG, up to 5 MB. Seen only by organisers.",
+            "identity_document": (
+                "PDF, JPG or PNG, up to 5 MB. Seen only by organisers, used only to "
+                "confirm your student status and age, and deleted once your "
+                "eligibility is verified and the event has closed."
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -460,6 +464,12 @@ class TeamDecisionForm(forms.Form):
     DECISIONS = (
         (Team.Status.APPROVED, "Approve registration"),
         (Team.Status.REJECTED, "Reject"),
+        # Not an outcome: a marker so two organisers do not review the same
+        # registration. The team is told nothing and stays locked.
+        (Team.Status.UNDER_REVIEW, "Mark as under review"),
+        # Hands it back for edits without rejecting it -- for a gap the team
+        # can simply fill, where a rejection would read as a refusal.
+        (Team.Status.REGISTERED, "Return to team for edits"),
     )
     decision = forms.ChoiceField(choices=DECISIONS)
     reasons = forms.MultipleChoiceField(
@@ -485,11 +495,25 @@ class TeamDecisionForm(forms.Form):
 
     def clean(self):
         data = super().clean()
-        if data.get("decision") == Team.Status.REJECTED:
+        decision = data.get("decision")
+        if decision == Team.Status.REJECTED:
             labels = dict(REJECTION_REASONS)
             picked = [labels[r] for r in data.get("reasons", []) if r in labels]
             detail = data.get("rejection_reason", "").strip()
             if not picked and not detail:
                 self.add_error("rejection_reason", "A rejection must say why: tick a reason or write one.")
+            data["rejection_reason"] = "\n".join(picked + ([detail] if detail else []))
+        elif decision == Team.Status.REGISTERED:
+            # The captain is being asked to change something, so the message
+            # has to say what. Returning a registration with no note just
+            # unlocks it and leaves the team guessing.
+            labels = dict(REJECTION_REASONS)
+            picked = [labels[r] for r in data.get("reasons", []) if r in labels]
+            detail = data.get("rejection_reason", "").strip()
+            if not picked and not detail:
+                self.add_error(
+                    "rejection_reason",
+                    "Say what the team has to fix: tick a reason or write one.",
+                )
             data["rejection_reason"] = "\n".join(picked + ([detail] if detail else []))
         return data

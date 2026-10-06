@@ -101,10 +101,14 @@ class CompetitionSettingsForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        # Real chronology, which is what the pairwise check below enforces.
+        # Proposals are filed *during* registration, weeks before the build
+        # ends -- listing Build first used to force `build <= proposal` and
+        # made a correct pair of dates unsavable.
         order = [
             ("registration_deadline", "Registration"),
-            ("build_deadline", "Build"),
             ("proposal_deadline", "Proposal"),
+            ("build_deadline", "Build"),
             ("submission_deadline", "Submission"),
         ]
         seen = [(cleaned.get(f), label) for f, label in order if cleaned.get(f)]

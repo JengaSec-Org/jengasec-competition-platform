@@ -8,6 +8,9 @@
 {% include "components/page_header.html" with tag="RED_TEAM :: LIVE" title="Find It. Break It. Prove It." %}
 {% include "dashboard/_phase_rail.html" %}
 
+{% include "dashboard/_announcements.html" %}
+{% include "dashboard/_key_dates.html" %}
+
 <div class="team-ident">
   {% if team.cell_id %}<span class="cell-tag red">{{ team.cell_id }}</span>{% endif %}
   <strong>{{ team.team_name }}</strong>

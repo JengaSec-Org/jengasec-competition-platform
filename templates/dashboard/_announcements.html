@@ -1,0 +1,18 @@
+{% comment %}
+Organiser notices pinned to this team's dashboard. Rendered above
+everything else: the point of a pinned notice is that it is not missed,
+and a team that has to scroll to it may as well not have been told.
+
+Context: `announcements` from dashboard.views._base_context.
+{% endcomment %}
+{% if announcements %}
+  {% for item in announcements %}
+    <div class="card" style="border-top-color: var(--warning, #e0a30c);">
+      <span class="tlabel">// NOTICE</span>
+      <h3 class="card-title">{{ item.title }}</h3>
+      {% for paragraph in item.paragraphs %}
+        <p>{{ paragraph }}</p>
+      {% endfor %}
+    </div>
+  {% endfor %}
+{% endif %}

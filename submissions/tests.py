@@ -332,7 +332,21 @@ class ScoringRulesTests(Base):
 
 class ReminderTests(TestCase):
     def test_thresholds_match_registration(self):
-        self.assertEqual(THRESHOLDS_HOURS, (168, 48, 12))
+        """The two reminder commands warn on the same schedule.
+
+        Asserted against the other command rather than a literal: the
+        invariant is that a team is chased on one rhythm, not that the
+        rhythm is any particular set of hours.
+        """
+        from notifications.management.commands.send_registration_reminders import (
+            THRESHOLDS_HOURS as REGISTRATION_THRESHOLDS,
+        )
+
+        self.assertEqual(THRESHOLDS_HOURS, REGISTRATION_THRESHOLDS)
+
+    def test_thresholds_run_from_most_distant_to_most_urgent(self):
+        """`hours = min(due)` relies on the order to fire one notice."""
+        self.assertEqual(list(THRESHOLDS_HOURS), sorted(THRESHOLDS_HOURS, reverse=True))
 
 
 class TwoDeadlineTests(Base):

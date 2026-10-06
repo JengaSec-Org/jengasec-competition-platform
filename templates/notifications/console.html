@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Notification console — JengaSec{% endblock %}
+
+{% comment %}
+Staff-only. Runs the same management commands the scheduled runner uses,
+so what an organiser clicks here and what the hourly cron does are the
+same code. Every job previews before it sends.
+{% endcomment %}
+
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// NOTIFICATION_CONSOLE</span></div>
+  <h1>Notifications</h1>
+  <p class="text-muted">
+    Preview shows exactly who would be contacted and sends nothing. These are the
+    same jobs the hourly scheduler runs, so running one by hand here is safe and
+    will not cause a double-send — every notice is deduplicated per recipient.
+  </p>
+</div>
+
+{% if result %}
+  <div class="card" style="border-top-color: var({% if result.ok %}--accent{% else %}--danger{% endif %});">
+    <span class="tlabel">// {% if result.preview %}PREVIEW{% else %}RESULT{% endif %}</span>
+    <h3 class="card-title">{{ result.job.label }}</h3>
+    {% if result.preview %}
+      <p class="text-muted">Nothing was sent.</p>
+    {% endif %}
+    <pre style="white-space: pre-wrap; overflow-x: auto;">{{ result.output|default:"(no output)" }}</pre>
+    {% if result.preview and result.ok %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="job" value="{{ result.job.key }}">
+        <input type="hidden" name="action" value="send">
+        <button type="submit">Send it</button>
+      </form>
+    {% endif %}
+  </div>
+{% endif %}
+
+<h2>Jobs</h2>
+<div class="stat-grid">
+  {% for job in jobs %}
+    <div class="card">
+      <span class="tlabel">
+        // {% if job.scheduled %}HOURLY{% else %}ON_DEMAND{% endif %}
+      </span>
+      <h3 class="card-title">{{ job.label }}</h3>
+      <p class="text-muted">{{ job.description }}</p>
+      {% if job.warning %}
+        <p><strong>{{ job.warning }}</strong></p>
+      {% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="job" value="{{ job.key }}">
+        <button type="submit" name="action" value="preview">Preview</button>
+      </form>
+    </div>
+  {% endfor %}
+</div>
+
+<h2>Announcement</h2>
+<p class="text-muted">
+  Your own message to a side of the competition — a delay, a venue change, the
+  challenge details. Goes out in-app and by email, and can stay on their dashboards
+  until you take it down.
+</p>
+
+{% if announcement_plan %}
+  <div class="card" style="border-top-color: var(--accent);">
+    <span class="tlabel">// ANNOUNCEMENT_PREVIEW</span>
+    <h3 class="card-title">{{ announcement_plan.subject }}</h3>
+    <p class="text-muted">
+      Would reach <strong>{{ announcement_plan.recipient_count }}</strong> member(s)
+      across <strong>{{ announcement_plan.team_count }}</strong> team(s) in
+      {{ announcement_plan.competition.name }}. Nothing was sent.
+    </p>
+    <pre style="white-space: pre-wrap;">{{ announcement_plan.body }}</pre>
+    <ul>
+      {% for team in announcement_plan.teams %}
+        <li>{{ team.team_name }} — {{ team.get_team_type_display }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" name="action" value="announce_preview">Preview</button>
+    <button type="submit" name="action" value="announce_send">Send and pin</button>
+  </form>
+</div>
+
+{% if pinned %}
+  <h2>Currently pinned</h2>
+  <p class="text-muted">
+    Showing on dashboards now. Take one down in
+    <a href="{% url 'admin:notifications_announcement_changelist' %}">the admin</a>.
+  </p>
+  <ul>
+    {% for item in pinned %}
+      <li>
+        <strong>{{ item.title }}</strong> — {{ item.get_audience_display }}
+        {% if item.expires_at %}, until {{ item.expires_at }}{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
+{% endblock %}
