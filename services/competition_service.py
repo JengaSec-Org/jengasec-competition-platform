@@ -384,13 +384,15 @@ def key_dates(competition, team=None):
     planned = [
         ("rsvp", "HTB qualifier RSVP closes", row.red_rsvp_closes_at),
         ("registration", "Registration closes", row.registration_deadline),
+        ("roster", "Rosters and details complete", row.roster_deadline),
+        ("red_roster", "Your details complete", row.red_roster_deadline),
         ("proposal", "Proposals due", row.proposal_deadline),
         ("qualifier", "HTB qualifier opens", row.red_qualifier_opens_at),
         ("qualifier_end", "HTB qualifier closes", row.red_qualifier_closes_at),
         ("build", "Build ends", row.build_deadline),
         ("submission", "Documents due", row.submission_deadline),
     ]
-    QUALIFIER_ROWS = {"rsvp", "qualifier", "qualifier_end"}
+    QUALIFIER_ROWS = {"rsvp", "qualifier", "qualifier_end", "red_roster"}
     if team is not None:
         # A team is only shown the route it is actually on. Application Red
         # files no proposal: it RSVPs, plays the qualifier, and only then
@@ -399,10 +401,12 @@ def key_dates(competition, team=None):
         if team.submits_proposal:
             planned = [r for r in planned if r[0] not in QUALIFIER_ROWS]
         else:
-            planned = [
-                r for r in planned
-                if r[0] not in ("proposal", "registration")
-            ]
+            # Their own details date replaces the general one when set,
+            # because they register after qualifying rather than before.
+            drop = {"proposal", "registration"}
+            if row.red_roster_deadline:
+                drop.add("roster")
+            planned = [r for r in planned if r[0] not in drop]
 
     dates = []
     for kind, label, when in planned:
@@ -416,6 +420,12 @@ def key_dates(competition, team=None):
             # The next deadline still ahead, for highlighting one row.
             "next": False,
         })
+
+    # Chronological, not the order the fields happen to be declared in:
+    # the roster deadline sits between registration and the build, but the
+    # qualifier rows were listed after it, so a reader saw Monday above
+    # Thursday and had to re-sort the list in their head.
+    dates.sort(key=lambda d: d["when"])
 
     upcoming = [d for d in dates if not d["passed"]]
     if upcoming:

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Consent register — JengaSec{% endblock %}
+
+{% comment %}
+Staff only. Two consents reported side by side but never merged into one
+"agreed" column: one is permission to process somebody's data, the other
+is agreement to the rules.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="CONSENT" title="Consent register" %}
+
+<div class="stat-grid" style="margin-bottom:1.5rem;">
+  <div class="card">
+    <span class="tlabel">// COMPLETE</span>
+    <h3 class="card-title">{{ complete }} of {{ rows|length }}</h3>
+    <p class="text-muted">Both consents on record.</p>
+  </div>
+  <div class="card">
+    <span class="tlabel">// CODE_OF_CONDUCT</span>
+    <h3 class="card-title">{% if policy %}v{{ policy.version }}{% else %}None published{% endif %}</h3>
+    <p class="text-muted">
+      {% if policy %}Acceptances are counted against this version only — publishing
+      a new one asks everybody again.{% else %}Publish a version before chasing
+      acceptances.{% endif %}
+    </p>
+  </div>
+  <div class="card">
+    <span class="tlabel">// EXPORT</span>
+    <h3 class="card-title">For your records</h3>
+    <p><a class="btn btn-primary btn-sm" href="{% url 'accounts:consent_export' %}">Download CSV</a></p>
+  </div>
+</div>
+
+<p style="margin-bottom:1rem;">
+  {% if missing_only %}
+    Showing only people still owing a consent.
+    <a href="{% url 'accounts:consent_register' %}">Show everyone</a>
+  {% else %}
+    Showing everyone.
+    <a href="{% url 'accounts:consent_register' %}?missing=1">Show only those still owing one</a>
+  {% endif %}
+</p>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th><th>Team</th>
+          <th>Privacy notice</th><th>Code of conduct</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>
+              {{ row.user.get_full_name|default:row.user.username }}
+              <br><span class="text-muted"><small>{{ row.user.email }}</small></span>
+            </td>
+            <td>{% if row.team %}{{ row.team.team_name }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td>
+              {% if row.privacy_at %}
+                {% include "components/badge.html" with label="Agreed" color="green" %}
+                <br><span class="text-muted"><small>{{ row.privacy_at|date:"j M Y, H:i" }}{% if row.privacy_ip %} · {{ row.privacy_ip }}{% endif %}</small></span>
+              {% else %}
+                {% include "components/badge.html" with label="Not recorded" color="gold" %}
+              {% endif %}
+            </td>
+            <td>
+              {% if row.conduct %}
+                {% include "components/badge.html" with label="Accepted" color="green" %}
+              {% else %}
+                {% include "components/badge.html" with label="Outstanding" color="gold" %}
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="text-muted">No competitor accounts yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p class="form-help" style="margin-top:1rem;">
+  Accounts that registered before the checkbox existed show no privacy timestamp.
+  That is honest rather than a gap to backfill — their consent was not recorded,
+  and the briefing asks them to accept the code of conduct, which carries the
+  same notice as section 7.
+</p>
+{% endblock %}

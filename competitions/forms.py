@@ -66,6 +66,8 @@ class CompetitionSettingsForm(forms.ModelForm):
         fields = [
             "registration_deadline",
             "proposal_deadline",
+            "roster_deadline",
+            "red_roster_deadline",
             "red_qualifier_opens_at",
             "red_qualifier_closes_at",
             "red_rsvp_closes_at",
@@ -83,6 +85,12 @@ class CompetitionSettingsForm(forms.ModelForm):
         }
         widgets = {
             "registration_deadline": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+            ),
+            "red_roster_deadline": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+            ),
+            "roster_deadline": forms.DateTimeInput(
                 attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
             ),
             "red_qualifier_opens_at": forms.DateTimeInput(
@@ -108,7 +116,7 @@ class CompetitionSettingsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Browsers only prefill datetime-local inputs in this exact format.
-        for name in ("registration_deadline", "proposal_deadline",
+        for name in ("registration_deadline", "proposal_deadline", "roster_deadline", "red_roster_deadline",
                      "red_qualifier_opens_at", "red_qualifier_closes_at",
                      "red_rsvp_closes_at", "build_deadline",
                      "submission_deadline"):

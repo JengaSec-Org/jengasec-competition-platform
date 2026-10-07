@@ -40,9 +40,11 @@ def outstanding_for(team):
         missing.append("No captain is linked to a platform account.")
     count = playing_count(team)
     if count < MIN_MEMBERS:
+        short = MIN_MEMBERS - count
         missing.append(
             f"Only {count} member{'s' if count != 1 else ''} on the roster; "
-            f"teams are {MIN_MEMBERS} to {MAX_MEMBERS} people."
+            f"every team is exactly {MIN_MEMBERS} people, so {short} more "
+            f"{'seats need' if short != 1 else 'seat needs'} filling."
         )
     unlinked = team.members.filter(user__isnull=True).count()
     if unlinked:

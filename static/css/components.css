@@ -224,3 +224,80 @@
   height: 1px;
   background: var(--border);
 }
+
+/* ---- step list --------------------------------------------------------
+   Numbered routes ("RSVP, onboard, qualify, register") appear on both the
+   red and blue registration pages. Styled once here so the two sides look
+   like one product: the marker takes the side's accent, and the text stays
+   the muted body colour rather than every line shouting. */
+.step-list {
+  list-style: none;
+  counter-reset: step;
+  margin: 1.1rem 0 0;
+  padding: 0;
+}
+.step-list > li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 2.25rem;
+  margin-bottom: 0.85rem;
+  color: var(--text-muted, #5A6A5A);
+  line-height: 1.5;
+}
+.step-list > li:last-child { margin-bottom: 0; }
+.step-list > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0.05rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--accent, #007A3D);
+  color: var(--accent, #007A3D);
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+.step-list > li strong { color: var(--text, #0A0E0A); font-weight: 600; }
+
+/* Red dashboards carry the danger accent, so the markers follow. */
+.red .step-list > li::before,
+[data-side="red"] .step-list > li::before {
+  border-color: var(--danger, #B3000C);
+  color: var(--danger, #B3000C);
+}
+
+/* ---- key dates --------------------------------------------------------
+   A small timeline, not a data table: no rules between rows, the date in
+   mono so the column aligns, and the next one ahead the only thing
+   emphasised. Rows already past recede rather than disappear. */
+.key-dates { width: 100%; border-collapse: collapse; }
+.key-dates td {
+  border: 0;
+  padding: 0.45rem 0;
+  vertical-align: baseline;
+}
+.key-dates td:first-child { padding-right: 1.25rem; }
+.key-dates .kd-when {
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  color: var(--text-muted, #5A6A5A);
+}
+.key-dates tr.is-next .kd-what { color: var(--text, #0A0E0A); font-weight: 600; }
+.key-dates tr.is-next .kd-when { color: var(--accent, #007A3D); font-weight: 700; }
+.key-dates tr.is-past .kd-what,
+.key-dates tr.is-past .kd-when { opacity: 0.45; }
+.key-dates .kd-tag {
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent, #007A3D);
+  margin-left: 0.5rem;
+}
+[data-side="red"] .key-dates tr.is-next .kd-when,
+[data-side="red"] .key-dates .kd-tag { color: var(--danger, #B3000C); }

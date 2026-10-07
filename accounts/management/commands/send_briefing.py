@@ -29,7 +29,8 @@ from notifications.management.commands.send_outstanding_digest import (
     outstanding_for_member,
     outstanding_for_user,
 )
-from services import competition_service, notification_catalogue as cat
+from services import competition_service, matching_service
+from services import notification_catalogue as cat
 
 
 class Command(BaseCommand):
@@ -105,6 +106,12 @@ class Command(BaseCommand):
                 "user": member.user,
                 "team": member.team,
                 "label": member.team.team_name,
+                "matching": self._matching_note(
+                    member.team,
+                    member.user,
+                    seats_free=matching_service.seats_free(member.team),
+                    is_captain=member.team.captain_id == member.user_id,
+                ),
                 "items": outstanding_for_member(member),
                 "dates": competition_service.key_dates(member.team.competition, member.team),
                 # Only for a document that existed and is gone -- never for one
@@ -121,12 +128,20 @@ class Command(BaseCommand):
             if not user.email:
                 unreachable.append(user)
                 continue
-            items = ["Join a team, or create one and invite your team-mates."]
+            profile = getattr(user, "profile", None)
+            seeking = bool(profile and profile.seeking_team)
+            items = [] if seeking else [
+                "Join a team, or create one and invite your team-mates."
+            ]
             items += outstanding_for_user(user)
             plan.append({
                 "user": user,
                 "team": None,
-                "label": "no team yet",
+                "label": "no team yet" + (" (on the list)" if seeking else ""),
+                "matching": self._matching_note(
+                    None, user, seeking=seeking,
+                    side_declared=bool(profile and profile.role),
+                ),
                 "items": items,
                 "dates": competition_service.key_dates(competition) if competition else [],
                 "identity_lost": user.pk in lost_user_ids,
@@ -176,6 +191,7 @@ class Command(BaseCommand):
                     team=row["team"],
                     identity_lost=row["identity_lost"],
                     extra=row["extra"],
+                    matching=row["matching"],
                     slug=options["slug"],
                 )
                 if result is not None:
@@ -187,6 +203,60 @@ class Command(BaseCommand):
                 f"{len(plan) - sent} had already had this briefing (slug "
                 f"{options['slug']!r}); pass a different --slug to send a new one."
             )
+
+    @staticmethod
+    def _matching_note(team, user, seats_free=0, is_captain=False, seeking=False,
+                       side_declared=False):
+        """The one line about teams that applies to this person.
+
+        Four situations, and the wrong one is worse than none: telling a
+        captain with a full roster to recruit, or telling somebody already
+        on the list to join it, is how people stop reading these.
+        """
+        from django.conf import settings
+
+        site = (getattr(settings, "SITE_URL", "") or "").rstrip("/")
+        find_team = f"{site}/accounts/find-team/"
+        recruit = f"{site}/accounts/recruit/"
+
+        if team is None:
+            if seeking:
+                return (
+                    "You are on the list for a team. Captains with a free seat on "
+                    "your side can see you and send an invitation -- watch your "
+                    "email, and keep your details complete so one of them can "
+                    "take you.\n\n" + find_team
+                )
+            if side_declared:
+                return (
+                    "You still have no team. Say whether you want to play blue or "
+                    "red and captains with a seat free can find you -- you no "
+                    "longer have to know one first.\n\n" + find_team
+                )
+            return (
+                "You have no team yet. Every team is exactly four people, and you "
+                "cannot compete without one. Tell us which side you want to play "
+                "and captains with a free seat can invite you; or create your own "
+                "team and invite three others.\n\n" + find_team
+            )
+
+        if seats_free and is_captain:
+            return (
+                f"{team.team_name} is {seats_free} "
+                f"{'person' if seats_free == 1 else 'people'} short. Every team is "
+                "exactly four, and the registration cannot be submitted until "
+                "yours is. If you have run out of people to ask, competitors "
+                "looking for a place can be shown to you.\n\n" + recruit
+            )
+        if seats_free:
+            return (
+                f"{team.team_name} is {seats_free} "
+                f"{'person' if seats_free == 1 else 'people'} short of the four every "
+                "team needs. If you know somebody looking for a place, tell your "
+                "captain -- the registration cannot be submitted until the roster is "
+                "full."
+            )
+        return ""
 
     @staticmethod
     def _teamless_competitors():
@@ -243,7 +313,8 @@ class Command(BaseCommand):
             cat.briefing(
                 row["user"],
                 items=row["items"], dates=row["dates"], team=row["team"],
-                identity_lost=row["identity_lost"], extra=row["extra"], slug=slug,
+                identity_lost=row["identity_lost"], extra=row["extra"],
+                matching=row["matching"], slug=slug,
             )
         return f"Subject: {captured.get('subject','')}\n\n{captured.get('body','')}"
 

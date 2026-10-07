@@ -57,6 +57,9 @@ urlpatterns = [
     path("team-form/", views.team_form, name="team_form"),
     # Members wait for their captain's invitation here (Guide s.6 step 7).
     path("choose-team/", views.choose_team, name="choose_team"),
+    # Matching: the unassigned declare a side, captains fill the empty seats.
+    path("find-team/", views.find_team, name="find_team"),
+    path("recruit/", views.recruit, name="recruit"),
     path("invitations/<token:token>/", views.invitation_open, name="invitation_open"),
     path(
         "invitations/<token:token>/<str:decision>/",
@@ -128,6 +131,9 @@ urlpatterns = [
     path("users/<int:pk>/identity/", views.identity_document, name="identity_document"),
     # Staff-only deployment diagnostic: what store this process writes to.
     path("storage/", views.storage_status, name="storage_status"),
+    # Who has agreed to the privacy notice and the code of conduct.
+    path("consent/", views.consent_register, name="consent_register"),
+    path("consent/export.csv", views.consent_export, name="consent_export"),
     path("roles/", views.role_list, name="role_list"),
     path("teams/", views.team_list, name="team_list"),
     path("teams/<int:pk>/", views.team_detail, name="team_detail"),

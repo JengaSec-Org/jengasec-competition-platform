@@ -133,12 +133,17 @@ def confirm_verification(token, user=None):
     return verification.user
 
 
-def register_competitor(form):
+def register_competitor(form, ip_address=None):
     """Public sign-up: create the user, tie them to their institution by
-    email domain, and send the verification link.
+    email domain, record the privacy consent, and send the verification
+    link.
 
     The account is inert until verified -- `accounts.views.verified_required`
     keeps it out of every team flow.
+
+    `ip_address` is stored alongside the consent timestamp, the same way
+    `PolicyAcceptance` records a code-of-conduct acceptance: a consent
+    record that cannot say where it came from is weak evidence.
     """
     from accounts.institutions import recognise
     from accounts.models import UserProfile
@@ -150,6 +155,11 @@ def register_competitor(form):
         if name and not profile.institution:
             profile.institution = name
         profile.manual_verification_required = not institutional
+        if form.cleaned_data.get("privacy_accepted"):
+            from django.utils import timezone
+
+            profile.privacy_accepted_at = timezone.now()
+            profile.privacy_accepted_ip = ip_address
         profile.save()
         transaction.on_commit(lambda: send_verification(user))
     return user

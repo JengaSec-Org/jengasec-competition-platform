@@ -193,6 +193,21 @@ class CompetitionSettings(models.Model):
     # proposal and earn their place through it instead (Entry Guide s.3).
     # A field rather than a date in the template: the previous one was
     # hardcoded in three places and went stale without anyone noticing.
+    # Rosters and personal details have their own close, later than
+    # registration: a team can be registered and still be a seat short,
+    # and the people filling those seats need a date of their own.
+    roster_deadline = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name="Rosters and details complete by",
+        help_text="When every team must be full and every member's details captured.",
+    )
+    red_roster_deadline = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name="Application Red details complete by",
+        help_text="Their own date: they qualify first and register after, so their "
+                  "details land later than everyone else's. Falls back to the "
+                  "general roster deadline when blank.",
+    )
     red_qualifier_opens_at = models.DateTimeField(
         null=True, blank=True,
         verbose_name="Application Red qualifier opens",

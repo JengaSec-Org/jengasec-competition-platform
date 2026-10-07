@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Find a team — JengaSec{% endblock %}
+
+{% comment %}
+For an account with no team. Until now this flow ended at "wait for your
+captain to invite you", which never happens if no captain has your email.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="FIND_A_TEAM" title="Find a team" %}
+
+{% include "dashboard/_key_dates.html" %}
+
+{% if invitations %}
+  <div class="card" style="border-top-color: var(--gold);">
+    <span class="tlabel">// INVITATIONS</span>
+    <h3 class="card-title">You have an invitation waiting</h3>
+    <p class="text-muted">Accept one and you are on a team — nothing else below applies.</p>
+    <p><a href="{% url 'accounts:choose_team' %}">Open your invitations</a></p>
+  </div>
+{% endif %}
+
+<div class="card">
+  <span class="tlabel">// YOUR_SIDE</span>
+  {% if profile.seeking_team %}
+    <h3 class="card-title">
+      You are on the list as
+      {% if profile.role == "blue_team" %}Blue{% else %}Red{% endif %}
+    </h3>
+    <p class="text-muted">
+      Captains of {% if profile.role == "blue_team" %}blue{% else %}red{% endif %}
+      teams with a seat free can see you and send an invitation. There
+      {% if open_teams == 1 %}is <strong>1</strong> such team{% else %}are
+      <strong>{{ open_teams }}</strong> such teams{% endif %} right now.
+    </p>
+    <p class="text-muted">
+      An invitation arrives by email and shows up under your invitations. You can
+      still create your own team instead.
+    </p>
+    <form method="post" style="margin-top:1rem;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="leave">
+      <button type="submit">Take me off the list</button>
+    </form>
+  {% else %}
+    <h3 class="card-title">Which side do you want to play?</h3>
+    <p class="text-muted">
+      Blue teams build and defend an application. Red teams attack what Blue built.
+      Pick one, and captains with a free seat can invite you.
+    </p>
+    <form method="post" style="margin-top:1rem;">
+      {% csrf_token %}
+      <button type="submit" name="side" value="blue_team">Put me on the list as Blue</button>
+      <button type="submit" name="side" value="red_team">Put me on the list as Red</button>
+    </form>
+  {% endif %}
+  <p class="form-help" style="margin-top:1rem;">
+    Prefer to run your own team?
+    <a href="{% url 'accounts:team_form' %}">Create a team</a> and invite three others.
+  </p>
+</div>
+
+{% if outstanding %}
+  <div class="card">
+    <span class="tlabel">// YOUR_DETAILS</span>
+    <h3 class="card-title">Finish these so a captain can take you</h3>
+    <p class="text-muted">
+      Captains see verified people only, and a team cannot be submitted while any
+      member's details are missing.
+    </p>
+    <ul style="margin:0.5rem 0 0 1.25rem;">
+      {% for item in outstanding %}<li class="text-muted">{{ item }}</li>{% endfor %}
+    </ul>
+    <p style="margin-top:1rem;"><a href="{% url 'accounts:profile' %}">Open your profile</a></p>
+  </div>
+{% endif %}
+{% endblock %}

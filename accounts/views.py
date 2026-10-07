@@ -11,11 +11,14 @@ from django.urls import reverse
 from django.utils import timezone
 
 from services import account_service
+from competitions.models import Competition
 from services import competition_service
+from services import matching_service
 from services import notification_catalogue as cat
 from services import stored_files
 from services import team_service
 from notifications.management.commands.send_outstanding_digest import outstanding_for_member
+from notifications.management.commands.send_outstanding_digest import outstanding_for_user
 from notifications.management.commands.send_registration_reminders import outstanding_for
 
 from .forms import (
@@ -71,7 +74,7 @@ def register(request):
     if request.method == "POST":
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            user = account_service.register_competitor(form)
+            user = account_service.register_competitor(form, ip_address=client_ip(request))
             login(request, user)
             return redirect("accounts:verify_pending")
     else:
@@ -303,6 +306,7 @@ def team_requests(request):
             # Captains plan around the timeline from this page, so it is
             # here rather than only on the dashboard.
             "key_dates": competition_service.key_dates(team.competition, team),
+            "seats_free": matching_service.seats_free(team),
         },
     )
 
@@ -791,3 +795,214 @@ def storage_status(request):
         "accounts/storage_status.html",
         {"report": storage_diagnostics.report(probe=request.method == "POST")},
     )
+
+
+# ------------------------------------------------------- team matching
+
+
+@verified_required
+def find_team(request):
+    """For somebody with no team: declare a side and ask to be placed.
+
+    The old route here told members to wait for their captain's
+    invitation, which is a dead end for anybody no captain knows. This
+    puts them where captains with a free seat can see them.
+    """
+    if _user_has_team(request.user):
+        return redirect("accounts:team_requests")
+
+    profile_obj = _profile(request.user)
+    if request.method == "POST":
+        if request.POST.get("action") == "leave":
+            matching_service.leave_pool(request.user)
+            messages.info(request, "You have been taken off the list.")
+        else:
+            try:
+                matching_service.join_pool(request.user, request.POST.get("side", ""))
+            except matching_service.MatchingError as exc:
+                messages.error(request, str(exc))
+            else:
+                messages.success(
+                    request,
+                    "You are on the list. Captains with a free seat on that side can "
+                    "now see you and send an invitation.",
+                )
+        return redirect("accounts:find_team")
+
+    competition = Competition.objects.order_by("-start_date").first()
+    return render(
+        request,
+        "accounts/find_team.html",
+        {
+            "profile": profile_obj,
+            "invitations": team_service.open_invitations_for(request.user),
+            "outstanding": outstanding_for_user(request.user),
+            "key_dates": competition_service.key_dates(competition) if competition else [],
+            "open_teams": (
+                matching_service.teams_with_seats(
+                    competition, side=matching_service.SIDE_FOR_ROLE.get(profile_obj.role)
+                ).count()
+                if competition and profile_obj.seeking_team else 0
+            ),
+        },
+    )
+
+
+@login_required
+def recruit(request):
+    """For a captain: people looking for a place on this team's side."""
+    team = team_service.team_for(request.user)
+    if not team:
+        return redirect("accounts:choose_role")
+    if not team_service.is_captain_of(request.user, team):
+        messages.error(request, "Only the captain can invite members.")
+        return redirect("accounts:team_requests")
+
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+        if action in ("open", "close"):
+            try:
+                matching_service.set_open_to_recruits(team, action == "open")
+            except team_service.TeamRuleError as exc:
+                messages.error(request, str(exc))
+            else:
+                messages.success(
+                    request,
+                    "Your team is listed to people looking for a place."
+                    if team.open_to_recruits
+                    else "Your team is no longer shown to people looking for a place.",
+                )
+        elif action == "invite":
+            try:
+                invitation = team_service.invite(
+                    team, request.POST.get("email", ""), request.user
+                )
+            except team_service.TeamRuleError as exc:
+                messages.error(request, str(exc))
+            else:
+                cat.invitation_sent(
+                    invitation.email,
+                    team,
+                    request.user,
+                    request.build_absolute_uri(
+                        reverse("accounts:invitation_open", args=[invitation.token])
+                    ),
+                    expires_days=TeamInvitation.EXPIRY_DAYS,
+                    invitee_user=User.objects.filter(
+                        email__iexact=invitation.email
+                    ).first(),
+                )
+                messages.success(request, f"Invitation sent to {invitation.email}.")
+        return redirect("accounts:recruit")
+
+    return render(
+        request,
+        "accounts/recruit.html",
+        {
+            "team": team,
+            "pool": matching_service.pool_for(team) if team.open_to_recruits else [],
+            "seats_free": matching_service.seats_free(team),
+            "max_members": team_service.MAX_MEMBERS,
+            "is_locked": team.is_locked,
+        },
+    )
+
+
+@login_required
+@staff_required
+def consent_register(request):
+    """Who has agreed to what, and when.
+
+    Two consents, deliberately reported side by side but never conflated:
+    the data-privacy notice ticked at registration, and the code of
+    conduct accepted on its own page. One is permission to process
+    somebody's data, the other is agreement to the rules, and an auditor
+    asks about them separately.
+
+    `?missing=1` narrows it to the people still owing one, which is the
+    view that is actually actionable before a deadline.
+    """
+    current = PolicyVersion.current()
+    accepted_ids = set()
+    if current:
+        accepted_ids = set(
+            current.acceptances.values_list("user_id", flat=True)
+        )
+
+    rows = []
+    for profile_obj in (
+        account_service.competitor_accounts()
+        .select_related("profile")
+        .order_by("username")
+    ):
+        profile = getattr(profile_obj, "profile", None)
+        rows.append({
+            "user": profile_obj,
+            "privacy_at": getattr(profile, "privacy_accepted_at", None),
+            "privacy_ip": getattr(profile, "privacy_accepted_ip", None),
+            "conduct": profile_obj.pk in accepted_ids,
+            "team": team_service.team_for(profile_obj),
+        })
+
+    if request.GET.get("missing"):
+        rows = [r for r in rows if not r["privacy_at"] or not r["conduct"]]
+
+    return render(
+        request,
+        "accounts/consent_register.html",
+        {
+            "rows": rows,
+            "policy": current,
+            "missing_only": bool(request.GET.get("missing")),
+            "complete": sum(1 for r in rows if r["privacy_at"] and r["conduct"]),
+        },
+    )
+
+
+@login_required
+@staff_required
+def consent_export(request):
+    """The same register as CSV, for the record outside this platform."""
+    import csv
+
+    from django.http import HttpResponse
+
+    current = PolicyVersion.current()
+    accepted = {}
+    if current:
+        accepted = dict(
+            current.acceptances.values_list("user_id", "accepted_at")
+        )
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="jengasec-consent.csv"'
+    writer = csv.writer(response)
+    writer.writerow([
+        "username", "full name", "email", "team",
+        "privacy notice accepted", "privacy notice IP",
+        f"code of conduct v{current.version if current else '-'} accepted",
+    ])
+    for user in (
+        account_service.competitor_accounts()
+        .select_related("profile")
+        .order_by("username")
+    ):
+        profile = getattr(user, "profile", None)
+        team = team_service.team_for(user)
+        writer.writerow([
+            user.username,
+            user.get_full_name(),
+            user.email,
+            team.team_name if team else "",
+            _stamp(getattr(profile, "privacy_accepted_at", None)),
+            getattr(profile, "privacy_accepted_ip", "") or "",
+            _stamp(accepted.get(user.pk)),
+        ])
+    return response
+
+
+def _stamp(value):
+    """A timestamp a spreadsheet will sort, or blank."""
+    from django.utils import timezone
+
+    return timezone.localtime(value).strftime("%Y-%m-%d %H:%M") if value else ""

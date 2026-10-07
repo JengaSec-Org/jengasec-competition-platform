@@ -49,6 +49,27 @@ class UserProfile(models.Model):
     role = models.CharField(max_length=20, choices=Role.choices, blank=True)
     institution = models.CharField(max_length=160, blank=True)
 
+    # Somebody who signed up but has no team. `role` is normally set when a
+    # person joins one (team_service.assign_platform_role), which left the
+    # unassigned with no way to say which side they want and no way to be
+    # found -- the old "wait for your captain to invite you" was a dead end
+    # for anybody no captain happened to know.
+    # Stamped when the data-privacy notice was agreed to at registration.
+    # Separate from the code of conduct (PolicyAcceptance): one is consent
+    # to our processing their data, the other is agreement to the rules,
+    # and an auditor will ask about them separately.
+    privacy_accepted_at = models.DateTimeField(null=True, blank=True)
+    privacy_accepted_ip = models.GenericIPAddressField(null=True, blank=True)
+
+    seeking_team = models.BooleanField(
+        default=False,
+        help_text="Wants to be placed on a team that has a seat free.",
+    )
+    seeking_since = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Stamped when they joined the pool, so the longest wait is listed first.",
+    )
+
     # -- Email verification (Guide section 6, step 1). A competitor account
     # is inert until the address is proven: no team, no invitation.
     email_verified_at = models.DateTimeField(null=True, blank=True)
@@ -325,6 +346,14 @@ class Team(models.Model):
         related_name="captained_teams",
     )
     institution = models.CharField(max_length=200, blank=True)
+
+    # The captain's consent to be shown people looking for a team. Opt-in
+    # rather than automatic: a team that has its fourth lined up offline
+    # should not be handed a stranger.
+    open_to_recruits = models.BooleanField(
+        default=False,
+        help_text="Show this team competitors who are looking for a place.",
+    )
     status = models.CharField(
         max_length=15, choices=Status.choices, default=Status.REGISTERED
     )

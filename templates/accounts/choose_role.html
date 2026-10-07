@@ -4,12 +4,16 @@
 {% include "components/page_header.html" with tag="ONBOARDING" title="Choose Your Role" %}
 
 <div class="card">
-  <p class="text-muted">Captains create the team and invite its members. Members wait for their captain's invitation -- it arrives by email and shows up here.</p>
+  <p class="text-muted">Captains create the team and invite its members. If you do not
+  have a team, say which side you want to play and captains with a free seat can invite
+  you -- you no longer have to know one first.</p>
   {% url 'accounts:team_form' as team_form_url %}
+  {% url 'accounts:find_team' as find_team_url %}
   {% url 'accounts:choose_team' as choose_team_url %}
   <div class="form-actions">
     {% include "components/button.html" with label="Create a Team" href=team_form_url variant="primary" %}
-    {% include "components/button.html" with label="Join a Team" href=choose_team_url variant="ghost" %}
+    {% include "components/button.html" with label="Find Me a Team" href=find_team_url variant="gold" %}
+    {% include "components/button.html" with label="My Invitations" href=choose_team_url variant="ghost" %}
   </div>
 </div>
 {% endblock %}

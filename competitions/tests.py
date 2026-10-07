@@ -120,6 +120,19 @@ class KeyDatesTests(TestCase):
         kinds = [d["kind"] for d in self.dates()]
         self.assertEqual(kinds, ["registration", "proposal", "build", "submission"])
 
+    def test_rows_are_sorted_by_date_not_by_declaration(self):
+        """A later-declared field with an earlier date must not jump the queue."""
+        from django.utils import timezone
+
+        row = self.comp.settings
+        # roster_deadline is declared before the qualifier fields but falls
+        # after the proposal deadline.
+        row.roster_deadline = timezone.now() + datetime.timedelta(days=5)
+        row.save()
+        self.comp.refresh_from_db()
+        whens = [d["when"] for d in self.dates()]
+        self.assertEqual(whens, sorted(whens))
+
     def test_a_past_deadline_is_marked_closed(self):
         rows = {d["kind"]: d for d in self.dates()}
         self.assertTrue(rows["registration"]["passed"])

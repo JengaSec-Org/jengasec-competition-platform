@@ -109,6 +109,7 @@ class EmailVerificationTests(TestCase):
             resp = self.client.post(reverse("accounts:register"), {
                 "username": "neema", "first_name": "Neema", "last_name": "A",
                 "email": "neema@strathmore.edu", "password1": PASSWORD, "password2": PASSWORD,
+                "privacy_accepted": "on",
             })
         self.assertRedirects(resp, reverse("accounts:verify_pending"))
         user = User.objects.get(username="neema")
@@ -129,6 +130,7 @@ class EmailVerificationTests(TestCase):
         self.client.post(reverse("accounts:register"), {
             "username": "jo", "first_name": "Jo", "last_name": "B",
             "email": "jo@gmail.com", "password1": PASSWORD, "password2": PASSWORD,
+            "privacy_accepted": "on",
         })
         profile = User.objects.get(username="jo").profile
         self.assertTrue(profile.manual_verification_required)
@@ -320,7 +322,9 @@ class SubmitRegistrationTests(CommitMixin, TestCase):
         self.captain = make_user("wanjiru")
         self.team = make_team(self.comp, self.captain)
         self.members = [self.captain]
-        for name in ("juma", "zawadi"):
+        # Four, not three: a roster is now exactly MIN_MEMBERS, so a
+        # three-person team cannot be submitted at all.
+        for name in ("juma", "zawadi", "amina"):
             user = make_user(name)
             team_service.add_member(self.team, user)
             self.members.append(user)
@@ -356,7 +360,9 @@ class SubmitRegistrationTests(CommitMixin, TestCase):
         self.assertEqual(team.track_preferences, ["application", "ai"])
         self.assertEqual(team.mentor_name, "Dr M")
         receipts = Notification.objects.filter(type=Notification.Type.REGISTRATION_SUBMITTED)
-        self.assertEqual(receipts.count(), 3)  # everyone on the team
+        # Derived, so the count follows the roster rule rather than
+        # needing an edit every time the team size changes.
+        self.assertEqual(receipts.count(), len(self.members))
         self.assertIn("Application Red, AI Red", receipts.first().body)
         # Locked: no invitations, no removals, no resubmission.
         with self.assertRaisesMessage(team_service.TeamRuleError, "submitted for review"):

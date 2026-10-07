@@ -31,6 +31,11 @@
   {% endfor %}
 {% else %}
   <p class="text-muted">No invitations yet. Check that your captain has your exact address, and look in your spam folder — invitations reach it more often than anyone expects.</p>
+  {# Waiting only works if a captain knows you. Otherwise this page is a dead end. #}
+  <p class="text-muted" style="margin-top:0.75rem;">
+    No team at all? Say which side you want to play and captains with a seat free can
+    find you — <a href="{% url 'accounts:find_team' %}">find me a team</a>.
+  </p>
 {% endif %}
 
 <p class="auth-alt">

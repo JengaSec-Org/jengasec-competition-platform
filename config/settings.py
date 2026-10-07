@@ -99,6 +99,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "accounts.context_processors.user_roles",
                 "accounts.context_processors.competition_phase",
+                "accounts.context_processors.team_standing",
                 "notifications.context_processors.unread_notifications",
             ],
         },

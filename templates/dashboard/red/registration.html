@@ -13,10 +13,7 @@
 {% include "dashboard/_team_ident.html" %}
 
 {% if qualifier_locked %}
-  {# ---- Application Red: no proposal. Places are earned through the Hack
-       The Box qualifier, then a cell is assigned (Entry Guide s.3). The date
-       comes from CompetitionSettings.red_qualifier_opens_at -- it used to be
-       hardcoded here and in two other files, and went stale unnoticed. ---- #}
+  
   <div class="card" style="max-width:760px;">
     <span class="tlabel" style="color: var(--gold);">// APPLICATION_RED</span>
     <h3 class="card-title">
@@ -30,63 +27,41 @@
       {% if team.cell_id %}{% include "components/badge.html" with label=team.cell_label color="green" %}{% else %}{% include "components/badge.html" with label="Place not yet earned" color="gold" %}{% endif %}
     </h3>
     <p class="text-muted">
-      Application Red teams do not submit a proposal, and a place here is not
-      something this platform grants. You earn it by qualifying on Hack The Box,
-      in a team of four, every member aged 18 to 25.
+      No proposal. You earn your place on Hack The Box, in a team of four,
+      every member aged 18 to 25.
     </p>
 
-    <ol style="margin:1rem 0 0 1.25rem;">
-      <li class="text-muted" style="margin-bottom:0.6rem;">
-        <strong>RSVP on Meetup{% if rsvp_closes %}, before {{ rsvp_closes|date:"l j F, H:i" }} EAT{% endif %}.</strong>
-        Every member RSVPs individually — it is the record Hack The Box uses to
-        onboard you. Each team gets a dedicated lab prepared in advance, so a late
-        RSVP cannot be accommodated.
+    <ol class="step-list">
+      <li>
+        <strong>RSVP on Meetup</strong>{% if rsvp_closes %} —
+        by {{ rsvp_closes|date:"l j F, H:i" }} EAT{% endif %}.
+        Every member RSVPs individually. Labs are prepared in advance, so late
+        RSVPs cannot be taken.
       </li>
-      <li class="text-muted" style="margin-bottom:0.6rem;">
-        <strong>Get onboarded.</strong> Every member needs an active Hack The Box
-        Enterprise account. Access details are sent at onboarding, along with the
-        qualifying mark.
+      <li>
+        <strong>Get onboarded</strong> — every member needs a Hack The Box
+        Enterprise account. Access and the qualifying mark arrive then.
       </li>
-      <li class="text-muted" style="margin-bottom:0.6rem;">
-        <strong>Play the qualifier.</strong>
-        {% if qualifier_opens and qualifier_closes %}
-          One online CTF, {{ qualifier_opens|date:"l j F, H:i" }} to
-          {{ qualifier_closes|date:"l j F, H:i" }} EAT.
-        {% else %}
-          One online CTF on Hack The Box Enterprise, played as a team of four.
-        {% endif %}
+      <li>
+        <strong>Play the qualifier</strong>{% if qualifier_opens and qualifier_closes %} —
+        {{ qualifier_opens|date:"l j F, H:i" }} to
+        {{ qualifier_closes|date:"l j F, H:i" }} EAT{% endif %}.
       </li>
-      <li class="text-muted">
-        <strong>Then register.</strong> If your team passes we email you to confirm
-        your place and send the registration link. Teams that do not qualify cannot
-        register for the Red side.
+      <li>
+        <strong>Then register</strong> — we email qualifying teams a registration
+        link. Teams that do not qualify cannot register.
       </li>
     </ol>
 
     {% if rsvp_url %}
-      <p style="margin-top:1rem;">
+      <p style="margin-top:1.25rem;">
         <a href="{{ rsvp_url }}" target="_blank" rel="noopener"
            class="btn btn-danger btn-sm">RSVP on Meetup</a>
       </p>
     {% endif %}
 
     <p class="form-help" style="margin-top:1rem;">
-      // NOTE :: use the same name and email on Meetup, Hack The Box and JengaSec,
-      so your team can be matched.
-    </p>
-    {% if team.application_brief %}
-      <p class="form-help" style="margin-top:1rem;">// TARGET_IF_PLACED :: {{ team.application_brief.code }} — {{ team.application_brief.name }}</p>
-      {% if team.application_brief.red_exposure_list %}
-        <p class="text-muted" style="margin-top:0.5rem;"><strong>What Red will try</strong> (from the brief):</p>
-        <ul style="margin:0.25rem 0 0 1.25rem;">
-          {% for line in team.application_brief.red_exposure_list %}<li class="text-muted">{{ line }}</li>{% endfor %}
-        </ul>
-      {% endif %}
-    {% else %}
-      <p class="form-help" style="margin-top:1rem;">// TARGET :: assigned by the organisers with your cell</p>
-    {% endif %}
-    <p class="form-help" style="margin-top:1rem;">
-      // STATUS :: {% if team.status == "approved" %}REGISTERED_AND_PLACED{% else %}AWAITING_REGISTRATION_REVIEW{% endif %}
+      // Use the same name and email on Meetup, Hack The Box and JengaSec.
     </p>
   </div>
 {% else %}

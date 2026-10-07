@@ -28,6 +28,16 @@
   {% include "components/input.html" with name="password2" label="Confirm Password" type="password" required=True error=form.password2.errors.0 %}
   {% include "components/privacy_note.html" %}
 
+  <div class="form-group consent-check">
+    <label class="form-label" for="{{ form.privacy_accepted.id_for_label }}">
+      {{ form.privacy_accepted }}
+      <span>{{ form.privacy_accepted.label }}</span>
+    </label>
+    {% if form.privacy_accepted.errors %}
+      <p class="form-error">{{ form.privacy_accepted.errors.0 }}</p>
+    {% endif %}
+  </div>
+
   <button type="submit" class="btn btn-primary btn-block">Create Account</button>
 </form>
 

@@ -24,7 +24,10 @@
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 {% block extra_css %}{% endblock %}
 </head>
-<body>
+{% comment %}
+`data-side` lets the shared components (step lists, key dates) take the
+red accent on red dashboards without a second copy of each rule.
+{% endcomment %}<body{% if "red_team" in user_roles %} data-side="red"{% elif "blue_team" in user_roles %} data-side="blue"{% endif %}>
 
 {% include "components/navbar.html" %}
 {% include "components/sidebar.html" %}

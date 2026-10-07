@@ -7,6 +7,27 @@
 
 {% include "dashboard/_key_dates.html" %}
 
+{% if is_captain and playing_count < max_members %}
+  {% comment %}
+  A short roster is the one thing that blocks submission and cannot be fixed
+  from this page alone if the captain has nobody left to ask.
+  {% endcomment %}
+  <div class="card" style="border-top-color: var(--gold);">
+    <span class="tlabel">// SEATS_FREE</span>
+    <h3 class="card-title">
+      {{ seats_free }} seat{{ seats_free|pluralize }} still to fill
+    </h3>
+    <p class="text-muted">
+      Every team is exactly {{ max_members }} people, and the registration cannot be
+      submitted until yours is. If you have nobody left to invite, competitors looking
+      for a place can be shown to you.
+    </p>
+    <p style="margin-top:0.75rem;">
+      <a href="{% url 'accounts:recruit' %}">Fill your seats</a>
+    </p>
+  </div>
+{% endif %}
+
 <p class="text-muted" style="margin-bottom:1.5rem;">
   {% if team.team_identifier %}<code class="tlabel">{{ team.team_identifier }}</code> &middot;{% endif %}
   {{ team.track_label|default:team.get_team_type_display }} &middot; {{ team.competition.name }}

@@ -40,6 +40,17 @@ class UserRegistrationForm(UserCreationForm):
     first_name = forms.CharField(max_length=100)
     last_name = forms.CharField(max_length=100)
     email = forms.EmailField(max_length=254)
+    # Consent recorded at the point of collection, which is what the Data
+    # Protection Act 2019 asks for. Required, and stamped on the profile
+    # so there is an auditable record of who agreed and when -- a notice
+    # nobody ticked is not consent.
+    privacy_accepted = forms.BooleanField(
+        required=True,
+        label="I have read how my personal data will be used, and I agree to it.",
+        error_messages={
+            "required": "You have to agree to the data privacy notice to register."
+        },
+    )
 
     class Meta:
         model = User

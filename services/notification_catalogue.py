@@ -341,7 +341,8 @@ def complete_your_details(user, items, policy_url=""):
     )
 
 
-def briefing(user, *, items, dates, team=None, identity_lost=False, extra="", slug="brief"):
+def briefing(user, *, items, dates, team=None, identity_lost=False, extra="",
+             matching="", slug="brief"):
     """Everything one competitor needs to know, in a single email.
 
     The alternative was four sends in a day -- complete your details,
@@ -375,6 +376,11 @@ def briefing(user, *, items, dates, team=None, identity_lost=False, extra="", sl
             "again. That is our fault, not yours: the file was lost when the "
             "platform moved to its permanent storage and cannot be recovered."
         )
+
+    # Placed before the checklist: for somebody with no team, or a captain a
+    # seat short, this is the item the rest of the list depends on.
+    if matching:
+        lines.append(matching)
 
     if items:
         listed = "\n".join(f"  - {item}" for item in items)

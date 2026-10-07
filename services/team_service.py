@@ -15,7 +15,10 @@ from accounts.models import Team, TeamInvitation, TeamMember, UserProfile
 from competitions.constants import EDITION, Enterprise, Track, cell_prefix
 
 # Entry Guide section 2: teams of three to four, plus one optional reserve.
-MIN_MEMBERS = 3
+# Exactly four. The HTB qualifier is played as a team of four, and a
+# three-person team cannot enter it, so the band that used to allow
+# three is now a single number.
+MIN_MEMBERS = 4
 MAX_MEMBERS = 4
 MAX_RESERVES = 1
 
@@ -224,6 +227,11 @@ def _seat_from_invitation(invitation, user):
     invitation.accepted_by = user
     invitation.decided_at = timezone.now()
     invitation.save(update_fields=["status", "accepted_by", "decided_at"])
+    # They have a team now, so they come out of the matching pool -- a
+    # listing that leads to a refused invitation wastes a captain's time.
+    from services import matching_service
+
+    matching_service.on_joined_team(user)
     return member
 
 
