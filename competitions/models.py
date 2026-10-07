@@ -196,7 +196,24 @@ class CompetitionSettings(models.Model):
     red_qualifier_opens_at = models.DateTimeField(
         null=True, blank=True,
         verbose_name="Application Red qualifier opens",
-        help_text="When the HTB challenges open. Shown to Application Red teams only.",
+        help_text="When the HTB qualifier CTF opens. Shown to Application Red teams only.",
+    )
+    red_qualifier_closes_at = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name="Application Red qualifier closes",
+    )
+    # The RSVP is the real gate: Hack The Box onboards each team onto a
+    # dedicated lab beforehand, so a late RSVP cannot be accommodated even
+    # though the CTF itself has not started.
+    red_rsvp_closes_at = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name="Application Red RSVP closes",
+        help_text="Every member RSVPs individually on Meetup before this.",
+    )
+    red_rsvp_url = models.URLField(
+        blank=True, max_length=300,
+        verbose_name="Application Red RSVP link",
+        help_text="The Hack The Box Kenya Meetup event page.",
     )
     build_deadline = models.DateTimeField(null=True, blank=True)
     submission_deadline = models.DateTimeField(

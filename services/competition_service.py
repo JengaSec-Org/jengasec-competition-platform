@@ -382,20 +382,27 @@ def key_dates(competition, team=None):
     now = timezone.now()
 
     planned = [
+        ("rsvp", "HTB qualifier RSVP closes", row.red_rsvp_closes_at),
         ("registration", "Registration closes", row.registration_deadline),
         ("proposal", "Proposals due", row.proposal_deadline),
         ("qualifier", "HTB qualifier opens", row.red_qualifier_opens_at),
+        ("qualifier_end", "HTB qualifier closes", row.red_qualifier_closes_at),
         ("build", "Build ends", row.build_deadline),
         ("submission", "Documents due", row.submission_deadline),
     ]
+    QUALIFIER_ROWS = {"rsvp", "qualifier", "qualifier_end"}
     if team is not None:
         # A team is only shown the route it is actually on. Application Red
-        # files no proposal and earns its place through the qualifier;
-        # everyone else proposes and never sees the qualifier.
+        # files no proposal: it RSVPs, plays the qualifier, and only then
+        # registers -- so the platform registration deadline is not its
+        # gate and showing it would send teams at the wrong thing.
         if team.submits_proposal:
-            planned = [r for r in planned if r[0] != "qualifier"]
+            planned = [r for r in planned if r[0] not in QUALIFIER_ROWS]
         else:
-            planned = [r for r in planned if r[0] != "proposal"]
+            planned = [
+                r for r in planned
+                if r[0] not in ("proposal", "registration")
+            ]
 
     dates = []
     for kind, label, when in planned:

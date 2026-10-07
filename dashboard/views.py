@@ -190,6 +190,9 @@ def _red_context(request, team, phase):
         return {
             "qualifier_locked": comp.red_qualifier_locked(team),
             "qualifier_opens": team.competition.settings.red_qualifier_opens_at,
+            "qualifier_closes": team.competition.settings.red_qualifier_closes_at,
+            "rsvp_closes": team.competition.settings.red_rsvp_closes_at,
+            "rsvp_url": team.competition.settings.red_rsvp_url,
             "proposal": comp.proposal_for(team),
             "registration_open": team.competition.registration_open,
             "deadline": team.competition.settings.registration_deadline,

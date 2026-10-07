@@ -940,7 +940,9 @@ class BriefingTests(CommitMixin, TestCase):
     def setUp(self):
         self.comp = make_competition()
         self.captain = make_user("skipper")
-        self.team = make_team(self.comp, self.captain)
+        # A proposal-filing team, so the registration deadline applies.
+        # Application Red is routed differently and is covered separately.
+        self.team = make_team(self.comp, self.captain, team_type=Team.TeamType.BLUE)
         self.gappy = make_user("gappy")
         team_service.add_member(self.team, self.gappy)
         UserProfile.objects.filter(user=self.gappy).update(programme="")
@@ -996,18 +998,19 @@ class BriefingTests(CommitMixin, TestCase):
     def test_an_extra_note_reaches_only_that_side(self):
         import tempfile, os
 
-        blue = make_user("bluecap")
-        blue_team = make_team(self.comp, blue, name="Nyati", team_type=Team.TeamType.BLUE)
+        # self.captain leads the blue team from setUp; this one leads a red one.
+        red = make_user("redcap")
+        make_team(self.comp, red, name="Nyati", team_type=Team.TeamType.RED)
         fd, path = tempfile.mkstemp(suffix=".md", text=True)
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            fh.write("Challenges are delayed; word by Wednesday.")
+            fh.write("RSVP on Meetup before Saturday.")
         try:
             self.run_command("--confirm", "--extra-red", path)
         finally:
             os.unlink(path)
 
-        self.assertIn("Challenges are delayed", self.body_for(self.captain))   # red
-        self.assertNotIn("Challenges are delayed", self.body_for(blue))        # blue
+        self.assertIn("RSVP on Meetup before Saturday", self.body_for(red))
+        self.assertNotIn("RSVP on Meetup before Saturday", self.body_for(self.captain))
 
     def test_briefing_twice_with_the_same_slug_does_not_resend(self):
         self.run_command("--confirm")
@@ -1024,6 +1027,28 @@ class BriefingTests(CommitMixin, TestCase):
         self.team.save()
         self.run_command("--confirm")
         self.assertTrue(Notification.objects.filter(user=self.gappy).exists())
+
+    def test_application_red_is_sent_at_the_qualifier_not_registration(self):
+        """Their place is earned on Hack The Box, not by registering here.
+
+        Quoting the platform registration deadline at them would send the
+        team at the wrong thing entirely.
+        """
+        row = self.comp.settings
+        row.red_rsvp_closes_at = timezone.now() + timedelta(days=3)
+        row.red_qualifier_opens_at = timezone.now() + timedelta(days=4)
+        row.red_qualifier_closes_at = timezone.now() + timedelta(days=5)
+        row.save()
+
+        hunter = make_user("hunter")
+        make_team(self.comp, hunter, name="Nyati", team_type=Team.TeamType.RED)
+        self.run_command("--confirm")
+
+        body = self.body_for(hunter)
+        self.assertIn("RSVP closes", body)
+        self.assertIn("HTB qualifier opens", body)
+        self.assertNotIn("Registration closes", body)
+        self.assertNotIn("Proposals due", body)
 
 
 class TeamlessCompetitorTests(CommitMixin, TestCase):
