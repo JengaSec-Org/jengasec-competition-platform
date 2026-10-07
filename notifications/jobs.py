@@ -89,6 +89,18 @@ JOBS = (
         scheduled=True,
     ),
     Job(
+        key="roster_call",
+        label="Chase teams under four, and people with no team",
+        description=(
+            "Two emails: one to every member of a team short of four seats, one "
+            "to competitors who have no team at all. They are each other's "
+            "answer, so both go out together."
+        ),
+        command="send_roster_call",
+        preview_args=(),
+        run_args=("--confirm",),
+    ),
+    Job(
         key="briefing",
         label="Send everyone a single combined briefing",
         description=(

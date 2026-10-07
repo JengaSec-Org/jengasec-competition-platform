@@ -7,7 +7,7 @@ Context: `announcements` from dashboard.views._base_context.
 {% endcomment %}
 {% if announcements %}
   {% for item in announcements %}
-    <div class="card" style="border-top-color: var(--warning, #e0a30c);">
+    <div class="card" style="border-top-color: var(--gold);">
       <span class="tlabel">// NOTICE</span>
       <h3 class="card-title">{{ item.title }}</h3>
       {% for paragraph in item.paragraphs %}

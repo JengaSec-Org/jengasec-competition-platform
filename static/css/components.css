@@ -227,9 +227,12 @@
 
 /* ---- step list --------------------------------------------------------
    Numbered routes ("RSVP, onboard, qualify, register") appear on both the
-   red and blue registration pages. Styled once here so the two sides look
-   like one product: the marker takes the side's accent, and the text stays
-   the muted body colour rather than every line shouting. */
+   red and blue registration pages. Defined once so the two sides look like
+   one product.
+
+   Uses --primary / --muted / --text from variables.css. An earlier version
+   referenced --accent and --text-muted, which this app does not define, so
+   every rule silently fell back to a hardcoded colour. */
 .step-list {
   list-style: none;
   counter-reset: step;
@@ -241,8 +244,8 @@
   position: relative;
   padding-left: 2.25rem;
   margin-bottom: 0.85rem;
-  color: var(--text-muted, #5A6A5A);
-  line-height: 1.5;
+  color: var(--muted);
+  line-height: 1.55;
 }
 .step-list > li:last-child { margin-bottom: 0; }
 .step-list > li::before {
@@ -255,25 +258,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--accent, #007A3D);
-  color: var(--accent, #007A3D);
-  font-family: var(--font-mono, 'Space Mono', monospace);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   line-height: 1;
 }
-.step-list > li strong { color: var(--text, #0A0E0A); font-weight: 600; }
+.step-list > li strong { color: var(--text); font-weight: 600; }
 
-/* Red dashboards carry the danger accent, so the markers follow. */
-.red .step-list > li::before,
+/* Red dashboards carry the danger accent, set on <body> by base.html. */
 [data-side="red"] .step-list > li::before {
-  border-color: var(--danger, #B3000C);
-  color: var(--danger, #B3000C);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 /* ---- key dates --------------------------------------------------------
    A small timeline, not a data table: no rules between rows, the date in
-   mono so the column aligns, and the next one ahead the only thing
-   emphasised. Rows already past recede rather than disappear. */
+   mono so the column aligns, and only the next one ahead emphasised. Rows
+   already past recede rather than disappear. */
 .key-dates { width: 100%; border-collapse: collapse; }
 .key-dates td {
   border: 0;
@@ -282,22 +284,67 @@
 }
 .key-dates td:first-child { padding-right: 1.25rem; }
 .key-dates .kd-when {
-  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-family: var(--font-mono);
   font-size: 0.82rem;
   white-space: nowrap;
-  color: var(--text-muted, #5A6A5A);
+  color: var(--muted);
 }
-.key-dates tr.is-next .kd-what { color: var(--text, #0A0E0A); font-weight: 600; }
-.key-dates tr.is-next .kd-when { color: var(--accent, #007A3D); font-weight: 700; }
+.key-dates .kd-what { color: var(--muted); }
+.key-dates tr.is-next .kd-what { color: var(--text); font-weight: 600; }
+.key-dates tr.is-next .kd-when { color: var(--primary); font-weight: 700; }
 .key-dates tr.is-past .kd-what,
 .key-dates tr.is-past .kd-when { opacity: 0.45; }
 .key-dates .kd-tag {
-  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-family: var(--font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent, #007A3D);
+  color: var(--primary);
   margin-left: 0.5rem;
 }
 [data-side="red"] .key-dates tr.is-next .kd-when,
-[data-side="red"] .key-dates .kd-tag { color: var(--danger, #B3000C); }
+[data-side="red"] .key-dates .kd-tag { color: var(--danger); }
+
+/* ---- side choice ------------------------------------------------------
+   Two buttons that mean "blue" and "red", shown to somebody with no team.
+   Side by side and equal weight, because the choice is genuinely even --
+   stacking them or making one primary implies a recommendation. */
+.side-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.side-choice .btn { flex: 1 1 12rem; }
+
+/* ---- person rows ------------------------------------------------------
+   The recruiting list and the consent register are lists of people, not
+   spreadsheets: the name leads, the detail under it is secondary, and the
+   action sits right. */
+.person-sub {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+.table td .person-sub { line-height: 1.4; }
+
+/* ---- empty states -----------------------------------------------------
+   A panel with nothing in it should say so plainly and point somewhere,
+   rather than looking like a page that failed to load. */
+.empty-state {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+.empty-state p { margin: 0 0 0.75rem; }
+.empty-state p:last-child { margin-bottom: 0; }
+
+/* ---- job grid ---------------------------------------------------------
+   The notification console's cards are actions, so each one keeps its
+   button pinned to the bottom and the cards stay the same height. */
+.job-card { display: flex; flex-direction: column; }
+.job-card .card-title { margin-bottom: 0.5rem; }
+.job-card form { margin-top: auto; padding-top: 0.9rem; }

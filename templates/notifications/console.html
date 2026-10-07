@@ -19,7 +19,7 @@ same code. Every job previews before it sends.
 </div>
 
 {% if result %}
-  <div class="card" style="border-top-color: var({% if result.ok %}--accent{% else %}--danger{% endif %});">
+  <div class="card" style="border-top-color: var({% if result.ok %}--primary{% else %}--danger{% endif %});">
     <span class="tlabel">// {% if result.preview %}PREVIEW{% else %}RESULT{% endif %}</span>
     <h3 class="card-title">{{ result.job.label }}</h3>
     {% if result.preview %}
@@ -31,7 +31,7 @@ same code. Every job previews before it sends.
         {% csrf_token %}
         <input type="hidden" name="job" value="{{ result.job.key }}">
         <input type="hidden" name="action" value="send">
-        <button type="submit">Send it</button>
+        <button type="submit" class="btn btn-primary btn-sm">Send it</button>
       </form>
     {% endif %}
   </div>
@@ -40,7 +40,7 @@ same code. Every job previews before it sends.
 <h2>Jobs</h2>
 <div class="stat-grid">
   {% for job in jobs %}
-    <div class="card">
+    <div class="card job-card">
       <span class="tlabel">
         // {% if job.scheduled %}HOURLY{% else %}ON_DEMAND{% endif %}
       </span>
@@ -52,7 +52,7 @@ same code. Every job previews before it sends.
       <form method="post">
         {% csrf_token %}
         <input type="hidden" name="job" value="{{ job.key }}">
-        <button type="submit" name="action" value="preview">Preview</button>
+        <button type="submit" name="action" value="preview" class="btn btn-ghost btn-sm">Preview</button>
       </form>
     </div>
   {% endfor %}
@@ -66,7 +66,7 @@ same code. Every job previews before it sends.
 </p>
 
 {% if announcement_plan %}
-  <div class="card" style="border-top-color: var(--accent);">
+  <div class="card" style="border-top-color: var(--primary);">
     <span class="tlabel">// ANNOUNCEMENT_PREVIEW</span>
     <h3 class="card-title">{{ announcement_plan.subject }}</h3>
     <p class="text-muted">
@@ -87,8 +87,8 @@ same code. Every job previews before it sends.
   <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit" name="action" value="announce_preview">Preview</button>
-    <button type="submit" name="action" value="announce_send">Send and pin</button>
+    <button type="submit" name="action" value="announce_preview" class="btn btn-ghost btn-sm">Preview</button>
+    <button type="submit" name="action" value="announce_send" class="btn btn-primary btn-sm">Send and pin</button>
   </form>
 </div>
 

@@ -419,6 +419,119 @@ def briefing(user, *, items, dates, team=None, identity_lost=False, extra="",
     )
 
 
+def roster_short(user, team, seats_free, deadline=None, is_captain=False, recruit_url=""):
+    """This team is not yet four, and cannot be submitted until it is.
+
+    Sent to the whole roster rather than the captain alone: filling a
+    seat usually means somebody on the team knows a person, and a
+    captain chasing three friends is slower than three people each
+    asking one.
+    """
+    people = "person" if seats_free == 1 else "people"
+    by_when = (
+        f" Rosters have to be complete by {timezone.localtime(deadline):%A %d %B at %H:%M} (EAT)."
+        if deadline else ""
+    )
+    lines = [
+        f"{team.team_name} is {seats_short_phrase(seats_free)}.",
+        (
+            f"Every JengaSec team is exactly four people. Yours has "
+            f"{4 - seats_free} and needs {seats_free} more {people}, and the "
+            f"registration cannot be submitted until it does.{by_when}"
+        ),
+    ]
+    if is_captain and recruit_url:
+        lines.append(
+            "If you have run out of people to ask, competitors looking for a "
+            "place can be shown to you, and you can invite them in one click:\n\n"
+            f"{recruit_url}"
+        )
+    else:
+        lines.append(
+            "If you know somebody looking for a place, tell your captain -- they "
+            "can send the invitation. There are also competitors registered with "
+            "no team, who your captain can see and invite."
+        )
+    lines.append(
+        "Anyone joining needs a verified JengaSec account and their own details "
+        "complete, so the earlier the seat is filled the better."
+    )
+    return ns.notify_user(
+        user,
+        subject=f"{team.team_name}: {seats_short_phrase(seats_free)}",
+        body="\n\n".join(lines),
+        link=reverse("accounts:team_requests"),
+        notification_type=Type.OUTSTANDING_ITEMS,
+        send_email=True,
+        dedupe_key=f"roster-short:{team.pk}:{user.pk}:{seats_free}",
+    )
+
+
+def seats_short_phrase(seats_free):
+    return (
+        "one person short of four"
+        if seats_free == 1
+        else f"{seats_free} people short of four"
+    )
+
+
+def no_team_yet(user, deadline=None, side_declared=False, find_team_url=""):
+    """Registered, but on no team -- and therefore not competing.
+
+    These people were invisible to every other reminder, all of which
+    start from a team. The ask is one step, not a checklist: say which
+    side you want.
+    """
+    by_when = (
+        f" Teams have to be settled by "
+        f"{timezone.localtime(deadline):%A %d %B at %H:%M} (EAT)."
+        if deadline else ""
+    )
+    if side_declared:
+        opening = (
+            "You have told us which side you want to play, but you are not on a "
+            "team yet."
+        )
+        # They have already done the asking step; repeating it reads as though
+        # nobody noticed, which is how people stop believing these emails.
+        ask = (
+            "You are listed to captains on that side who have a seat free, and an "
+            "invitation will arrive by email. If you would rather not wait, you can "
+            "create your own team and invite three others, or change which side you "
+            "are listed on:"
+        )
+    else:
+        opening = "You have a JengaSec account, but you are not on a team yet."
+        ask = (
+            "You do not need to know a team already. Tell us whether you want to "
+            "play blue -- building and defending an application -- or red, attacking "
+            "what blue built. Captains with a free seat can then see you and send an "
+            "invitation:"
+        )
+
+    return ns.notify_user(
+        user,
+        subject="You are not on a JengaSec team yet",
+        body="\n\n".join([
+            opening,
+            (
+                "JengaSec is played in teams of exactly four, so without one you "
+                f"cannot take part.{by_when}"
+            ),
+            ask,
+            f"{find_team_url}" if find_team_url else "",
+            (
+                "Keep your own details complete either way: captains only see "
+                "people whose account is verified."
+            ),
+        ]).replace("\n\n\n\n", "\n\n"),
+        link=reverse("accounts:find_team"),
+        notification_type=Type.OUTSTANDING_ITEMS,
+        send_email=True,
+        dedupe_key=f"no-team:{user.pk}:{'declared' if side_declared else 'undeclared'}",
+    )
+
+
 def announcement(team, subject, body, slug):
     """An organiser's own message to one side of the competition.
 

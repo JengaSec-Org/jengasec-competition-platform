@@ -38,14 +38,14 @@ captain asks for it.
           Your team is listed to people looking for a place.
         </p>
         <input type="hidden" name="action" value="close">
-        <button type="submit">Stop showing my team</button>
+        <button type="submit" class="btn btn-ghost btn-sm">Stop showing my team</button>
       {% else %}
         <p class="text-muted">
           Show your team to competitors looking for a place, and see who is
           available. Nobody joins without an invitation from you.
         </p>
         <input type="hidden" name="action" value="open">
-        <button type="submit">Show my team and see who is looking</button>
+        <button type="submit" class="btn btn-primary">Show my team and see who is looking</button>
       {% endif %}
     </form>
   {% endif %}
@@ -69,7 +69,10 @@ captain asks for it.
         <tbody>
           {% for person in pool %}
             <tr>
-              <td>{{ person.user.get_full_name|default:person.user.username }}</td>
+              <td>
+                {{ person.user.get_full_name|default:person.user.username }}
+                <span class="person-sub">{{ person.user.email }}</span>
+              </td>
               <td>{{ person.institution|default:"—" }}</td>
               <td>{{ person.seeking_since|date:"j M, H:i"|default:"—" }}</td>
               <td>
@@ -78,7 +81,7 @@ captain asks for it.
                     {% csrf_token %}
                     <input type="hidden" name="action" value="invite">
                     <input type="hidden" name="email" value="{{ person.user.email }}">
-                    <button type="submit">Invite</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Invite</button>
                   </form>
                 {% else %}
                   <span class="text-muted">Roster full</span>
@@ -89,11 +92,10 @@ captain asks for it.
         </tbody>
       </table>
     {% else %}
-      <p class="text-muted">
-        Nobody is looking for a {{ team.get_team_type_display|lower }} place right
-        now. Check back, or invite someone directly from
-        <a href="{% url 'accounts:team_requests' %}">My Team</a>.
-      </p>
+      <div class="empty-state">
+        <p>Nobody is looking for a {{ team.get_team_type_display|lower }} place right now.</p>
+        <p><a class="btn btn-ghost btn-sm" href="{% url 'accounts:team_requests' %}">Invite by email instead</a></p>
+      </div>
     {% endif %}
   </div>
 {% endif %}

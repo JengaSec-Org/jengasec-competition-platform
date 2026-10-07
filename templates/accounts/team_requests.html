@@ -47,7 +47,7 @@
 </p>
 
 {% if team.status == "submitted" %}
-<div class="card" style="margin-bottom:1.5rem; border-left:4px solid var(--green, #007A3D);">
+<div class="card" style="margin-bottom:1.5rem; border-left:4px solid var(--primary);">
   <span class="tlabel">// SUBMITTED {{ team.submitted_at|date:"j M Y, H:i" }}</span>
   <h3 class="card-title">Under review</h3>
   <p class="text-muted">The registration is locked while organisers review it (within 3 working days). Roster, preferences and declaration cannot change until they decide.</p>
@@ -93,7 +93,7 @@
 {% endif %}
 
 {% if is_captain and team.can_submit %}
-<div class="card" style="margin-bottom:1.5rem;{% if ready_to_submit %} border-left:4px solid var(--green, #007A3D);{% endif %}">
+<div class="card" style="margin-bottom:1.5rem;{% if ready_to_submit %} border-left:4px solid var(--primary);{% endif %}">
   <span class="tlabel">// SUBMIT</span>
   <h3 class="card-title">{% if ready_to_submit %}Everything is in place{% else %}Submission{% endif %}</h3>
   <p class="text-muted" style="margin-bottom:0.75rem;">

@@ -58,7 +58,7 @@
   <p>Writes one small file, reads it back and deletes it, from this process.</p>
   <form method="post">
     {% csrf_token %}
-    <button type="submit">Run the test</button>
+    <button type="submit" class="btn btn-primary btn-sm">Run the test</button>
   </form>
 
   {% if report.probe %}

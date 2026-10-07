@@ -253,3 +253,95 @@ class ConsentTests(TestCase):
         self.assertIn("privacy notice accepted", body)
         self.assertIn("code of conduct", body)
         self.assertIn("newcomer", body)
+
+
+class RosterCallTests(TestCase):
+    """The two emails: a team short of four, and a person with none."""
+
+    def setUp(self):
+        self.comp = make_competition()
+        self.captain = make_user("skipper")
+        self.team = make_team(self.comp, self.captain, team_type=Team.TeamType.BLUE)
+        self.mate = make_user("mate")
+        team_service.add_member(self.team, self.mate)
+        self.drifter = make_user("drifter")
+        UserProfile.objects.filter(user=self.drifter).update(role="")
+
+    def run_command(self, *args):
+        from io import StringIO
+        from django.core.management import call_command
+
+        out = StringIO()
+        call_command("send_roster_call", *args, stdout=out)
+        return out.getvalue()
+
+    def body_for(self, user):
+        from notifications.models import Notification
+
+        return Notification.objects.get(user=user).body
+
+    def test_preview_sends_nothing(self):
+        from notifications.models import Notification
+
+        output = self.run_command()
+        self.assertIn("Preview only", output)
+        self.assertFalse(Notification.objects.exists())
+
+    def test_everyone_on_a_short_team_is_told_not_just_the_captain(self):
+        self.run_command("--confirm")
+        self.assertIn("short of four", self.body_for(self.captain))
+        self.assertIn("short of four", self.body_for(self.mate))
+
+    def test_only_the_captain_is_pointed_at_the_recruit_page(self):
+        self.run_command("--confirm")
+        self.assertIn("/accounts/recruit/", self.body_for(self.captain))
+        self.assertNotIn("/accounts/recruit/", self.body_for(self.mate))
+
+    def test_somebody_with_no_team_gets_the_other_email(self):
+        self.run_command("--confirm")
+        body = self.body_for(self.drifter)
+        self.assertIn("not on a team yet", body)
+        self.assertIn("/accounts/find-team/", body)
+
+    def test_a_declared_side_is_not_asked_to_declare_again(self):
+        svc.join_pool(self.drifter, UserProfile.Role.BLUE_TEAM)
+        self.run_command("--confirm")
+        body = self.body_for(self.drifter)
+        self.assertIn("You are listed to captains", body)
+        self.assertNotIn("Tell us whether you want to play", body)
+
+    def test_only_short_skips_the_teamless(self):
+        from notifications.models import Notification
+
+        self.run_command("--only", "short", "--confirm")
+        self.assertFalse(Notification.objects.filter(user=self.drifter).exists())
+        self.assertTrue(Notification.objects.filter(user=self.captain).exists())
+
+    def test_only_teamless_skips_the_short_teams(self):
+        from notifications.models import Notification
+
+        self.run_command("--only", "teamless", "--confirm")
+        self.assertTrue(Notification.objects.filter(user=self.drifter).exists())
+        self.assertFalse(Notification.objects.filter(user=self.captain).exists())
+
+    def test_a_full_team_is_not_chased(self):
+        from notifications.models import Notification
+
+        for name in ("three", "four"):
+            team_service.add_member(self.team, make_user(name))
+        self.run_command("--only", "short", "--confirm")
+        self.assertFalse(Notification.objects.filter(user=self.captain).exists())
+
+    def test_sending_twice_at_the_same_seat_count_does_not_resend(self):
+        from notifications.models import Notification
+
+        self.run_command("--confirm")
+        self.run_command("--confirm")
+        self.assertEqual(Notification.objects.filter(user=self.captain).count(), 1)
+
+    def test_it_is_offered_in_the_console(self):
+        from notifications import jobs
+
+        job = jobs.get("roster_call")
+        self.assertIsNotNone(job)
+        self.assertEqual(job.command, "send_roster_call")

@@ -40,7 +40,7 @@ captain to invite you", which never happens if no captain has your email.
     <form method="post" style="margin-top:1rem;">
       {% csrf_token %}
       <input type="hidden" name="action" value="leave">
-      <button type="submit">Take me off the list</button>
+      <button type="submit" class="btn btn-ghost btn-sm">Take me off the list</button>
     </form>
   {% else %}
     <h3 class="card-title">Which side do you want to play?</h3>
@@ -48,10 +48,16 @@ captain to invite you", which never happens if no captain has your email.
       Blue teams build and defend an application. Red teams attack what Blue built.
       Pick one, and captains with a free seat can invite you.
     </p>
-    <form method="post" style="margin-top:1rem;">
+    <form method="post">
       {% csrf_token %}
-      <button type="submit" name="side" value="blue_team">Put me on the list as Blue</button>
-      <button type="submit" name="side" value="red_team">Put me on the list as Red</button>
+      <div class="side-choice">
+        <button type="submit" name="side" value="blue_team" class="btn btn-primary">
+          Play Blue — build and defend
+        </button>
+        <button type="submit" name="side" value="red_team" class="btn btn-danger">
+          Play Red — attack what Blue built
+        </button>
+      </div>
     </form>
   {% endif %}
   <p class="form-help" style="margin-top:1rem;">

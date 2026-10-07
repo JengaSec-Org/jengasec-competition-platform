@@ -56,13 +56,13 @@ is agreement to the rules.
           <tr>
             <td>
               {{ row.user.get_full_name|default:row.user.username }}
-              <br><span class="text-muted"><small>{{ row.user.email }}</small></span>
+              <span class="person-sub">{{ row.user.email }}</span>
             </td>
             <td>{% if row.team %}{{ row.team.team_name }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
             <td>
               {% if row.privacy_at %}
                 {% include "components/badge.html" with label="Agreed" color="green" %}
-                <br><span class="text-muted"><small>{{ row.privacy_at|date:"j M Y, H:i" }}{% if row.privacy_ip %} · {{ row.privacy_ip }}{% endif %}</small></span>
+                <span class="person-sub">{{ row.privacy_at|date:"j M Y, H:i" }}{% if row.privacy_ip %} · {{ row.privacy_ip }}{% endif %}</span>
               {% else %}
                 {% include "components/badge.html" with label="Not recorded" color="gold" %}
               {% endif %}
