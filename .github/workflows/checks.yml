@@ -47,6 +47,7 @@ jobs:
           .venv/bin/python manage.py makemigrations --check --dry-run
           .venv/bin/python manage.py check
           .venv/bin/python manage.py migrate --noinput
+          .venv/bin/python manage.py collectstatic --noinput
 
       - name: Run tests
         run: .venv/bin/python manage.py test --verbosity 2
