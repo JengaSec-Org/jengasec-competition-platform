@@ -10,11 +10,18 @@ EVIDENCE_MAX_BYTES = 20 * 1024 * 1024
 class FindingForm(forms.ModelForm):
     """A Red team's finding. Only cells in the team's active scope can be chosen."""
 
+    telemetry_event_ids = forms.CharField(
+        required=False,
+        label="Telemetry event IDs",
+        help_text="One stable evt_ identifier per line. Do not paste request or response bodies.",
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
     class Meta:
         model = Finding
         fields = [
             "target_team", "round", "started_at", "ended_at", "title", "technique", "attack_id",
-            "steps", "evidence", "evidence_file", "impact", "suggested_fix",
+            "steps", "evidence", "telemetry_event_ids", "evidence_file", "impact", "suggested_fix",
         ]
         labels = {"target_team": "Target cell"}
         widgets = {
@@ -42,6 +49,25 @@ class FindingForm(forms.ModelForm):
         if f and f.size > EVIDENCE_MAX_BYTES:
             raise forms.ValidationError("Evidence files are limited to 20 MB.")
         return f
+
+    def clean_telemetry_event_ids(self):
+        values = [
+            value.strip()
+            for value in self.cleaned_data.get("telemetry_event_ids", "").splitlines()
+            if value.strip()
+        ]
+        invalid = [
+            value
+            for value in values
+            if len(value) != 68
+            or not value.startswith("evt_")
+            or any(char not in "0123456789abcdef" for char in value[4:])
+        ]
+        if invalid:
+            raise forms.ValidationError("Use one evt_<64 lowercase hex> identifier per line.")
+        if len(values) != len(set(values)):
+            raise forms.ValidationError("Each telemetry event ID may appear only once.")
+        return values
 
     def clean(self):
         cleaned = super().clean()

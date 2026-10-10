@@ -46,6 +46,11 @@ class UserProfile(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
     )
+    participant_identifier = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Opaque competition identifier exposed to operational systems.",
+    )
     role = models.CharField(max_length=20, choices=Role.choices, blank=True)
     institution = models.CharField(max_length=160, blank=True)
 
@@ -115,6 +120,13 @@ class UserProfile(models.Model):
 
     class Meta:
         ordering = ["user__username"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["participant_identifier"],
+                condition=~models.Q(participant_identifier=""),
+                name="unique_participant_identifier",
+            )
+        ]
 
     def __str__(self):
         return f"{self.user.username} ({self.get_role_display() or 'no role'})"
