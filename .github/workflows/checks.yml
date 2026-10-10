@@ -1,0 +1,52 @@
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  django:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16.10-bookworm
+        env:
+          POSTGRES_DB: jengasec
+          POSTGRES_USER: jengasec
+          POSTGRES_PASSWORD: test-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U jengasec -d jengasec"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      JENGASEC_DB_NAME: jengasec
+      JENGASEC_DB_USER: jengasec
+      JENGASEC_DB_PASSWORD: test-only-password
+      JENGASEC_DB_HOST: localhost
+      JENGASEC_DB_PORT: "5432"
+      JENGASEC_DB_SSLMODE: disable
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Check migrations and configuration
+        run: |
+          .venv/bin/python manage.py makemigrations --check --dry-run
+          .venv/bin/python manage.py check
+          .venv/bin/python manage.py migrate --noinput
+
+      - name: Run tests
+        run: .venv/bin/python manage.py test --verbosity 2
