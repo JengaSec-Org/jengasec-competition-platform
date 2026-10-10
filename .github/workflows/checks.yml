@@ -49,5 +49,16 @@ jobs:
           .venv/bin/python manage.py migrate --noinput
           .venv/bin/python manage.py collectstatic --noinput
 
-      - name: Run tests
-        run: .venv/bin/python manage.py test --verbosity 2
+      - name: Test the PostgreSQL observability interface
+        run: .venv/bin/python manage.py test cyberrange --verbosity 2
+
+      - name: Run the existing suite on its default database
+        run: >-
+          env
+          -u JENGASEC_DB_NAME
+          -u JENGASEC_DB_USER
+          -u JENGASEC_DB_PASSWORD
+          -u JENGASEC_DB_HOST
+          -u JENGASEC_DB_PORT
+          -u JENGASEC_DB_SSLMODE
+          .venv/bin/python manage.py test --verbosity 2

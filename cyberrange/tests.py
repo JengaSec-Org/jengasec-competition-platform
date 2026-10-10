@@ -2,6 +2,7 @@
 WireGuard profiles reach only their owner."""
 import datetime
 import io
+import json
 import pathlib
 import shutil
 import tempfile
@@ -184,6 +185,8 @@ class ObservabilityInterfaceTests(RangeTestBase):
         self.assertNotIn("email", access_columns)
         self.assertTrue(any(row[3] == "blue_team" and row[5] == "ENT-A" for row in access_rows))
         self.assertTrue(any(row[3] == "judge" and row[5] is None for row in access_rows))
+        if isinstance(finding_event_ids, str):
+            finding_event_ids = json.loads(finding_event_ids)
         self.assertEqual(finding_event_ids, [event_id])
 
 
