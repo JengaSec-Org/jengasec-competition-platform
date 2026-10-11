@@ -1,0 +1,79 @@
+{% comment %}
+Shared filter bar for the team and roster lists.
+
+Every control is a GET link or field that preserves the others, so
+narrowing by side after typing an institution does not silently drop the
+institution. `export_query` carries the same parameters to the CSV, which
+is what keeps the download and the screen in step.
+
+Context: filters, states, roles (optional), active, side/track/status/
+state/role/institution/q, shown, total, export_url, export_query.
+{% endcomment %}
+<div class="card filter-bar">
+  <form method="get" class="filter-form">
+    <div class="filter-row">
+      <input type="search" name="q" value="{{ q }}" placeholder="Team, identifier, name or email"
+             class="filter-search" aria-label="Search">
+
+      <select name="side" aria-label="Side">
+        <option value="">Both sides</option>
+        {% for value, label in filters.0.2 %}
+          <option value="{{ value }}" {% if side == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="track" aria-label="Track">
+        <option value="">Any track</option>
+        {% for value, label in filters.1.2 %}
+          <option value="{{ value }}" {% if track == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="status" aria-label="Registration status">
+        <option value="">Any status</option>
+        {% for value, label in filters.2.2 %}
+          <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      {% if roles %}
+        <select name="role" aria-label="Role in team">
+          <option value="">Any role</option>
+          {% for value, label in roles %}
+            <option value="{{ value }}" {% if role == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+
+      <select name="state" aria-label="State">
+        <option value="">Any state</option>
+        {% for value, label in states %}
+          <option value="{{ value }}" {% if state == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <input type="text" name="institution" value="{{ institution }}" placeholder="Institution"
+             class="filter-inst" aria-label="Institution">
+
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      {% if active %}
+        <a class="btn btn-ghost btn-sm" href="{{ request.path }}">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+
+  <div class="filter-summary">
+    <span>
+      Showing <strong>{{ shown }}</strong> of {{ total }}{% if active %}
+        &middot; filtered by
+        {% for key, value in active.items %}<code>{{ key }}={{ value }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}
+      {% endif %}
+    </span>
+    {% if export_url %}
+      <a class="btn btn-ghost btn-sm"
+         href="{{ export_url }}{% if export_query %}?{{ export_query }}{% endif %}">
+        Export these {{ shown }}
+      </a>
+    {% endif %}
+  </div>
+</div>

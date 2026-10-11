@@ -7,6 +7,17 @@
 
 {% include "dashboard/_key_dates.html" %}
 
+{% if is_captain and not team.is_locked %}
+  <p style="margin-bottom:1.25rem;">
+    <a class="btn btn-ghost btn-sm" href="{% url 'accounts:team_edit' %}">
+      Edit team details
+    </a>
+    <span class="text-muted" style="margin-left:0.5rem;">
+      Lead institution, side, specialisation and application.
+    </span>
+  </p>
+{% endif %}
+
 {% if is_captain and playing_count < max_members %}
   {% comment %}
   A short roster is the one thing that blocks submission and cannot be fixed

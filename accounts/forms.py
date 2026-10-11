@@ -6,7 +6,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from competitions.constants import Enterprise
+from competitions.constants import Enterprise, Track
 from competitions.models import ApplicationBrief, Competition
 
 from .institutions import recognise
@@ -88,17 +88,51 @@ class ConductAcceptanceForm(forms.Form):
         self.version = version or PolicyVersion.current()
 
 
-class TeamForm(forms.ModelForm):
+class TeamEditForm(forms.ModelForm):
+    """What a captain may change about their own team after creating it.
+
+    There was no such form and no route: `institution` and `track` were
+    set once at creation and then frozen, with nothing in the interface
+    to change them -- which is exactly the "I cannot find the button"
+    report. Competition, captain and status stay out: those are
+    organiser decisions, not the captain's.
+    """
+
     class Meta:
         model = Team
-        fields = [
-            "competition",
-            "team_name",
-            "track",
-            "captain",
-            "institution",
-            "status",
-        ]
+        fields = ["team_name", "team_type", "track", "application_brief", "institution"]
+        widgets = {"team_type": forms.RadioSelect, "track": forms.RadioSelect}
+        labels = {
+            "team_type": "Which side are you competing on?",
+            "track": "Specialisation",
+            "application_brief": "JengaBank application (Application track only)",
+            "institution": "Lead institution",
+        }
+        help_texts = {
+            "institution": "The university or college entering this team.",
+            "application_brief": "Application teams only. Leave blank on the AI tracks.",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["application_brief"].queryset = (
+            ApplicationBrief.objects.filter(is_open=True).order_by("code")
+        )
+        self.fields["application_brief"].required = False
+        self.fields["institution"].required = True
+
+    def clean(self):
+        data = super().clean()
+        # Same pairing rule the create form enforces, repeated here so a
+        # later edit cannot produce a combination creation would refuse.
+        if data.get("track") == Track.APPLICATION and not data.get("application_brief"):
+            self.add_error(
+                "application_brief",
+                "Application teams pick the JengaBank application they are working on.",
+            )
+        if data.get("track") == Track.AI and data.get("application_brief"):
+            data["application_brief"] = None
+        return data
 
 
 class TeamMemberForm(forms.ModelForm):

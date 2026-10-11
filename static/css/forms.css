@@ -294,3 +294,23 @@ textarea.is-invalid {
   font-size: 0.72rem;
   margin-top: 0.4rem;
 }
+
+/* ---- form actions -----------------------------------------------------
+   Used by five templates and styled by none of them, so a Save button and
+   a Cancel link sat jammed together with no gap and no alignment. Submit
+   leads; anything after it is secondary and sits beside, not under. */
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.form-actions .btn { margin: 0; }
+/* Push a trailing cancel away from the primary action, so the two are
+   not adjacent targets. */
+.form-actions .btn-ghost:last-child { margin-left: auto; }
+@media (max-width: 480px) {
+  .form-actions { flex-direction: column; align-items: stretch; }
+  .form-actions .btn-ghost:last-child { margin-left: 0; }
+}

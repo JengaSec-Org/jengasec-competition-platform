@@ -228,6 +228,7 @@ def parse_file(submission_file, force=False):
     recorded so the upload itself is never lost.
     """
     from services import parser_service
+    from services import stored_files
 
     parsed, created = ParsedDocument.objects.get_or_create(
         submission_file=submission_file
@@ -245,7 +246,11 @@ def parse_file(submission_file, force=False):
         return parsed
 
     try:
-        result = parser_service.parse_document(submission_file.file.path)
+        # Not `.file.path`: that only exists on local-disk storage, and
+        # raises NotImplementedError on the bucket, which silently marked
+        # every production upload as FAILED.
+        with stored_files.local_copy(submission_file.file) as path:
+            result = parser_service.parse_document(path)
     except Exception as exc:  # parser errors must not break uploads
         parsed.status = ParsedDocument.Status.FAILED
         parsed.error_message = str(exc)[:2000]
@@ -317,9 +322,12 @@ def _store_figures(parsed, submission_file):
     from django.core.files.base import ContentFile
 
     from services import parser_service
+    from services import stored_files
 
     parsed.images.all().delete()  # re-parse replaces the previous set
-    for figure in parser_service.extract_images(submission_file.file.path):
+    with stored_files.local_copy(submission_file.file) as path:
+        figures = list(parser_service.extract_images(path))
+    for figure in figures:
         try:
             data = figure["data"]
             digest = hashlib.sha256(data).hexdigest()

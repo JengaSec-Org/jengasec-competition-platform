@@ -136,10 +136,18 @@ def _resolve_phase(request, team, requested):
 
 
 def _blue_context(request, team, phase):
-    """Phase-specific context for a blue team."""
+    """Phase-specific context for a blue team.
+
+    Registration and build are merged: the competition reached the point
+    where teams are still completing registration *and* expected to be
+    building, and sending them between two dashboards to see both halves
+    hid whichever one they were not looking at. The registration context
+    therefore carries the build context as well.
+    """
     if phase == Competition.Phase.REGISTRATION:
         briefs = list(comp.briefs_for(team))
-        return {
+        merged = dict(_blue_context(request, team, Competition.Phase.BUILD))
+        merged.update({
             "briefs": briefs,
             "proposal": comp.proposal_for(team),
             "registration_open": team.competition.registration_open,
@@ -151,7 +159,9 @@ def _blue_context(request, team, phase):
                 team.competition.settings.proposal_deadline
                 or team.competition.settings.submission_deadline
             ),
-        }
+            "show_build": True,
+        })
+        return merged
     if phase == Competition.Phase.BUILD:
         submissions = Submission.objects.filter(team=team).select_related(
             "submission_type", "application_brief"
@@ -185,9 +195,13 @@ def _blue_context(request, team, phase):
 
 
 def _red_context(request, team, phase):
-    """Phase-specific context for a red team."""
+    """Phase-specific context for a red team.
+
+    Registration and build are merged, as for blue: see `_blue_context`.
+    """
     if phase == Competition.Phase.REGISTRATION:
-        return {
+        merged = dict(_red_context(request, team, Competition.Phase.BUILD))
+        merged.update({
             "qualifier_locked": comp.red_qualifier_locked(team),
             "qualifier_opens": team.competition.settings.red_qualifier_opens_at,
             "qualifier_closes": team.competition.settings.red_qualifier_closes_at,
@@ -203,7 +217,9 @@ def _red_context(request, team, phase):
                 team.competition.settings.proposal_deadline
                 or team.competition.settings.submission_deadline
             ),
-        }
+            "show_build": True,
+        })
+        return merged
     if phase == Competition.Phase.BUILD:
         return {
             "qualifier_locked": comp.red_qualifier_locked(team),

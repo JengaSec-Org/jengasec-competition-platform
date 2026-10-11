@@ -206,3 +206,28 @@ def competition_lifecycle(request, pk):
         messages.error(request, "Unknown action.")
 
     return redirect("competitions:detail", pk=competition.pk)
+
+
+def faq(request):
+    """The participant FAQ.
+
+    Public: competitors ask these before they have an account, and the
+    answers are not secret. Dates come from the live settings rather
+    than the prose, so moving a deadline moves it here too.
+    """
+    from competitions.faq import SECTIONS
+    from services import competition_service
+
+    competition = (
+        Competition.objects.filter(status=Competition.Status.OPEN)
+        .order_by("-start_date")
+        .first()
+    )
+    return render(
+        request,
+        "competitions/faq.html",
+        {
+            "sections": SECTIONS,
+            "key_dates": competition_service.key_dates(competition) if competition else [],
+        },
+    )

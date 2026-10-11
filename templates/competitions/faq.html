@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Frequently asked questions — JengaSec{% endblock %}
+
+{% comment %}
+Content from competitions/faq.py; dates from the live competition
+settings, never written into the prose.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="FAQ" title="Frequently asked questions" %}
+
+{% include "dashboard/_key_dates.html" %}
+
+<div class="card" style="margin-bottom:1.5rem;">
+  <span class="tlabel">// CONTENTS</span>
+  <ul class="faq-toc">
+    {% for anchor, title, items in sections %}
+      <li><a href="#{{ anchor }}">{{ title }}</a></li>
+    {% endfor %}
+  </ul>
+</div>
+
+{% for anchor, title, items in sections %}
+  <div class="card" id="{{ anchor }}" style="margin-bottom:1.25rem;">
+    <span class="tlabel">// {{ title|upper }}</span>
+    <h3 class="card-title">{{ title }}</h3>
+    <dl class="faq-list">
+      {% for question, answer in items %}
+        <dt>{{ question }}</dt>
+        <dd>{{ answer }}</dd>
+      {% endfor %}
+    </dl>
+  </div>
+{% endfor %}
+
+<p class="form-help">
+  Where this page and an organiser announcement on your dashboard differ, the
+  announcement is the current one.
+</p>
+{% endblock %}

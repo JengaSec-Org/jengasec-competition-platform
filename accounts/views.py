@@ -22,6 +22,7 @@ from notifications.management.commands.send_outstanding_digest import outstandin
 from notifications.management.commands.send_registration_reminders import outstanding_for
 
 from .forms import (
+    TeamEditForm,
     ConductAcceptanceForm,
     InviteForm,
     ProfileForm,
@@ -645,26 +646,44 @@ def role_list(request):
 @login_required
 @staff_required
 def team_list(request):
-    status = request.GET.get("status", "")
-    teams = (
-        Team.objects.select_related("competition", "captain")
-        .annotate(
-            member_count=Count("members", distinct=True),
-            pending_count=Count(
-                "invitations",
-                filter=Q(invitations__status=TeamInvitation.Status.PENDING),
-                distinct=True,
-            ),
-        )
-        .order_by("competition__name", "team_name")
-    )
-    if status:
-        teams = teams.filter(status=status)
-    counts = {s: Team.objects.filter(status=s).count() for s, _ in Team.Status.choices}
+    """Organiser team list, narrowed by side, track, status and state.
+
+    Filtering lives in `services.roster_filters` so the CSV an organiser
+    downloads is the same set they are looking at -- the export used to
+    dump every team regardless of the filters on screen.
+    """
+    from services import roster_filters
+
+    params = request.GET
+    teams = roster_filters.teams(params)
+    total = Team.objects.count()
+
     return render(
         request,
         "accounts/teams.html",
-        {"teams": teams, "status": status, "statuses": Team.Status.choices, "counts": counts},
+        {
+            "teams": teams,
+            "shown": teams.count(),
+            "total": total,
+            "filters": roster_filters.TEAM_FILTERS,
+            "states": roster_filters.COMPLETENESS,
+            "active": roster_filters.active(params),
+            "params": params,
+            "side": params.get("side", ""),
+            "track": params.get("track", ""),
+            "status": params.get("status", ""),
+            "state": params.get("state", ""),
+            "institution": params.get("institution", ""),
+            "q": params.get("q", ""),
+            "export_query": roster_filters.querystring(params),
+            "counts": {
+                s: Team.objects.filter(status=s).count() for s, _ in Team.Status.choices
+            },
+            "side_counts": {
+                t: Team.objects.filter(team_type=t).count()
+                for t, _ in Team.TeamType.choices
+            },
+        },
     )
 
 
@@ -1006,3 +1025,149 @@ def _stamp(value):
     from django.utils import timezone
 
     return timezone.localtime(value).strftime("%Y-%m-%d %H:%M") if value else ""
+
+
+@login_required
+def team_edit(request):
+    """Let a captain correct their own team's details.
+
+    There was no route for this: institution and track were set at
+    creation and then unreachable, so a captain who picked the wrong one
+    -- or left the institution blank -- had nowhere to go. Locked while
+    organisers review, like every other roster change.
+    """
+    team = team_service.team_for(request.user)
+    if not team:
+        return redirect("accounts:choose_role")
+    if not team_service.is_captain_of(request.user, team):
+        messages.error(request, "Only the captain can change the team's details.")
+        return redirect("accounts:team_requests")
+
+    if team.is_locked:
+        messages.error(
+            request,
+            f"{team.team_name} is {team.get_status_display().lower()} and its details "
+            f"are frozen while organisers review it. Ask an organiser to return it "
+            f"if something needs correcting.",
+        )
+        return redirect("accounts:team_requests")
+
+    if request.method == "POST":
+        form = TeamEditForm(request.POST, instance=team)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"{team.team_name} updated.")
+            return redirect("accounts:team_requests")
+    else:
+        form = TeamEditForm(instance=team)
+
+    return render(
+        request,
+        "accounts/team_edit.html",
+        {"form": form, "team": team},
+    )
+
+
+@login_required
+@staff_required
+def member_list(request):
+    """Every person on a team, filtered the same way as the team list.
+
+    Distinct from `user_list`, which is accounts. This is rosters: one
+    row per seat, so an organiser checking who is on which team sees the
+    team on every line and can click straight through to the account.
+    """
+    from services import roster_filters
+
+    params = request.GET
+    members = roster_filters.members(params)
+    return render(
+        request,
+        "accounts/members.html",
+        {
+            "members": members,
+            "shown": members.count(),
+            "total": TeamMember.objects.count(),
+            "filters": roster_filters.TEAM_FILTERS,
+            "states": roster_filters.MEMBER_STATES,
+            "roles": TeamMember.MemberRole.choices,
+            "active": roster_filters.active(params),
+            "params": params,
+            "side": params.get("side", ""),
+            "track": params.get("track", ""),
+            "status": params.get("status", ""),
+            "state": params.get("state", ""),
+            "role": params.get("role", ""),
+            "institution": params.get("institution", ""),
+            "q": params.get("q", ""),
+            "export_query": roster_filters.querystring(params),
+            "export_columns": [(k, v[0]) for k, v in EXPORT_COLUMNS.items()],
+            "default_columns": DEFAULT_COLUMNS,
+        },
+    )
+
+
+# Columns an organiser may pick for a roster export. Key -> (header, getter).
+EXPORT_COLUMNS = {
+    "team": ("Team", lambda m: m.team.team_name),
+    "identifier": ("Team ID", lambda m: m.team.team_identifier or ""),
+    "side": ("Side", lambda m: m.team.get_team_type_display()),
+    "track": ("Track", lambda m: m.team.get_track_display() if m.team.track else ""),
+    "team_status": ("Team status", lambda m: m.team.get_status_display()),
+    "institution": ("Institution", lambda m: m.team.institution),
+    "name": ("Name", lambda m: m.student_name),
+    "email": ("Email", lambda m: m.email),
+    "role": ("Role", lambda m: m.get_role_display()),
+    "specialist": ("Security specialist", lambda m: "yes" if m.is_security_specialist else "no"),
+    "username": ("Username", lambda m: m.user.username if m.user else ""),
+    "phone": ("Phone", lambda m: getattr(getattr(m.user, "profile", None), "phone", "") or ""),
+    "student_number": ("Student number", lambda m: getattr(getattr(m.user, "profile", None), "student_number", "") or ""),
+    "programme": ("Programme", lambda m: getattr(getattr(m.user, "profile", None), "programme", "") or ""),
+    "verified": ("Email verified", lambda m: _verified(m)),
+    "has_id": ("ID uploaded", lambda m: _has_id(m)),
+}
+
+DEFAULT_COLUMNS = ["team", "side", "track", "name", "email", "role", "institution"]
+
+
+def _verified(member):
+    profile = getattr(member.user, "profile", None)
+    if profile is None:
+        return "no account"
+    return "yes" if profile.is_email_verified else "no"
+
+
+def _has_id(member):
+    profile = getattr(member.user, "profile", None)
+    if profile is None:
+        return "no account"
+    return "yes" if profile.identity_document else "no"
+
+
+@login_required
+@staff_required
+def member_export(request):
+    """The filtered roster, with the columns the organiser picked.
+
+    Honours exactly the filters on screen -- same `roster_filters.members`
+    call as the list -- so what downloads is what was being looked at.
+    """
+    import csv
+
+    from django.http import HttpResponse
+
+    from services import roster_filters
+
+    chosen = [c for c in request.GET.getlist("columns") if c in EXPORT_COLUMNS]
+    if not chosen:
+        chosen = DEFAULT_COLUMNS
+
+    members = roster_filters.members(request.GET)
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="jengasec-roster.csv"'
+    writer = csv.writer(response)
+    writer.writerow([EXPORT_COLUMNS[c][0] for c in chosen])
+    for member in members:
+        writer.writerow([EXPORT_COLUMNS[c][1](member) for c in chosen])
+    return response

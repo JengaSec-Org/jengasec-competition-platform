@@ -21,7 +21,10 @@ def team_standing(request):
     only appears when it applies is worth one query. Costs nothing for
     anonymous visitors and staff without a team.
     """
-    blank = {"has_no_team": False, "is_captain": False, "seats_free": 0}
+    blank = {
+        "has_no_team": False, "is_captain": False, "seats_free": 0,
+        "team_locked": False,
+    }
     user = getattr(request, "user", None)
     if not user or not user.is_authenticated:
         return blank
@@ -41,6 +44,9 @@ def team_standing(request):
         "has_no_team": False,
         "is_captain": is_captain,
         "seats_free": matching_service.seats_free(team) if is_captain else 0,
+        # Links that bounce are worse than absent ones: the edit page
+        # refuses a locked registration, so the link goes with it.
+        "team_locked": team.is_locked,
     }
 
 
