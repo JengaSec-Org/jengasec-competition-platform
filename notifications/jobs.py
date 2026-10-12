@@ -89,6 +89,21 @@ JOBS = (
         scheduled=True,
     ),
     Job(
+        key="parse_documents",
+        label="Process uploaded documents again",
+        description=(
+            "Re-runs the document engine over every upload whose last parse "
+            "failed. Needed once after the storage fix: parsing used to ask the "
+            "bucket for a local file path, which it has none of, so every "
+            "document was recorded as failed."
+        ),
+        command="parse_submissions",
+        # The command reports without changing anything only when there is
+        # nothing to do, so the preview is the --failed listing itself.
+        preview_args=(),
+        run_args=("--failed",),
+    ),
+    Job(
         key="roster_call",
         label="Chase teams under four, and people with no team",
         description=(
