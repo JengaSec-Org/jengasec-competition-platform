@@ -44,6 +44,11 @@ class AuditLog(models.Model):
         FINDING_REVIEWED = "finding_reviewed", "Finding reviewed"
         WIREGUARD_DOWNLOADED = "wireguard_downloaded", "WireGuard profile downloaded"
         RANGE_EXPORTED = "range_exported", "Range files exported"
+        # application deployments
+        APP_SUBMITTED = "app_submitted", "Application image submitted"
+        APP_STATUS_CHANGED = "app_status_changed", "Application check recorded"
+        APP_TOKEN_REVEALED = "app_token_revealed", "Registry token revealed"
+        APP_FROZEN = "app_frozen", "Application image frozen"
 
     # Denormalised alongside the FK so the trail survives user deletion.
     actor = models.ForeignKey(

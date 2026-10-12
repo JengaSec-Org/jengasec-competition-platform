@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Submit application — JengaSec{% endblock %}
+
+{% comment %}
+The form the compulsory briefing told blue captains to expect: an image
+reference and a read-only token, not a file. Context from
+deployments.views.submit.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="SUBMIT_APPLICATION" title="Your application" %}
+
+<div class="card">
+  <span class="tlabel">// YOUR_CELL</span>
+  <h3 class="card-title">{{ team.cell_label|default:team.team_name }}</h3>
+  <p class="text-muted">
+    You hand over an image reference, not your code. We pull it, scan it, run it
+    in your namespace and check it is healthy.
+    {% if freeze_at %}
+      The last passing image is frozen at
+      <strong>{{ freeze_at|date:"D j M · H:i" }} EAT</strong>.
+    {% endif %}
+  </p>
+
+  {% if latest %}
+    <div class="check-strip">
+      {% for check in latest.progress %}
+        <span class="check {% if check.done %}is-done{% endif %}">{{ check.label }}</span>
+      {% endfor %}
+    </div>
+    <p class="form-help">
+      Attempt {{ latest.attempt }} — {{ latest.get_status_display }}
+      {% if latest.status_detail %}: {{ latest.status_detail }}{% endif %}
+    </p>
+    {% if passing %}
+      {% include "components/badge.html" with label="You have a passing image" color="green" %}
+    {% else %}
+      {% include "components/badge.html" with label="No passing image yet" color="gold" %}
+    {% endif %}
+  {% else %}
+    <p class="text-muted">Nothing submitted yet.</p>
+  {% endif %}
+</div>
+
+{% if form %}
+  <div class="card" style="margin-top:1.5rem;">
+    <span class="tlabel">// NEW_ATTEMPT</span>
+    <h3 class="card-title">Submit an image</h3>
+    <p class="text-muted">
+      Resubmit as often as you like before the freeze. Each attempt is kept, and
+      your last passing one is the one that runs.
+    </p>
+    <form method="post" autocomplete="off">
+      {% csrf_token %}
+      {% for field in form %}
+        {% include "components/form_field.html" with field=field %}
+      {% endfor %}
+      <div class="form-actions">
+        {% include "components/button.html" with label="Submit" type="submit" variant="primary" size="sm" %}
+        {% url 'accounts:team_requests' as back_url %}
+        {% include "components/button.html" with label="Back to My Team" href=back_url variant="ghost" size="sm" %}
+      </div>
+    </form>
+  </div>
+{% else %}
+  <div class="card note-body" style="margin-top:1.5rem;">
+    <span class="tlabel">// NOT_OPEN</span>
+    <p>
+      {% if not is_captain %}
+        Only your captain submits the application. Ask them to do it from this page.
+      {% else %}
+        {{ reason }}
+      {% endif %}
+    </p>
+  </div>
+{% endif %}
+
+{% if attempts %}
+  <div class="card" style="margin-top:1.5rem;">
+    <span class="tlabel">// HISTORY</span>
+    <h3 class="card-title">Your attempts</h3>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>#</th><th>Image</th><th>Result</th><th>When</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for attempt in attempts %}
+            <tr>
+              <td>{{ attempt.attempt }}</td>
+              <td><code>{{ attempt.image_reference }}</code></td>
+              <td>
+                {{ attempt.get_status_display }}
+                {% if attempt.frozen_at %}
+                  {% include "components/badge.html" with label="Frozen" color="green" %}
+                {% endif %}
+              </td>
+              <td>{{ attempt.created_at|date:"j M H:i" }}</td>
+              <td><a href="{% url 'deployments:detail' attempt.pk %}">Details</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

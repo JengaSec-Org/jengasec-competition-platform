@@ -15,6 +15,7 @@ from accounts.roles import BLUE_TEAM, JUDGE, PARTNER, RED_TEAM, user_in_role
 from competitions.models import Competition
 from judging.models import Evaluation
 from services import competition_service as comp
+from services import deployment_service
 from services import submission_service
 from services.submission_service import PROPOSAL_TYPES
 from services.audit_service import recent as audit_recent
@@ -180,6 +181,10 @@ def _blue_context(request, team, phase):
             ],
             "submission_requirements": comp.SUBMISSION_REQUIREMENTS,
             "submissions": submissions,
+            # The image, which answers to the freeze rather than a document
+            # deadline. `submits_application` comes from the team context.
+            "app_submission": deployment_service.latest_for_team(team),
+            "app_passing": deployment_service.last_passing(team),
         }
     # Live
     return {

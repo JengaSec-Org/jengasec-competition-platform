@@ -13,6 +13,7 @@ from django.utils import timezone
 from services import account_service
 from competitions.models import Competition
 from services import competition_service
+from services import deployment_service
 from services import matching_service
 from services import notification_catalogue as cat
 from services import stored_files
@@ -308,6 +309,9 @@ def team_requests(request):
             # here rather than only on the dashboard.
             "key_dates": competition_service.key_dates(team.competition, team),
             "seats_free": matching_service.seats_free(team),
+            # The application image, for the card the briefing points at.
+            "app_submission": deployment_service.latest_for_team(team),
+            "app_passing": deployment_service.last_passing(team),
         },
     )
 

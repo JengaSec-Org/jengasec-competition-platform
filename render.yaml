@@ -71,6 +71,21 @@ services:
       # Left unset the endpoint answers 404 and no reminder is ever sent.
       - key: DJANGO_CRON_TOKEN
         sync: false
+
+      # ── Application image submission ──────────────────────────────────────
+      # Encrypts the read-only registry token each blue team hands over with
+      # its image. Generate with
+      #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+      # Unset, the key is derived from DJANGO_SECRET_KEY: teams can still
+      # submit, but rotating the secret key invalidates stored tokens.
+      - key: DJANGO_TOKEN_KEY
+        sync: false
+      # Guards the two endpoints the range's puller calls,
+      # /deployments/api/pending/ and /deployments/api/status/. Generate with
+      #   python -c "import secrets; print(secrets.token_urlsafe(32))"
+      # Unset, both answer 404.
+      - key: DJANGO_DEPLOY_TOKEN
+        sync: false
       - key: DJANGO_EMAIL_HOST_USER
         value: sucybersec@strathmore.edu   # the verified sender; also the From address
       - key: DJANGO_SITE_URL

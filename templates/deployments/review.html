@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Record a check — JengaSec{% endblock %}
+
+{% comment %}
+Setting a check by hand, so the four states work before the range's
+puller exists. The same write path the machine endpoint uses.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="RECORD_CHECK" title=submission %}
+
+<div class="card">
+  <span class="tlabel">// CURRENT</span>
+  <div class="check-strip">
+    {% for check in submission.progress %}
+      <span class="check {% if check.done %}is-done{% endif %}">{{ check.label }}</span>
+    {% endfor %}
+  </div>
+  <p class="form-help">
+    {{ submission.get_status_display }} · <code>{{ submission.image_reference }}</code>
+  </p>
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+  <span class="tlabel">// SET_RESULT</span>
+  <h3 class="card-title">Record what happened</h3>
+  <p class="text-muted">The team sees this, so write the detail as something they can act on.</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+      <label class="form-label" for="status">Result</label>
+      <select name="status" id="status" class="input">
+        {% for value, label in statuses %}
+          <option value="{{ value }}" {% if submission.status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="detail">Detail</label>
+      <textarea name="detail" id="detail" rows="3" class="textarea">{{ submission.status_detail }}</textarea>
+      <div class="form-help">For example: image built for ARM — rebuild with --platform linux/amd64.</div>
+    </div>
+    <div class="form-actions">
+      {% include "components/button.html" with label="Record" type="submit" variant="primary" size="sm" %}
+      {% url 'deployments:detail' submission.pk as detail_url %}
+      {% include "components/button.html" with label="Back" href=detail_url variant="ghost" size="sm" %}
+    </div>
+  </form>
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+  <span class="tlabel">// REGISTRY_TOKEN</span>
+  <h3 class="card-title">Pull this image by hand</h3>
+  <p class="text-muted">
+    The range normally reads the token from the machine endpoint. Fetching it here
+    is recorded in the audit trail against your account.
+  </p>
+  <form method="post" action="{% url 'deployments:reveal_token' submission.pk %}">
+    {% csrf_token %}
+    <div class="form-actions">
+      {% include "components/button.html" with label="Show token" type="submit" variant="ghost" size="sm" %}
+    </div>
+  </form>
+</div>
+{% endblock %}

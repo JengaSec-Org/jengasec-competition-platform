@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "dashboard",
     "audit",
     "cyberrange",
+    "deployments",
 ]
 
 MIDDLEWARE = [
@@ -264,6 +265,17 @@ BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
 # that has not set it cannot expose an unauthenticated job runner --
 # which also means reminders stay unsent until it *is* set.
 CRON_TOKEN = os.environ.get("DJANGO_CRON_TOKEN", "")
+
+# Encrypts credentials the platform stores but must never show -- today the
+# read-only registry token a blue team gives us (services/secret_box.py).
+# Unset, the key is derived from SECRET_KEY, so submissions work without
+# this variable; rotating SECRET_KEY then invalidates stored tokens.
+TOKEN_KEY = os.environ.get("DJANGO_TOKEN_KEY", "")
+
+# Shared secret for the range's deployment endpoints
+# (/deployments/api/pending/ and /api/status/). Unset, they answer 404.
+DEPLOY_TOKEN = os.environ.get("DJANGO_DEPLOY_TOKEN", "")
+
 EMAIL_BACKEND = os.environ.get("DJANGO_EMAIL_BACKEND") or (
     "config.email_backends.BrevoAPIBackend"
     if BREVO_API_KEY

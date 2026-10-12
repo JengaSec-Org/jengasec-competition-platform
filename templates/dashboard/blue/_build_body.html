@@ -57,6 +57,31 @@ whichever half it is not looking at.
   </div>
 </div>
 
+{# ---- The application image: the one thing with a freeze, not a deadline ---- #}
+{% if submits_application %}
+<div class="card card-flat" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// YOUR_IMAGE</span>
+  <h3 class="card-title">Application image</h3>
+  <p class="text-muted" style="margin-bottom:0.75rem;">
+    {% if app_submission %}
+      Attempt {{ app_submission.attempt }} — {{ app_submission.get_status_display }}.
+      {% if not app_passing %}Healthy is a pass; you are not there yet.{% endif %}
+    {% else %}
+      Push a private image, then give us the reference and a read-only token.
+    {% endif %}
+  </p>
+  {% if app_submission %}
+    <div class="check-strip">
+      {% for check in app_submission.progress %}
+        <span class="check {% if check.done %}is-done{% endif %}">{{ check.label }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% url 'deployments:submit' as app_url %}
+  {% include "components/button.html" with label="Submit application" href=app_url variant="primary" size="sm" %}
+</div>
+{% endif %}
+
 {# ---- Deliverables checklist ---- #}
 <div class="card card-flat" style="margin-bottom:1.25rem;">
   <span class="tlabel">// DELIVERABLES</span>

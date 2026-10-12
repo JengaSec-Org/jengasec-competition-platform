@@ -492,3 +492,54 @@
   cursor: pointer;
 }
 .column-picker input[type="checkbox"] { accent-color: var(--primary); }
+
+/* ---- check strip ------------------------------------------------------
+   The four checks an application image goes through: Pulled, Scanned,
+   Deployed, Healthy. The team was shown these four names in the briefing
+   and the Image Submission Guide, so they are named, not numbered, and
+   the ones still ahead stay visible rather than being hidden -- a team
+   stuck at Deployed needs to see what it has not reached yet. */
+.check-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.9rem 0 0.6rem;
+}
+.check {
+  flex: 1 1 7rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface-off);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--muted);
+}
+.check.is-done {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--text-inverse);
+}
+
+/* ---- code block -------------------------------------------------------
+   A scan report or a log excerpt, as it came back. Wraps rather than
+   scrolling sideways, because the useful part of a Trivy line or a stack
+   trace is usually past the right-hand edge. */
+.code-block {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.85rem;
+  max-height: 22rem;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-off);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

@@ -22,6 +22,7 @@ Replace "#" with {% url %} tags as each module ships its views.
     <a class="side-link" href="{% url 'accounts:role_list' %}"><span class="glyph">&#9919;</span> Roles</a>
     <a class="side-link" href="{% url 'submissions:list' %}"><span class="glyph">&#9776;</span> Submissions</a>
     <a class="side-link" href="{% url 'submissions:proposal_review' %}"><span class="glyph">&#9998;</span> Proposal Review</a>
+    <a class="side-link" href="{% url 'deployments:queue' %}"><span class="glyph">&#9635;</span> Applications</a>
     <a class="side-link" href="{% url 'analytics:registration' %}"><span class="glyph">&#9650;</span> Analytics</a>
     <a class="side-link" href="{% url 'reports:index' %}"><span class="glyph">&#8681;</span> Exports</a>
     <a class="side-link" href="{% url 'notifications:console' %}"><span class="glyph">&#9993;</span> Notification Console</a>
@@ -41,6 +42,9 @@ Replace "#" with {% url %} tags as each module ships its views.
     <a class="side-link" href="{% url 'accounts:recruit' %}"><span class="glyph">&#9823;</span> Fill Your Seats <span class="badge badge-gold">{{ seats_free }}</span></a>
     {% endif %}
     <a class="side-link" href="{% url 'accounts:conduct' %}"><span class="glyph">&#9998;</span> Code of Conduct</a>
+    {% if submits_application %}
+    <a class="side-link" href="{% url 'deployments:submit' %}"><span class="glyph">&#9635;</span> Submit Application</a>
+    {% endif %}
     <a class="side-link" href="{% url 'submissions:wizard_step1' %}"><span class="glyph">&#8679;</span> Upload Document</a>
     <a class="side-link" href="{% url 'submissions:list' %}"><span class="glyph">&#9776;</span> Submission History</a>
     <a class="side-link" href="{% url 'dashboard:info' %}"><span class="glyph">&#9432;</span> Info &amp; Scoring</a>

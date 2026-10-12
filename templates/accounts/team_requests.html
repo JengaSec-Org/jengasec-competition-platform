@@ -103,6 +103,36 @@
 </div>
 {% endif %}
 
+{% if submits_application %}
+{% comment %}
+The application image. The compulsory briefing and the Image Submission
+Guide both send teams to "your team page", so the card lives here even
+though the form has its own page.
+{% endcomment %}
+<div class="card" style="margin-bottom:1.5rem;">
+  <span class="tlabel">// YOUR_APPLICATION</span>
+  <h3 class="card-title">Submit your application image</h3>
+  <p class="text-muted" style="margin-bottom:0.75rem;">
+    {% if app_submission %}
+      Attempt {{ app_submission.attempt }} — {{ app_submission.get_status_display }}.
+      {% if app_passing %}Your last passing image is the one that runs.
+      {% else %}You do not have a passing image yet.{% endif %}
+    {% else %}
+      You hand over a private image reference and a read-only token, not your code.
+    {% endif %}
+  </p>
+  {% if app_submission %}
+    <div class="check-strip">
+      {% for check in app_submission.progress %}
+        <span class="check {% if check.done %}is-done{% endif %}">{{ check.label }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% url 'deployments:submit' as app_url %}
+  {% include "components/button.html" with label="Submit application" href=app_url variant="primary" size="sm" %}
+</div>
+{% endif %}
+
 {% if is_captain and team.can_submit %}
 <div class="card" style="margin-bottom:1.5rem;{% if ready_to_submit %} border-left:4px solid var(--primary);{% endif %}">
   <span class="tlabel">// SUBMIT</span>
