@@ -24,7 +24,7 @@ the site is on Render today or on the web VM tonight — only `--base` changes.
 Python 3.9+ and nothing from pip. On the shared VM:
 
 ```bash
-sudo apt install -y docker.io
+sudo apt install -y docker.io python3-yaml
 curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
 # kubectl: already there if this box talks to k8s-blue
 ```
@@ -138,8 +138,10 @@ assigned it.
 
 Day reset requires `JENGASEC_MAKE_SCOPE` to point to the existing
 infrastructure repo's `make-scope.py`; it resets apps/databases, waits for
-health, and then reapplies that day's scope rules. This repository does not
-create the Kubernetes cluster, Proxmox VMs, or network policies. The range
+health, and then reapplies the competition's current scope rules fetched from
+the website API. The script validates the scope in dry-run mode before reset
+mutations. This repository does not create the Kubernetes cluster, Proxmox
+VMs, or network policies. The range
 exports the reserved cell IP in `cells.yaml`, `allocation.csv`, and
 `scope-assignments.csv`; the infrastructure repository must consume those
 fields and provision the IPs in its MetalLB pool before participant access.

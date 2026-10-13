@@ -16,4 +16,5 @@ urlpatterns = [
     path("api/freeze-candidates/", ingest.freeze_candidates, name="api_freeze_candidates"),
     path("api/freeze/", ingest.freeze_submission, name="api_freeze_submission"),
     path("api/range-state/", ingest.range_state, name="api_range_state"),
+    path("api/range-exports/", ingest.range_exports, name="api_range_exports"),
 ]

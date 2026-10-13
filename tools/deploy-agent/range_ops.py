@@ -401,6 +401,23 @@ def reset_day(api, competition, day, state_dir, registry, dry_run=False, scope_s
         log.info("Would reapply scope rules for day %s.", day)
         return
 
+    environment = os.environ.copy()
+    environment["JENGASEC_ROUND"] = str(day)
+    environment["JENGASEC_COMPETITION_ID"] = str(competition)
+    preflight = subprocess.run(
+        [sys.executable, str(script_path), "--dry-run"],
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+        env=environment,
+    )
+    if preflight.returncode:
+        raise agent.Infra(
+            "Scope preflight failed before resetting applications: "
+            f"{(preflight.stderr or preflight.stdout).strip()[:400]}"
+        )
+
     for cell, namespace, entry in selected:
         log.info("Resetting %s from its frozen image.", namespace)
         code, _, error = agent.kubectl(
@@ -481,9 +498,6 @@ def reset_day(api, competition, day, state_dir, registry, dry_run=False, scope_s
         agent.wait_healthy(namespace, 300)
         log.info("[%s] reset and healthy for day %s.", namespace, day)
 
-    environment = os.environ.copy()
-    environment["JENGASEC_ROUND"] = str(day)
-    environment["JENGASEC_COMPETITION_ID"] = str(competition)
     completed = subprocess.run(
         [sys.executable, str(script_path)],
         capture_output=True,

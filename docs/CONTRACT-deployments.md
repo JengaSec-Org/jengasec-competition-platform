@@ -122,7 +122,7 @@ Response:
 
 ## Server 3 lifecycle APIs
 
-All three endpoints below use `X-Deploy-Token` and return 404 if
+All range endpoints below use `X-Deploy-Token` and return 404 if
 `DJANGO_DEPLOY_TOKEN` is not configured. The shared secret must be set on the
 website and on Server 3 as `JENGASEC_DEPLOY_TOKEN`; use HTTPS between them.
 
@@ -153,6 +153,18 @@ App definitions include the reserved `service_ip`; reconciliation reports a
 cell healthy only when its LoadBalancer Service requests that address and
 MetalLB reports it assigned.
 
+### `GET /deployments/api/range-exports/?competition=<id>`
+
+Returns the competition's current `cells.yaml` and `scope-assignments.csv`
+contents as `cells_yaml` and `scope_csv`. The endpoint uses the same
+`X-Deploy-Token` authentication and `Cache-Control: no-store` policy as the
+other range APIs. Server 3 consumes these exports immediately before applying
+scope, so it does not depend on manually refreshed files in the infrastructure
+checkout. `round_active` reflects each assignment's current `is_active` flag;
+the platform does not currently store a separate scope schedule by reset day.
+Organisers must update assignment activity before running a reset when the
+allowed teams are meant to change.
+
 ## Freeze and reset
 
 These commands run on Server 3, not on the website:
@@ -172,9 +184,10 @@ checksums into the private state directory. Back up that directory securely.
 Reset verifies the frozen digests and seed checksums, reapplies the existing
 workloads, restores the database dump, waits for application health, and then
 executes the infrastructure repository's `make-scope.py`. Set
-`JENGASEC_MAKE_SCOPE` to that executable path. The script is not included in
-this repository; a reset fails before changing the range if it is not
-configured.
+`JENGASEC_MAKE_SCOPE` to that executable path. The scope script retrieves the
+current competition exports from `api/range-exports/` using the deployment
+token. It validates the scope plan in dry-run mode before changing workloads,
+then applies it after applications are healthy.
 
 ## Reconciliation
 

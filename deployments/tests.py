@@ -360,11 +360,13 @@ class IngestTests(TestCase):
         self.freeze_candidates_url = reverse("deployments:api_freeze_candidates")
         self.freeze_submission_url = reverse("deployments:api_freeze_submission")
         self.range_state_url = reverse("deployments:api_range_state")
+        self.range_exports_url = reverse("deployments:api_range_exports")
 
     def test_unconfigured_endpoints_do_not_exist(self):
         """Same fail-closed rule as the scheduled runner."""
         with override_settings(DEPLOY_TOKEN=""):
             self.assertEqual(self.client.get(self.pending_url).status_code, 404)
+            self.assertEqual(self.client.get(self.range_exports_url).status_code, 404)
             self.assertEqual(
                 self.client.post(self.status_url, "{}", "application/json").status_code, 404
             )
@@ -488,6 +490,42 @@ class IngestTests(TestCase):
             response.json()["cells"][0]["namespace"], "jengasec-ent-a-app01"
         )
         self.assertEqual(response.json()["cells"][0]["service_ip"], "10.108.0.11")
+
+    @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")
+    def test_scope_exports_are_authenticated_and_competition_scoped(self):
+        self.team.team_identifier = "JS26-B-001"
+        self.team.save(update_fields=["team_identifier"])
+        denied = self.client.get(
+            self.range_exports_url,
+            {"competition": self.comp.pk},
+            headers={"x-deploy-token": "wrong"},
+        )
+        self.assertEqual(denied.status_code, 403)
+        response = self.client.get(
+            self.range_exports_url,
+            {"competition": self.comp.pk},
+            headers={"x-deploy-token": "a-long-enough-deploy-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("name: jengasec-ent-a-app01", payload["cells_yaml"])
+        self.assertIn('team: "JS26-B-001"', payload["cells_yaml"])
+        self.assertEqual(
+            payload["scope_csv"].splitlines()[0],
+            "red_team,red_cell,enterprise,target_cell,target_namespace,"
+            "target_service_ip,wg_range,round_active,notes",
+        )
+        self.assertIn("no-store", response["Cache-Control"])
+
+    @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")
+    def test_scope_exports_require_a_known_competition(self):
+        headers = {"x-deploy-token": "a-long-enough-deploy-token"}
+        missing = self.client.get(self.range_exports_url, headers=headers)
+        unknown = self.client.get(
+            self.range_exports_url, {"competition": 999999}, headers=headers
+        )
+        self.assertEqual(missing.status_code, 400)
+        self.assertEqual(unknown.status_code, 404)
 
     @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")
     def test_an_invalid_assigned_namespace_is_rejected(self):

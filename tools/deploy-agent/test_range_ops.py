@@ -1,7 +1,9 @@
 """Tests for the range lifecycle parser and health decisions."""
+import json
+import pathlib
 import unittest
 import tempfile
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import agent
 import range_ops
@@ -221,6 +223,64 @@ class FreezeTests(unittest.TestCase):
                 range_ops.freeze(api, 1, state_dir, "registry.local/apps")
             copy_image.assert_not_called()
         self.assertEqual(api.recorded[0]["digest"], self.digest)
+
+
+class ResetTests(unittest.TestCase):
+    def test_invalid_live_scope_stops_before_any_application_mutation(self):
+        namespace = "jengasec-ent-a-app01"
+        digest = "registry.local/apps/app@sha256:" + "a" * 64
+        test_case = self
+
+        class Api:
+            def _call(self, path, payload=None):
+                test_case.assertEqual(
+                    path, "/deployments/api/range-state/?competition=7"
+                )
+                return {"cells": [{
+                    "namespace": namespace,
+                    "image_digest": digest,
+                    "service_ip": "10.108.0.11",
+                    "port": 8080,
+                    "health_path": "/healthz",
+                    "needs_database": False,
+                    "env_vars": {},
+                }]}
+
+        with tempfile.TemporaryDirectory() as state_dir:
+            competition_dir = pathlib.Path(state_dir) / "competition-7"
+            competition_dir.mkdir()
+            (competition_dir / "freeze.json").write_text(json.dumps({
+                "cells": {
+                    namespace: {
+                        "image_digest": digest,
+                        "extra_digests": [],
+                        "seed_snapshot": "",
+                        "seed_sha256": "",
+                    }
+                }
+            }), encoding="utf-8")
+            scope_script = pathlib.Path(state_dir) / "make-scope.py"
+            scope_script.write_text("# test stub\n", encoding="utf-8")
+            failed_preflight = Mock(returncode=1, stderr="invalid live scope", stdout="")
+            with patch.object(
+                range_ops.subprocess, "run", return_value=failed_preflight
+            ) as run_scope, patch.object(agent, "kubectl") as kubectl:
+                with self.assertRaisesRegex(
+                    agent.Infra, "Scope preflight failed before resetting"
+                ):
+                    range_ops.reset_day(
+                        Api(),
+                        7,
+                        2,
+                        state_dir,
+                        "registry.local/apps",
+                        scope_script=str(scope_script),
+                    )
+
+        self.assertEqual(run_scope.call_args.args[0][-1], "--dry-run")
+        self.assertEqual(run_scope.call_args.kwargs["env"]["JENGASEC_COMPETITION_ID"], "7")
+        self.assertEqual(run_scope.call_args.kwargs["env"]["JENGASEC_ROUND"], "2")
+        kubectl.assert_not_called()
 
 
 if __name__ == "__main__":

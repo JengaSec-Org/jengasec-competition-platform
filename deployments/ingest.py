@@ -1,6 +1,6 @@
 """The machine endpoints the range calls.
 
-Two of them, both guarded by one shared secret rather than a session,
+The machine endpoints are guarded by one shared secret rather than a session,
 because the caller is the shared VM's puller and has no login. The same
 three choices as `config/tasks.py`, for the same reasons: 404 when the
 token is unset so a deployment that forgot the variable exposes nothing,
@@ -9,6 +9,7 @@ only for anything that writes.
 
     GET  /deployments/api/pending/   what to pull, including the token
     POST /deployments/api/status/    one of the four checks, done or failed
+    GET  /deployments/api/range-exports/ current cell and scope exports
 
 `pending` returns a credential, which is why it is on the same guard and
 audited. It exists so the token travels machine to machine over HTTPS on
@@ -31,8 +32,10 @@ from django.views.decorators.http import require_GET, require_POST
 from audit.models import AuditLog
 from accounts.models import Team
 from competitions.constants import Track
+from competitions.models import Competition
 from cyberrange.models import WireGuardProfile
 from services import deployment_service as deploy
+from services import range_service
 from services.audit_service import record as audit
 
 from .models import AppRuntimeStatus, AppSubmission
@@ -483,3 +486,32 @@ def range_state(request):
             profile.save(update_fields=["active", "last_handshake_at"])
 
     return JsonResponse({"updated_cells": len(cells), "updated_peers": len(peers)})
+
+
+@never_cache
+@require_GET
+def range_exports(request):
+    """Return competition-specific cell and scope exports to the range runner."""
+    refusal = _authorise(request)
+    if refusal is not None:
+        return refusal
+
+    competition_id = request.GET.get("competition")
+    try:
+        competition = Competition.objects.get(pk=int(competition_id))
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "competition must be an integer"}, status=400)
+    except Competition.DoesNotExist:
+        return JsonResponse({"error": "unknown competition"}, status=404)
+
+    try:
+        payload = {
+            "cells_yaml": range_service.cells_yaml(competition),
+            "scope_csv": range_service.scope_csv(competition),
+        }
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=409)
+
+    response = JsonResponse(payload)
+    response["Cache-Control"] = "no-store"
+    return response
