@@ -350,6 +350,8 @@ class IngestTests(TestCase):
         self.comp = make_competition()
         open_the_window(self.comp)
         self.team = blue_app_team(self.comp)
+        self.team.status = Team.Status.APPROVED
+        self.team.save(update_fields=["status"])
         self.submission = deploy.submit(
             self.team, self.team.captain, pull_token=TOKEN, **FIELDS
         )

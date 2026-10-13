@@ -14,13 +14,14 @@ class Migration(migrations.Migration):
             field=models.GenericIPAddressField(
                 blank=True,
                 help_text="Reserved MetalLB IPv4 address for an Application Blue cell.",
+                null=True,
                 protocol="IPv4",
             ),
         ),
         migrations.AddConstraint(
             model_name="team",
             constraint=models.UniqueConstraint(
-                condition=~models.Q(service_ip=""),
+                condition=models.Q(service_ip__isnull=False),
                 fields=("service_ip",),
                 name="unique_team_service_ip",
             ),

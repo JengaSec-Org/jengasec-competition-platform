@@ -385,6 +385,7 @@ class Team(models.Model):
     service_ip = models.GenericIPAddressField(
         protocol="IPv4",
         blank=True,
+        null=True,
         help_text="Reserved MetalLB IPv4 address for an Application Blue cell.",
     )
 
@@ -411,7 +412,7 @@ class Team(models.Model):
             ),
             models.UniqueConstraint(
                 fields=["service_ip"],
-                condition=~models.Q(service_ip=""),
+                condition=models.Q(service_ip__isnull=False),
                 name="unique_team_service_ip",
             ),
         ]
