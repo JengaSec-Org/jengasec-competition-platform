@@ -160,10 +160,33 @@ The platform/agent contract and API shapes are documented in
 python3 -m unittest -v          # the decision logic
 ```
 
-End to end, before any team depends on it: push a tiny private image to your
-own GHCR, submit it on the website as a test team, and run
-`python3 agent.py --once -v`. It should walk to Healthy. Then try it with the
-package set to Public and confirm it is rejected with the right message.
+### Private GHCR demo image
+
+This repository includes a tiny HTTP app and a manually triggered workflow
+that builds it for `linux/amd64` and publishes
+`ghcr.io/<repository-owner>/jengasec-deploy-demo:demo`. The app runs as a
+non-root user on port `8080`; `/healthz` returns HTTP 200.
+
+After this workflow is merged to the repository's default branch:
+
+1. Open **Actions → Publish private deploy demo → Run workflow**.
+2. Once it succeeds, open the package in GitHub and confirm its visibility is
+   **Private**. Do not change it to Public.
+3. Create a disposable GitHub **classic** personal access token with only
+   `read:packages`. Make sure the GitHub account that owns the token can read
+   the package. Never put this token in chat or commit it.
+4. Submit the image reference shown in the workflow log on the website, using
+   that account's username, port `8080`, health path `/healthz`, and the token.
+5. Run `python3 agent.py --once -v` on a machine with Docker, Trivy, and the
+   competition Kubernetes access configured. It should pull and scan the
+   private image, deploy it, then report it Healthy. Finally, confirm a public
+   image is rejected.
+
+The workflow only runs when manually dispatched; it does not publish on every
+push. GHCR initially creates a package as Private, but always verify its
+visibility before submitting it. The full Healthy path cannot be tested on a
+machine without Docker and a configured cluster; use `--no-deploy` only for a
+pull-and-scan check.
 
 ## Contract
 
