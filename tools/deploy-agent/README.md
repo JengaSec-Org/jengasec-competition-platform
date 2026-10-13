@@ -108,18 +108,49 @@ again. To re-queue it: open the submission on the website
 (**Operations → Applications → Record**), set it back to **Submitted**, save.
 The agent takes it on the next pass.
 
-## The freeze
+## Range lifecycle (Server 3)
 
-At the build deadline, on the website:
+The lifecycle wrapper uses the same agent and authenticated website API:
 
 ```bash
-python manage.py freeze_applications --dry-run
-python manage.py freeze_applications --confirm
+python3 make-cells.py --process-pending
+python3 make-cells.py --freeze
+python3 make-cells.py --reset-day 1
+python3 reconcile.py
 ```
 
-It pins each team's last **Healthy** attempt and lists every team with none —
-that list is the one to act on, because those teams have no application in the
-competition.
+`--process-pending` runs one existing pull/scan/deploy pass. For scheduled
+processing, run it from cron; `agent.py --watch --interval 30` remains
+available during the build window.
+
+Configure `JENGASEC_COMPETITION_ID`, `JENGASEC_DEPLOY_TOKEN`,
+`JENGASEC_REGISTRY`, and `JENGASEC_STATE_DIR` (default
+`/var/lib/jengasec-range`). `--freeze --dry-run` and
+`--reset-day N --dry-run` preview without making range changes. The freeze
+copies approved images into the private registry by digest, stores the actual
+digest on the website, and saves/checksums database dumps locally. The state
+directory must be private, persistent, and backed up.
+
+Each Application Blue team also needs a unique reserved MetalLB IPv4 address
+recorded by an organiser in its welcome-pack record. The agent applies it to
+the cell's `LoadBalancer` Service and reconciliation checks that MetalLB has
+assigned it.
+
+Day reset requires `JENGASEC_MAKE_SCOPE` to point to the existing
+infrastructure repo's `make-scope.py`; it resets apps/databases, waits for
+health, and then reapplies that day's scope rules. This repository does not
+create the Kubernetes cluster, Proxmox VMs, or network policies. The range
+exports the reserved cell IP in `cells.yaml`, `allocation.csv`, and
+`scope-assignments.csv`; the infrastructure repository must consume those
+fields and provision the IPs in its MetalLB pool before participant access.
+
+The WireGuard endpoint runs on the separate network VM. Set
+`JENGASEC_WG_DUMP_COMMAND` to an argv command that reads its `wg show all dump`
+output (such as restricted SSH access); the default local command only works
+if WireGuard is on the Server 3 host.
+
+The platform/agent contract and API shapes are documented in
+`../../docs/CONTRACT-deployments.md`.
 
 ## Testing it
 

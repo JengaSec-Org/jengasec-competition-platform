@@ -1,34 +1,37 @@
-# Contract: application image submissions
+# Contract: application image submissions and Server 3 range lifecycle
 
 **Owner:** competition platform (this repository).
-**Audience:** whoever builds the registry puller, the Trivy scan and the test
-deploy on the shared VM (APP in *Who Does What*).
+**Audience:** the website and the Server 3 range operator.
 
 Blue teams submit an image reference and a read-only token on their team page,
 exactly as the Image Submission Guide and the 11 October briefing told them.
-The platform **records** those submissions and shows teams the four checks. It
-does not pull, scan or deploy anything — that is yours, and these two endpoints
-are how you drive it.
+The platform records submissions and serves authenticated APIs. The Server 3
+agent pulls, scans and tests pending submissions; the Server 3 lifecycle
+commands freeze approved images and seed databases, restore them for each
+round, and report runtime observations.
 
 ## What the platform guarantees
 
 - One row per attempt, never overwritten. A team may resubmit as often as it
   likes until the build deadline, which is a hard close.
 - The pull token is encrypted at rest (Fernet) and appears in no page, no CSV
-  export and no log. The only ways out are `GET /api/pending/` below and an
-  organiser clicking "Show token", which is audited against their account.
+  export and no log. The only ways out are the authenticated pending/freeze
+  candidate APIs and an organiser clicking "Show token", which is audited.
 - `Healthy` is the only status that counts as passing. At the freeze the last
   passing attempt per team is pinned.
+- Cell namespaces use the assigned `Team.namespace` when present; otherwise
+  they are derived as `ent{enterprise}-{cell_id}`, for example `enta-app01`.
+  That agrees with the Server 3 agent's default and the architecture naming.
 
 ## Authentication
 
-Both endpoints take a shared secret in a header:
+All deployment endpoints take a shared secret in a header:
 
 ```
 X-Deploy-Token: <DJANGO_DEPLOY_TOKEN>
 ```
 
-- The token is unset by default, and both endpoints then answer **404** — a
+- The token is unset by default, and these endpoints then answer **404** — a
   deployment that forgot the variable exposes nothing.
 - A wrong or missing token gets **403**. Comparison is constant-time.
 - Same pattern as the scheduled notification runner at `/tasks/run/`.
@@ -45,6 +48,8 @@ Everything waiting on its first check, oldest first, up to 100.
       "competition": 6,
       "enterprise": "a",
       "cell": "APP01",
+      "namespace": "enta-app01",
+      "service_ip": "10.108.0.11",
       "team": "JS26-B-014",
       "attempt": 3,
       "image_reference": "ghcr.io/amina-dev/internet-banking-portal:v3",
@@ -70,8 +75,11 @@ Notes:
   range, never typed into the platform.
 - `extra_images` is at most two, and uses the same token.
 - `cell` is the platform's cell code (`APP01`), with `enterprise` separate
-  (`a`/`b`). If you want the range's `enta-app01` form, join them your side —
-  and see the note on identity below.
+  (`a`/`b`). `namespace` is the explicit team namespace if assigned, otherwise
+  it is derived using the range export's canonical mapping (`enta-app01`).
+- `service_ip` is the reserved MetalLB IPv4 address assigned by an organiser
+  in the team's welcome-pack record. It is exported to cells YAML, allocation
+  CSV and scope-assignment CSV; it must be assigned before a cell is deployed.
 
 ## `POST /deployments/api/status/`
 
@@ -112,31 +120,94 @@ Response:
 {"id": 41, "status": "healthy", "is_passing": true}
 ```
 
-## The freeze
+## Server 3 lifecycle APIs
 
-At the build deadline, run on the platform:
+All three endpoints below use `X-Deploy-Token` and return 404 if
+`DJANGO_DEPLOY_TOKEN` is not configured. The shared secret must be set on the
+website and on Server 3 as `JENGASEC_DEPLOY_TOKEN`; use HTTPS between them.
+
+### `GET /deployments/api/freeze-candidates/?competition=<id>`
+
+Returns the latest passing, not-yet-frozen submission for each eligible
+Application Blue team, including the source registry credentials needed for
+the copy. The response is `Cache-Control: no-store` and audited. Teams with no
+passing image appear in `missing`; the Server 3 freeze command aborts before
+copying anything when that list is non-empty.
+
+### `POST /deployments/api/freeze/`
+
+Records the immutable digest after Server 3 copies an image into the JengaSec
+registry. The request is `{"id": <submission id>, "digest":
+"<registry>/<image>@sha256:<64 hex>", "extra_digests": []}`. It accepts only
+the team's current last passing submission and an immutable digest per primary
+and extra image. Repeating the same request is safe.
+
+### `GET|POST /deployments/api/range-state/`
+
+GET returns frozen app definitions and eligible WireGuard peer addresses; an
+optional `?competition=<id>` limits cells. Without it, all competitions are
+returned so the reconciliation command can run as `python reconcile.py`.
+POST accepts `cells` and `peers` observations and persists health, observed
+digests, and last-handshake state. It does not return WireGuard private keys.
+App definitions include the reserved `service_ip`; reconciliation reports a
+cell healthy only when its LoadBalancer Service requests that address and
+MetalLB reports it assigned.
+
+## Freeze and reset
+
+These commands run on Server 3, not on the website:
 
 ```bash
-python manage.py freeze_applications --dry-run
-python manage.py freeze_applications --confirm
+python tools/deploy-agent/make-cells.py --freeze
+python tools/deploy-agent/make-cells.py --reset-day 1
 ```
 
-It pins each team's last passing attempt and **lists every team with no passing
-image** — those teams have no application in the competition, so that list is
-the one to act on. It is idempotent, and exits non-zero while any team is
-missing.
+Set `JENGASEC_COMPETITION_ID`, `JENGASEC_REGISTRY`,
+`JENGASEC_DEPLOY_TOKEN`, and `JENGASEC_STATE_DIR` (default
+`/var/lib/jengasec-range`). Use `--dry-run` to preview. Freeze copies the last
+passing primary and extra images to the private registry, stores their
+immutable digests in the website, and writes PostgreSQL seed dumps with
+checksums into the private state directory. Back up that directory securely.
 
-`frozen_digest` currently records the image reference that was pinned, because
-the reference is what the platform can honestly assert. If you resolve the real
-content digest when you copy into JengaSec's registry, post it back and we will
-store that instead — say the word and I will add a field to `/api/status/`.
+Reset verifies the frozen digests and seed checksums, reapplies the existing
+workloads, restores the database dump, waits for application health, and then
+executes the infrastructure repository's `make-scope.py`. Set
+`JENGASEC_MAKE_SCOPE` to that executable path. The script is not included in
+this repository; a reset fails before changing the range if it is not
+configured.
+
+## Reconciliation
+
+Run a single check or a service loop:
+
+```bash
+python tools/deploy-agent/reconcile.py
+python tools/deploy-agent/reconcile.py --watch --interval 60
+```
+
+The WireGuard interface lives on the separate networking VM, not the shared
+Server 3 VM. Configure `JENGASEC_WG_DUMP_COMMAND` as a command argv that can
+read the remote `wg show all dump` output (for example, an SSH command with
+restricted key/host access). Do not pass shell syntax: the command is
+tokenized and executed without a shell.
+
+## Known infrastructure prerequisites
+
+- The Kubernetes cluster, private registry, credentials, and scope script must
+  already exist and be reachable from Server 3. This automation does not
+  create Proxmox VMs or install the cluster.
+- PostgreSQL seed files contain competition data. Keep
+  `/var/lib/jengasec-range` private, persistent, access-controlled, and backed
+  up; the database dumps are intentionally not stored in the website.
+- The app Service now requests its reserved MetalLB address. Those addresses
+  are stored per team and emitted in all range exports. The infrastructure
+  repo must consume the added `service_ip` / `target_service_ip` fields and
+  provision those addresses in its MetalLB pool. Network policies still need
+  to be connected to the infrastructure repo before cells are reachable from
+  the participant attack network.
 
 ## Still open
 
-- **Team identity.** You key on cell codes (`enta-app01`) and team codes
-  (`AI-01`); the platform keys on `enterprise` + `cell_id` + `team_identifier`.
-  The payloads above give you all three so nothing is lost, but we should agree
-  one key before scoring integrates, or a result will land on the wrong team.
 - Red-team toolbox images are **not** offered. `k8s-red` is held in reserve and
   was deliberately not promised to teams before the event, so the platform does
   not invite a submission it may not be able to honour.

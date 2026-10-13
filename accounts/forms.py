@@ -478,8 +478,14 @@ class WelcomePackForm(forms.ModelForm):
 
     class Meta:
         model = Team
-        fields = ["repository_url", "namespace"]
-        labels = {"repository_url": "Repository URL"}
+        fields = ["repository_url", "namespace", "service_ip"]
+        labels = {
+            "repository_url": "Repository URL",
+            "service_ip": "Reserved MetalLB IPv4 address",
+        }
+        help_texts = {
+            "service_ip": "Required for Application Blue cells; leave blank for other tracks.",
+        }
 
 
 # Guide section 6: the reasons a registration is turned down. Organisers

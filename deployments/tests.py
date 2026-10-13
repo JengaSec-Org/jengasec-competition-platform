@@ -49,6 +49,7 @@ def blue_app_team(competition, name="Simba", cell="APP01"):
     team.track = Track.APPLICATION
     team.enterprise = "a"
     team.cell_id = cell
+    team.service_ip = f"10.108.0.{int(cell[-2:]) + 10}"
     team.save()
     return team
 
@@ -162,7 +163,7 @@ class FreezeTests(TestCase):
         self.team = blue_app_team(self.comp)
         self.other = blue_app_team(self.comp, "Chui", cell="APP02")
 
-    def test_the_last_passing_image_is_pinned_and_the_gap_is_reported(self):
+    def test_the_last_passing_image_is_selected_and_the_gap_is_reported(self):
         passing = deploy.submit(self.team, self.team.captain, pull_token=TOKEN, **FIELDS)
         deploy.record_status(passing, AppSubmission.Status.HEALTHY)
         # A later attempt that never passed must not displace it.
@@ -175,19 +176,20 @@ class FreezeTests(TestCase):
         result = deploy.freeze(self.comp)
         passing.refresh_from_db()
         self.assertIn(passing, result["pinned"])
-        self.assertIsNotNone(passing.frozen_at)
+        self.assertFalse(passing.frozen_at)
+        self.assertFalse(passing.frozen_digest)
         # The team with nothing passing is the one somebody has to ring.
         self.assertIn(self.other, result["missing"])
 
-    def test_freezing_twice_changes_nothing(self):
+    def test_selecting_freeze_candidates_does_not_falsely_mark_them_frozen(self):
         passing = deploy.submit(self.team, self.team.captain, pull_token=TOKEN, **FIELDS)
         deploy.record_status(passing, AppSubmission.Status.HEALTHY)
         deploy.freeze(self.comp)
         passing.refresh_from_db()
-        first_stamp = passing.frozen_at
+        self.assertIsNone(passing.frozen_at)
         deploy.freeze(self.comp)
         passing.refresh_from_db()
-        self.assertEqual(passing.frozen_at, first_stamp)
+        self.assertIsNone(passing.frozen_at)
 
 
 class FormTests(TestCase):
@@ -353,6 +355,9 @@ class IngestTests(TestCase):
         )
         self.status_url = reverse("deployments:api_status")
         self.pending_url = reverse("deployments:api_pending")
+        self.freeze_candidates_url = reverse("deployments:api_freeze_candidates")
+        self.freeze_submission_url = reverse("deployments:api_freeze_submission")
+        self.range_state_url = reverse("deployments:api_range_state")
 
     def test_unconfigured_endpoints_do_not_exist(self):
         """Same fail-closed rule as the scheduled runner."""
@@ -379,6 +384,8 @@ class IngestTests(TestCase):
         self.assertEqual(row["image_reference"], FIELDS["image_reference"])
         self.assertEqual(row["pull_token"], TOKEN)
         self.assertEqual(row["cell"], "APP01")
+        self.assertEqual(row["namespace"], "enta-app01")
+        self.assertEqual(row["service_ip"], "10.108.0.11")
         self.assertIn("no-store", response["Cache-Control"])
 
     @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")
@@ -418,3 +425,107 @@ class IngestTests(TestCase):
             self.pending_url, headers={"x-deploy-token": "a-long-enough-deploy-token"}
         )
         self.assertEqual(response.json()["pending"], [])
+
+    @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")
+    def test_freeze_candidates_return_last_passing_attempt_without_falsely_freezing(self):
+        deploy.record_status(self.submission, AppSubmission.Status.HEALTHY)
+        response = self.client.get(
+            self.freeze_candidates_url,
+            {"competition": self.comp.pk},
+            headers={"x-deploy-token": "a-long-enough-deploy-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        candidate = response.json()["candidates"][0]
+        self.assertEqual(candidate["id"], self.submission.pk)
+        self.assertEqual(candidate["pull_token"], TOKEN)
+        self.assertEqual(candidate["namespace"], "enta-app01")
+        self.assertEqual(candidate["service_ip"], "10.108.0.11")
+        self.assertIn("no-store", response["Cache-Control"])
+        self.submission.refresh_from_db()
+        self.assertFalse(self.submission.frozen_digest)
+
+    @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")
+    def test_freeze_digest_is_validated_and_returned_in_range_state(self):
+        deploy.record_status(self.submission, AppSubmission.Status.HEALTHY)
+        digest = "registry.internal/apps/app@sha256:" + "a" * 64
+        bad = self.client.post(
+            self.freeze_submission_url,
+            json.dumps({"id": self.submission.pk, "digest": "latest"}),
+            "application/json",
+            headers={"x-deploy-token": "a-long-enough-deploy-token"},
+        )
+        self.assertEqual(bad.status_code, 400)
+        frozen = self.client.post(
+            self.freeze_submission_url,
+            json.dumps({"id": self.submission.pk, "digest": digest}),
+            "application/json",
+            headers={"x-deploy-token": "a-long-enough-deploy-token"},
+        )
+        self.assertEqual(frozen.status_code, 200)
+        self.assertEqual(frozen.json()["digest"], digest)
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.frozen_digest, digest)
+        self.assertIsNotNone(self.submission.frozen_at)
+        state = self.client.get(
+            self.range_state_url,
+            {"competition": self.comp.pk},
+            headers={"x-deploy-token": "a-long-enough-deploy-token"},
+        )
+        self.assertEqual(state.status_code, 200)
+        self.assertEqual(state.json()["cells"][0]["image_digest"], digest)
+        self.assertEqual(state.json()["cells"][0]["service_ip"], "10.108.0.11")
+
+    @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")
+    def test_range_state_without_a_competition_is_reconcilable(self):
+        response = self.client.get(
+            self.range_state_url,
+            headers={"x-deploy-token": "a-long-enough-deploy-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["cells"][0]["namespace"], "enta-app01")
+        self.assertEqual(response.json()["cells"][0]["service_ip"], "10.108.0.11")
+
+    @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")
+    def test_an_invalid_assigned_namespace_is_rejected(self):
+        self.team.namespace = "../unsafe"
+        self.team.save(update_fields=["namespace"])
+        response = self.client.get(
+            self.range_state_url,
+            headers={"x-deploy-token": "a-long-enough-deploy-token"},
+        )
+        self.assertEqual(response.status_code, 409)
+
+    @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")
+    def test_missing_application_service_ip_blocks_provisioning_payload(self):
+        self.team.service_ip = ""
+        self.team.save(update_fields=["service_ip"])
+        response = self.client.get(
+            self.range_state_url,
+            {"competition": self.comp.pk},
+            headers={"x-deploy-token": "a-long-enough-deploy-token"},
+        )
+        self.assertEqual(response.status_code, 409)
+
+    @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")
+    def test_range_state_post_updates_cell_runtime_observation(self):
+        payload = {
+            "cells": [{
+                "team_id": self.team.pk,
+                "status": "live",
+                "healthy": True,
+                "image_digest": "sha256:" + "b" * 64,
+                "detail": "pods ready",
+            }],
+            "peers": [],
+        }
+        response = self.client.post(
+            self.range_state_url,
+            json.dumps(payload),
+            "application/json",
+            headers={"x-deploy-token": "a-long-enough-deploy-token"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["updated_cells"], 1)
+        self.team.refresh_from_db()
+        self.assertEqual(self.team.app_runtime_status.status, "live")
+        self.assertTrue(self.team.app_runtime_status.healthy)

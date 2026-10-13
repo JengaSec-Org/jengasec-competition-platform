@@ -48,6 +48,7 @@ def submit(request):
     is_captain = team_service.is_captain_of(request.user, team)
     allowed, reason = deploy.can_submit(team)
     previous = deploy.latest_for_team(team)
+    runtime = getattr(team, "app_runtime_status", None)
 
     form = None
     if is_captain and allowed:
@@ -93,6 +94,7 @@ def submit(request):
         "attempts": deploy.for_team(team)[:10],
         "latest": previous,
         "passing": deploy.last_passing(team),
+        "runtime": runtime,
     })
 
 

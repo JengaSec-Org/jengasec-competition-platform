@@ -18,17 +18,43 @@ calls it "Build ends" and the Guide says the last passing image is locked
 then. Until now that field enforced nothing anywhere on the site.
 """
 import logging
+import re
 
 from django.db import transaction
 from django.utils import timezone
 
 from accounts.models import Team
 from competitions.constants import Track
+from services.range_service import namespace_for as range_namespace_for
 
 logger = logging.getLogger(__name__)
 
 # Up to two extra images, "for example a worker" (Image Submission Guide).
 MAX_EXTRA_IMAGES = 2
+NAMESPACE_RE = re.compile(r"[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?")
+
+
+def namespace_for(team):
+    """Return the range-exported cell namespace after validating it for Kubernetes."""
+    namespace = range_namespace_for(team)
+    if not NAMESPACE_RE.fullmatch(namespace):
+        raise ValueError(
+            f"Team {team.pk} needs a valid Kubernetes namespace or an enterprise and cell assignment."
+        )
+    return namespace
+
+
+def service_ip_for(team):
+    """Return an assigned unique IPv4 MetalLB service address for an app team."""
+    from accounts.models import Team as TeamModel
+
+    if team.team_type != TeamModel.TeamType.BLUE or team.track != Track.APPLICATION:
+        return ""
+    if not team.service_ip:
+        raise ValueError(
+            f"Application cell {team.cell_label or team.team_name} needs a reserved service IP."
+        )
+    return team.service_ip
 
 
 class FreezePassed(ValueError):
@@ -159,13 +185,12 @@ def record_status(submission, status, *, detail="", scan_report=None, logs_excer
 
 @transaction.atomic
 def freeze(competition, *, now=None):
-    """Pin each team's last passing image. Idempotent.
+    """Select each team's last passing image for the range to pin.
 
     Returns {"pinned": [...], "missing": [...]} -- `missing` is the list
     that matters on the day: a team with no passing attempt at the freeze
     has no application in the competition, and somebody has to be told.
     """
-    stamp = now or timezone.now()
     pinned, missing = [], []
     teams = (
         Team.objects.filter(
@@ -181,12 +206,6 @@ def freeze(competition, *, now=None):
         if passing is None:
             missing.append(team)
             continue
-        if not passing.frozen_at:
-            passing.frozen_at = stamp
-            # The digest is the range's to supply; recording the reference
-            # it was pinned from is what the platform can honestly assert.
-            passing.frozen_digest = passing.frozen_digest or passing.image_reference
-            passing.save(update_fields=["frozen_at", "frozen_digest"])
         pinned.append(passing)
     return {"pinned": pinned, "missing": missing}
 

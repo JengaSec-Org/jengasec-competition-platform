@@ -25,6 +25,7 @@ SUBMISSION = {
     "registry_username": "amina-dev",
     "pull_token": "ghp_not_a_real_token",
     "port": 8080,
+    "service_ip": "10.108.0.11",
     "health_path": "/healthz",
     "needs_database": True,
     "env_vars": {"APP_MODE": "production"},
@@ -80,15 +81,36 @@ class NamespaceTests(unittest.TestCase):
     def test_the_architecture_naming(self):
         self.assertEqual(
             agent.namespace_for(SUBMISSION, agent.DEFAULT_NAMESPACE),
-            "jengasec-ent-a-app01",
+            "enta-app01",
         )
+
+    def test_an_assigned_namespace_overrides_the_default(self):
+        self.assertEqual(
+            agent.namespace_for(
+                {**SUBMISSION, "namespace": "enta-app01"},
+                agent.DEFAULT_NAMESPACE,
+            ),
+            "enta-app01",
+        )
+
+    def test_an_invalid_platform_namespace_is_rejected(self):
+        with self.assertRaises(agent.Stop):
+            agent.namespace_for(
+                {**SUBMISSION, "namespace": "../secrets"},
+                agent.DEFAULT_NAMESPACE,
+            )
 
     def test_a_team_with_no_cell_still_gets_a_valid_name(self):
         submission = {**SUBMISSION, "cell": ""}
         self.assertEqual(
             agent.namespace_for(submission, agent.DEFAULT_NAMESPACE),
-            "jengasec-ent-a-unassigned",
+            "enta-unassigned",
         )
+
+    def test_a_missing_or_invalid_service_ip_is_refused(self):
+        for value in ("", "example.com", "2001:db8::1"):
+            with self.subTest(value=value), self.assertRaises(agent.Stop):
+                agent.require_service_ip(value)
 
 
 class ManifestTests(unittest.TestCase):
@@ -124,8 +146,36 @@ class ManifestTests(unittest.TestCase):
 
     def test_the_cell_stays_inside_its_limits(self):
         pod = self.build()[("Deployment", "app")]["spec"]["template"]["spec"]
-        self.assertEqual(pod["containers"][0]["resources"]["limits"]["memory"], agent.APP_MEMORY)
+        self.assertEqual(
+            pod["containers"][0]["resources"]["limits"]["memory"], "2048Mi"
+        )
         self.assertFalse(pod["containers"][0]["securityContext"]["allowPrivilegeEscalation"])
+        quota = self.build()[("ResourceQuota", "cell")]["spec"]["hard"]
+        self.assertEqual(quota["limits.cpu"], "2")
+        self.assertEqual(quota["limits.memory"], "3Gi")
+
+    def test_extra_images_run_as_bounded_sidecars_inside_cell_quota(self):
+        docs = agent.manifests(
+            {**SUBMISSION, "extra_images": ["ghcr.io/amina/worker:v1"]},
+            "jengasec-ent-a-app01",
+            "ghcr.io/amina/app:v1",
+        )
+        deployment = next(
+            doc for doc in docs
+            if doc["kind"] == "Deployment" and doc["metadata"]["name"] == "app"
+        )
+        containers = deployment["spec"]["template"]["spec"]["containers"]
+        self.assertEqual([item["name"] for item in containers], ["app", "extra-1"])
+        cpu_milli = sum(
+            int(item["resources"]["limits"]["cpu"][:-1])
+            for item in containers
+        ) + 500
+        memory_mi = sum(
+            int(item["resources"]["limits"]["memory"][:-2])
+            for item in containers
+        ) + 1024
+        self.assertEqual(cpu_milli, 2000)
+        self.assertEqual(memory_mi, 3072)
 
     def test_the_pull_secret_is_referenced(self):
         pod = self.build()[("Deployment", "app")]["spec"]["template"]["spec"]
@@ -134,6 +184,8 @@ class ManifestTests(unittest.TestCase):
     def test_the_service_points_at_the_declared_port(self):
         service = self.build()[("Service", "app")]
         self.assertEqual(service["spec"]["ports"][0]["targetPort"], 8080)
+        self.assertEqual(service["spec"]["type"], "LoadBalancer")
+        self.assertEqual(service["spec"]["loadBalancerIP"], "10.108.0.11")
 
 
 class ScanReportTests(unittest.TestCase):

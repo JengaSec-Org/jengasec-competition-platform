@@ -40,6 +40,15 @@ deployments.views.submit.
   {% else %}
     <p class="text-muted">Nothing submitted yet.</p>
   {% endif %}
+  {% if runtime %}
+    <hr>
+    <p class="form-help">
+      Range status: <strong>{{ runtime.get_status_display }}</strong>
+      {% if runtime.healthy %} · healthy{% else %} · not healthy{% endif %}
+      {% if runtime.checked_at %} · checked {{ runtime.checked_at|date:"j M H:i" }}{% endif %}
+    </p>
+    {% if runtime.detail %}<p class="text-muted">{{ runtime.detail }}</p>{% endif %}
+  {% endif %}
 </div>
 
 {% if form %}
