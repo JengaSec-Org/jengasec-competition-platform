@@ -59,7 +59,7 @@ class PodObservationTests(unittest.TestCase):
         }
         cell = {
             "team_id": 3,
-            "namespace": "enta-app01",
+            "namespace": "jengasec-ent-a-app01",
             "service_ip": "10.108.0.11",
             "image_digest": expected,
         }
@@ -79,7 +79,7 @@ class PodObservationTests(unittest.TestCase):
 
     def test_does_not_treat_unfrozen_cells_as_live(self):
         result = range_ops.pod_observation(
-            {"team_id": 9, "namespace": "enta-app02", "image_digest": ""}
+            {"team_id": 9, "namespace": "jengasec-ent-a-app02", "image_digest": ""}
         )
         self.assertEqual(result["status"], "building")
         self.assertFalse(result["healthy"])
@@ -108,7 +108,7 @@ class PodObservationTests(unittest.TestCase):
         ):
             result = range_ops.pod_observation({
                 "team_id": 3,
-                "namespace": "enta-app01",
+                "namespace": "jengasec-ent-a-app01",
                 "service_ip": "10.108.0.11",
                 "image_digest": expected,
             })
@@ -146,7 +146,7 @@ class PodObservationTests(unittest.TestCase):
         ]):
             result = range_ops.pod_observation({
                 "team_id": 3,
-                "namespace": "enta-app01",
+                "namespace": "jengasec-ent-a-app01",
                 "service_ip": "10.108.0.11",
                 "image_digest": expected,
             })
@@ -173,7 +173,7 @@ class SafetyTests(unittest.TestCase):
 class FreezeTests(unittest.TestCase):
     candidate = {
         "id": 41,
-        "namespace": "enta-app01",
+        "namespace": "jengasec-ent-a-app01",
         "cell": "APP01",
         "team": "JS26-B-014",
         "image_reference": "ghcr.io/amina/app:v1",
@@ -181,7 +181,7 @@ class FreezeTests(unittest.TestCase):
         "needs_database": False,
         "pull_token": "not-a-real-token",
     }
-    digest = "registry.local/apps/enta-app01@sha256:" + "a" * 64
+    digest = "registry.local/apps/jengasec-ent-a-app01@sha256:" + "a" * 64
 
     class Api:
         def __init__(self, *, fail_first_freeze=False, missing=None):

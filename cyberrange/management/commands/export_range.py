@@ -30,7 +30,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--fill-namespaces",
             action="store_true",
-            help="Also store the derived namespace (e.g. enta-app03) on Blue teams that have none.",
+            help="Also store the canonical namespace (e.g. jengasec-ent-a-app03) on Blue teams that have none.",
         )
 
     def handle(self, *args, **opts):

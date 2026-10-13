@@ -39,7 +39,7 @@ def namespace_for(team):
     namespace = range_namespace_for(team)
     if not NAMESPACE_RE.fullmatch(namespace):
         raise ValueError(
-            f"Team {team.pk} needs a valid Kubernetes namespace or an enterprise and cell assignment."
+            f"Team {team.pk} needs a valid Kubernetes namespace and an enterprise and cell assignment."
         )
     return namespace
 

@@ -39,16 +39,15 @@ def enterprise_slug(enterprise):
 
 
 def namespace_for(team):
-    """The team's cell as the range names it: 'enta-app03'.
-
-    An organiser-issued `Team.namespace` wins; otherwise it is derived from
-    the enterprise and cell. Empty until a cell is assigned.
-    """
-    if team.namespace:
-        return team.namespace
+    """The canonical infrastructure namespace for an assigned cell."""
     if not (team.enterprise and team.cell_id):
         return ""
-    return f"{enterprise_slug(team.enterprise)}-{team.cell_id.lower()}"
+    namespace = f"jengasec-ent-{team.enterprise}-{team.cell_id.lower()}"
+    if team.namespace and team.namespace != namespace:
+        raise ValueError(
+            f"Team {team.pk} namespace must be {namespace} to match the cyber range."
+        )
+    return namespace
 
 
 def cell_kind(team):

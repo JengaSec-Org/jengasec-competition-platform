@@ -49,8 +49,8 @@ import urllib.request
 log = logging.getLogger("deploy-agent")
 
 DEFAULT_BASE = "https://jengasec.com"
-# Architecture namespace, e.g. enta-app01.
-DEFAULT_NAMESPACE = "ent{enterprise}-{cell}"
+# Infrastructure namespace, e.g. jengasec-ent-a-app01.
+DEFAULT_NAMESPACE = "jengasec-ent-{enterprise}-{cell}"
 # Guide: 2 CPU and 3 GB in total for the cell, database included.
 DB_CPU, DB_MEMORY = "500m", "1Gi"
 MAX_IMAGE_BYTES = 2 * 1024 * 1024 * 1024  # "Keep each image under 2 GB"

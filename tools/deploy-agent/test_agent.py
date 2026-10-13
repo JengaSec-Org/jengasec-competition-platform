@@ -81,16 +81,16 @@ class NamespaceTests(unittest.TestCase):
     def test_the_architecture_naming(self):
         self.assertEqual(
             agent.namespace_for(SUBMISSION, agent.DEFAULT_NAMESPACE),
-            "enta-app01",
+            "jengasec-ent-a-app01",
         )
 
     def test_an_assigned_namespace_overrides_the_default(self):
         self.assertEqual(
             agent.namespace_for(
-                {**SUBMISSION, "namespace": "enta-app01"},
+                {**SUBMISSION, "namespace": "jengasec-ent-a-app01"},
                 agent.DEFAULT_NAMESPACE,
             ),
-            "enta-app01",
+            "jengasec-ent-a-app01",
         )
 
     def test_an_invalid_platform_namespace_is_rejected(self):
@@ -104,7 +104,7 @@ class NamespaceTests(unittest.TestCase):
         submission = {**SUBMISSION, "cell": ""}
         self.assertEqual(
             agent.namespace_for(submission, agent.DEFAULT_NAMESPACE),
-            "enta-unassigned",
+            "jengasec-ent-a-unassigned",
         )
 
     def test_a_missing_or_invalid_service_ip_is_refused(self):

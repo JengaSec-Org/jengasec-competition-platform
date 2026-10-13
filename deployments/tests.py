@@ -386,7 +386,7 @@ class IngestTests(TestCase):
         self.assertEqual(row["image_reference"], FIELDS["image_reference"])
         self.assertEqual(row["pull_token"], TOKEN)
         self.assertEqual(row["cell"], "APP01")
-        self.assertEqual(row["namespace"], "enta-app01")
+        self.assertEqual(row["namespace"], "jengasec-ent-a-app01")
         self.assertEqual(row["service_ip"], "10.108.0.11")
         self.assertIn("no-store", response["Cache-Control"])
 
@@ -440,7 +440,7 @@ class IngestTests(TestCase):
         candidate = response.json()["candidates"][0]
         self.assertEqual(candidate["id"], self.submission.pk)
         self.assertEqual(candidate["pull_token"], TOKEN)
-        self.assertEqual(candidate["namespace"], "enta-app01")
+        self.assertEqual(candidate["namespace"], "jengasec-ent-a-app01")
         self.assertEqual(candidate["service_ip"], "10.108.0.11")
         self.assertIn("no-store", response["Cache-Control"])
         self.submission.refresh_from_db()
@@ -484,7 +484,9 @@ class IngestTests(TestCase):
             headers={"x-deploy-token": "a-long-enough-deploy-token"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["cells"][0]["namespace"], "enta-app01")
+        self.assertEqual(
+            response.json()["cells"][0]["namespace"], "jengasec-ent-a-app01"
+        )
         self.assertEqual(response.json()["cells"][0]["service_ip"], "10.108.0.11")
 
     @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")

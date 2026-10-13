@@ -19,9 +19,9 @@ round, and report runtime observations.
   candidate APIs and an organiser clicking "Show token", which is audited.
 - `Healthy` is the only status that counts as passing. At the freeze the last
   passing attempt per team is pinned.
-- Cell namespaces use the assigned `Team.namespace` when present; otherwise
-  they are derived as `ent{enterprise}-{cell_id}`, for example `enta-app01`.
-  That agrees with the Server 3 agent's default and the architecture naming.
+- Cell namespaces use the infrastructure contract
+  `jengasec-ent-{enterprise}-{cell_id}`, for example
+  `jengasec-ent-a-app01`. An assigned `Team.namespace` must match that value.
 
 ## Authentication
 
@@ -48,7 +48,7 @@ Everything waiting on its first check, oldest first, up to 100.
       "competition": 6,
       "enterprise": "a",
       "cell": "APP01",
-      "namespace": "enta-app01",
+      "namespace": "jengasec-ent-a-app01",
       "service_ip": "10.108.0.11",
       "team": "JS26-B-014",
       "attempt": 3,
@@ -75,8 +75,8 @@ Notes:
   range, never typed into the platform.
 - `extra_images` is at most two, and uses the same token.
 - `cell` is the platform's cell code (`APP01`), with `enterprise` separate
-  (`a`/`b`). `namespace` is the explicit team namespace if assigned, otherwise
-  it is derived using the range export's canonical mapping (`enta-app01`).
+  (`a`/`b`). `namespace` follows the shared infrastructure contract, for
+  example `jengasec-ent-a-app01`.
 - `service_ip` is the reserved MetalLB IPv4 address assigned by an organiser
   in the team's welcome-pack record. It is exported to cells YAML, allocation
   CSV and scope-assignment CSV; it must be assigned before a cell is deployed.

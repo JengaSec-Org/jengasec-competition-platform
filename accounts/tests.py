@@ -412,7 +412,11 @@ class SubmitRegistrationTests(CommitMixin, TestCase):
         from accounts.forms import WelcomePackForm
 
         form = WelcomePackForm(
-            {"repository_url": "", "namespace": "enta-app01", "service_ip": "10.108.0.11"},
+            {
+                "repository_url": "",
+                "namespace": "jengasec-ent-a-app01",
+                "service_ip": "10.108.0.11",
+            },
             instance=self.team,
         )
         self.assertTrue(form.is_valid(), form.errors)
