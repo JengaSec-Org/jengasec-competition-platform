@@ -52,7 +52,6 @@ DEFAULT_BASE = "https://jengasec.com"
 # Infrastructure namespace, e.g. jengasec-ent-a-app01.
 DEFAULT_NAMESPACE = "jengasec-ent-{enterprise}-{cell}"
 # Guide: 2 CPU and 3 GB in total for the cell, database included.
-DB_CPU, DB_MEMORY = "500m", "1Gi"
 MAX_IMAGE_BYTES = 2 * 1024 * 1024 * 1024  # "Keep each image under 2 GB"
 
 
@@ -362,24 +361,45 @@ def require_service_ip(value):
 
 
 def manifests(submission, namespace, image):
-    """Deployment, Service and -- when asked for -- a PostgreSQL 16.
+    """The app Deployment and Service in an infrastructure-owned cell.
 
     The team's own health path becomes the readiness probe, so "Healthy"
     is decided by the same check they were told about rather than by a
-    separate request from somewhere else.
+    separate request from somewhere else. Namespace, database, quotas,
+    policies, and ingress are owned by the infrastructure chart.
     """
     port = int(submission["port"])
     service_ip = require_service_ip(submission.get("service_ip"))
     health = submission["health_path"]
-    env = [{"name": key, "value": str(value)} for key, value in (submission.get("env_vars") or {}).items()]
+    app_env = [
+        {"name": key, "value": str(value)}
+        for key, value in (submission.get("env_vars") or {}).items()
+    ]
+    app_env.append({"name": "PORT", "value": str(port)})
+    app_env_from = []
+    if submission.get("needs_database"):
+        app_env_from.append({"secretRef": {"name": "db-credentials"}})
+        for name, key in (
+            ("PGHOST", "DB_HOST"),
+            ("PGDATABASE", "DB_NAME"),
+            ("PGUSER", "DB_USER"),
+            ("PGPASSWORD", "DB_PASSWORD"),
+        ):
+            app_env.append({
+                "name": name,
+                "valueFrom": {
+                    "secretKeyRef": {"name": "db-credentials", "key": key}
+                },
+            })
+        app_env.append({"name": "PGPORT", "value": "5432"})
     extra_images = submission.get("extra_images") or []
     if not isinstance(extra_images, list) or len(extra_images) > 2:
         raise Stop("A submission can include at most two extra images.")
     if any(not isinstance(item, str) or not item for item in extra_images):
         raise Stop("An extra image reference is invalid.")
     app_containers = 1 + len(extra_images)
-    app_cpu_milli = 1500 if submission.get("needs_database") else 2000
-    app_memory_mi = 2048 if submission.get("needs_database") else 3072
+    # Reserve the chart's LimitRange defaults for its namespace-local database.
+    app_cpu_milli, app_memory_mi = 900, 1920
     base_cpu, extra_cpu = divmod(app_cpu_milli, app_containers)
     base_memory, extra_memory = divmod(app_memory_mi, app_containers)
 
@@ -393,7 +413,8 @@ def manifests(submission, namespace, image):
         "name": "app",
         "image": image,
         "ports": [{"containerPort": port}],
-        "env": env + [{"name": "PORT", "value": str(port)}],
+        "env": app_env,
+        "envFrom": app_env_from,
         "readinessProbe": {
             "httpGet": {"path": health, "port": port},
             "initialDelaySeconds": 5, "periodSeconds": 5,
@@ -403,6 +424,7 @@ def manifests(submission, namespace, image):
         "securityContext": {
             "allowPrivilegeEscalation": False,
             "readOnlyRootFilesystem": False,
+            "capabilities": {"drop": ["ALL"]},
         },
     }
     containers = [app_container]
@@ -410,75 +432,17 @@ def manifests(submission, namespace, image):
         containers.append({
             "name": f"extra-{index}",
             "image": extra_image,
-            "env": env,
+            "env": app_env,
+            "envFrom": app_env_from,
             "resources": container_resources(index),
             "securityContext": {
                 "allowPrivilegeEscalation": False,
                 "readOnlyRootFilesystem": False,
+                "capabilities": {"drop": ["ALL"]},
             },
         })
 
     docs = [
-        {
-            "apiVersion": "v1",
-            "kind": "ResourceQuota",
-            "metadata": {"name": "cell", "namespace": namespace},
-            "spec": {
-                "hard": {
-                    "limits.cpu": "2",
-                    "limits.memory": "3Gi",
-                    "requests.cpu": "2",
-                    "requests.memory": "3Gi",
-                    "pods": "3",
-                }
-            },
-        }
-    ]
-
-    if submission.get("needs_database"):
-        env += [
-            {"name": "DATABASE_URL", "value": "postgresql://app:app@db:5432/app"},
-            {"name": "PGHOST", "value": "db"}, {"name": "PGPORT", "value": "5432"},
-            {"name": "PGDATABASE", "value": "app"},
-            {"name": "PGUSER", "value": "app"}, {"name": "PGPASSWORD", "value": "app"},
-        ]
-        docs += [
-            {
-                "apiVersion": "apps/v1", "kind": "Deployment",
-                "metadata": {"name": "db", "namespace": namespace},
-                "spec": {
-                    "replicas": 1,
-                    "selector": {"matchLabels": {"app": "db"}},
-                    "template": {
-                        "metadata": {"labels": {"app": "db"}},
-                        "spec": {"containers": [{
-                            "name": "db", "image": "postgres:16",
-                            "env": [
-                                {"name": "POSTGRES_DB", "value": "app"},
-                                {"name": "POSTGRES_USER", "value": "app"},
-                                {"name": "POSTGRES_PASSWORD", "value": "app"},
-                            ],
-                            "ports": [{"containerPort": 5432}],
-                            "resources": {
-                                "requests": {"cpu": DB_CPU, "memory": DB_MEMORY},
-                                "limits": {"cpu": DB_CPU, "memory": DB_MEMORY},
-                            },
-                        }]},
-                    },
-                },
-            },
-            {
-                "apiVersion": "v1", "kind": "Service",
-                "metadata": {"name": "db", "namespace": namespace},
-                "spec": {"selector": {"app": "db"}, "ports": [{"port": 5432, "targetPort": 5432}]},
-            },
-        ]
-
-    app_container["env"] = env + [{"name": "PORT", "value": str(port)}]
-    for container in containers[1:]:
-        container["env"] = env
-
-    docs += [
         {
             "apiVersion": "apps/v1", "kind": "Deployment",
             "metadata": {"name": "app", "namespace": namespace},
@@ -488,6 +452,12 @@ def manifests(submission, namespace, image):
                 "template": {
                     "metadata": {"labels": {"app": "app"}},
                     "spec": {
+                        "serviceAccountName": "application",
+                        "automountServiceAccountToken": False,
+                        "securityContext": {
+                            "runAsNonRoot": True,
+                            "seccompProfile": {"type": "RuntimeDefault"},
+                        },
                         "imagePullSecrets": [{"name": "team-registry"}],
                         "containers": containers,
                     },
@@ -496,7 +466,11 @@ def manifests(submission, namespace, image):
         },
         {
             "apiVersion": "v1", "kind": "Service",
-            "metadata": {"name": "app", "namespace": namespace},
+            "metadata": {
+                "name": "app",
+                "namespace": namespace,
+                "annotations": {"metallb.io/loadBalancerIPs": service_ip},
+            },
             "spec": {
                 "type": "LoadBalancer",
                 "loadBalancerIP": service_ip,
@@ -513,22 +487,7 @@ def kubectl(args, *, stdin=None, timeout=600):
 
 
 def deploy(submission, namespace, image, config_path):
-    """Create the namespace, the pull secret and the workloads."""
-    namespace_doc = {
-        "apiVersion": "v1",
-        "kind": "Namespace",
-        "metadata": {
-            "name": namespace,
-            "labels": {
-                "jengasec.org/enterprise": str(submission.get("enterprise") or "").lower(),
-                "jengasec.org/cell": str(submission.get("cell") or "").lower(),
-            },
-        },
-    }
-    code, _, err = kubectl(["apply", "-f", "-"], stdin=json.dumps(namespace_doc))
-    if code != 0:
-        raise Stop(f"Could not create the cell namespace: {err.strip()[:200]}")
-
+    """Apply app resources to a pre-provisioned cell namespace."""
     # The pull secret goes in from a file, never argv.
     with open(config_path, encoding="utf-8") as handle:
         dockerconfig = handle.read()

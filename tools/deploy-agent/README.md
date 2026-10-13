@@ -33,6 +33,42 @@ The agent degrades rather than refusing: no Trivy and the scan is recorded as
 skipped; no kubectl and it stops after the scan and says so. Docker is the only
 hard requirement.
 
+## Kubernetes access
+
+The range agent only updates the `app` Deployment and LoadBalancer Service and
+creates the per-team `team-registry` pull Secret in an existing cell namespace.
+The infrastructure chart owns namespaces, database resources and credentials,
+quotas, network policies, ingress, and MetalLB configuration. The agent does
+not create namespaces or a second database.
+
+Install or upgrade the cell chart in the target namespaces before enabling
+deployment. It grants the external Kubernetes identity
+`jengasec-range-agent` namespace-scoped access to deployments, services,
+secrets, pod status, and pod logs. Configure the agent's kubeconfig so its
+client certificate authenticates with that exact username; do not use a
+cluster-admin kubeconfig. Keep the kubeconfig and private key on the range
+host with restrictive permissions and never commit or paste them.
+
+Check the identity's effective scope before processing submissions:
+
+```bash
+kubectl auth can-i patch deployments/app -n jengasec-ent-a-app01
+kubectl auth can-i patch services/app -n jengasec-ent-a-app01
+kubectl auth can-i create secrets -n jengasec-ent-a-app01
+kubectl auth can-i get pods/log -n jengasec-ent-a-app01
+kubectl auth can-i get secrets/db-credentials -n jengasec-ent-a-app01
+kubectl auth can-i create namespaces
+```
+
+The first four checks should say `yes`; the final check should say `no`.
+The `db-credentials` check should also say `no`. Repeat checks against another
+cell namespace to confirm the expected agent scope. The agent does not manage
+Helm releases; coordinate chart upgrades with the range operator because a
+Helm upgrade can restore chart values over the runtime image or service
+settings. This setup does not establish that the cluster's network path or
+participant access works; verify those from the school network before a real
+deployment.
+
 ## Configure
 
 ```bash

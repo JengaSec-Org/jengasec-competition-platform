@@ -22,6 +22,15 @@ round, and report runtime observations.
 - Cell namespaces use the infrastructure contract
   `jengasec-ent-{enterprise}-{cell_id}`, for example
   `jengasec-ent-a-app01`. An assigned `Team.namespace` must match that value.
+- The infrastructure chart provisions cell namespaces, database resources and
+  credentials, quotas, network policies, ingress, and workload identity. The
+  range agent only applies the app Deployment, app Service, and registry pull
+  Secret inside an existing namespace; it does not create or modify the cell's
+  other controls.
+- Database-enabled submissions consume the chart-managed `db-credentials`
+  Secret. The agent maps its `DB_HOST`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`
+  entries to the standard `PGHOST`, `PGDATABASE`, `PGUSER`, and `PGPASSWORD`
+  environment variables, with `PGPORT=5432`.
 
 ## Authentication
 

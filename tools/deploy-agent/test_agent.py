@@ -12,6 +12,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import agent
 
@@ -128,31 +129,47 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(probe["path"], "/healthz")
         self.assertEqual(probe["port"], 8080)
 
-    def test_a_database_is_only_created_when_asked_for(self):
-        self.assertIn(("Deployment", "db"), self.build())
-        without = self.build({**SUBMISSION, "needs_database": False})
-        self.assertNotIn(("Deployment", "db"), without)
+    def test_agent_leaves_infrastructure_owned_resources_alone(self):
+        resources = self.build()
+        self.assertEqual(set(resources), {("Deployment", "app"), ("Service", "app")})
+        without_database = self.build({**SUBMISSION, "needs_database": False})
+        app = without_database[("Deployment", "app")]["spec"]["template"]["spec"]["containers"][0]
+        self.assertEqual(app["envFrom"], [])
+        self.assertFalse(any(item["name"].startswith("PG") for item in app["env"]))
 
     def test_the_database_details_are_passed_in_as_the_guide_promises(self):
         container = self.build()[("Deployment", "app")]["spec"]["template"]["spec"]["containers"][0]
         names = {item["name"] for item in container["env"]}
-        self.assertTrue({"DATABASE_URL", "PGHOST", "PGUSER", "PGPASSWORD"} <= names)
+        self.assertTrue({"PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGPASSWORD"} <= names)
+        self.assertEqual(container["envFrom"], [{"secretRef": {"name": "db-credentials"}}])
+        references = {
+            item["name"]: item["valueFrom"]["secretKeyRef"]
+            for item in container["env"]
+            if "valueFrom" in item
+        }
+        self.assertEqual(references["PGPASSWORD"]["key"], "DB_PASSWORD")
 
     def test_the_team_env_vars_and_port_are_passed_in(self):
         container = self.build()[("Deployment", "app")]["spec"]["template"]["spec"]["containers"][0]
-        env = {item["name"]: item["value"] for item in container["env"]}
+        env = {
+            item["name"]: item["value"]
+            for item in container["env"]
+            if "value" in item
+        }
         self.assertEqual(env["APP_MODE"], "production")
         self.assertEqual(env["PORT"], "8080")
 
     def test_the_cell_stays_inside_its_limits(self):
         pod = self.build()[("Deployment", "app")]["spec"]["template"]["spec"]
-        self.assertEqual(
-            pod["containers"][0]["resources"]["limits"]["memory"], "2048Mi"
-        )
-        self.assertFalse(pod["containers"][0]["securityContext"]["allowPrivilegeEscalation"])
-        quota = self.build()[("ResourceQuota", "cell")]["spec"]["hard"]
-        self.assertEqual(quota["limits.cpu"], "2")
-        self.assertEqual(quota["limits.memory"], "3Gi")
+        app = pod["containers"][0]
+        self.assertEqual(app["resources"]["limits"]["memory"], "1920Mi")
+        self.assertEqual(app["resources"]["limits"]["cpu"], "900m")
+        self.assertFalse(app["securityContext"]["allowPrivilegeEscalation"])
+        self.assertEqual(app["securityContext"]["capabilities"]["drop"], ["ALL"])
+        self.assertFalse(pod["automountServiceAccountToken"])
+        self.assertEqual(pod["serviceAccountName"], "application")
+        self.assertTrue(pod["securityContext"]["runAsNonRoot"])
+        self.assertEqual(pod["securityContext"]["seccompProfile"]["type"], "RuntimeDefault")
 
     def test_extra_images_run_as_bounded_sidecars_inside_cell_quota(self):
         docs = agent.manifests(
@@ -169,13 +186,13 @@ class ManifestTests(unittest.TestCase):
         cpu_milli = sum(
             int(item["resources"]["limits"]["cpu"][:-1])
             for item in containers
-        ) + 500
+        )
         memory_mi = sum(
             int(item["resources"]["limits"]["memory"][:-2])
             for item in containers
-        ) + 1024
-        self.assertEqual(cpu_milli, 2000)
-        self.assertEqual(memory_mi, 3072)
+        )
+        self.assertEqual(cpu_milli, 900)
+        self.assertEqual(memory_mi, 1920)
 
     def test_the_pull_secret_is_referenced(self):
         pod = self.build()[("Deployment", "app")]["spec"]["template"]["spec"]
@@ -186,6 +203,32 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(service["spec"]["ports"][0]["targetPort"], 8080)
         self.assertEqual(service["spec"]["type"], "LoadBalancer")
         self.assertEqual(service["spec"]["loadBalancerIP"], "10.108.0.11")
+        self.assertEqual(
+            service["metadata"]["annotations"]["metallb.io/loadBalancerIPs"],
+            "10.108.0.11",
+        )
+
+    def test_deployment_only_applies_inside_the_preprovisioned_namespace(self):
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as config:
+            config.write('{"auths": {}}')
+            config.flush()
+            with patch.object(agent, "kubectl", return_value=(0, "", "")) as kubectl:
+                agent.deploy(
+                    SUBMISSION,
+                    "jengasec-ent-a-app01",
+                    SUBMISSION["image_reference"],
+                    config.name,
+                )
+
+        self.assertEqual(kubectl.call_count, 2)
+        secret = json.loads(kubectl.call_args_list[0].kwargs["stdin"])
+        applied = json.loads(kubectl.call_args_list[1].kwargs["stdin"])
+        self.assertEqual(secret["kind"], "Secret")
+        self.assertEqual(secret["metadata"]["namespace"], "jengasec-ent-a-app01")
+        self.assertEqual(
+            {(item["kind"], item["metadata"]["name"]) for item in applied["items"]},
+            {("Deployment", "app"), ("Service", "app")},
+        )
 
 
 class ScanReportTests(unittest.TestCase):
