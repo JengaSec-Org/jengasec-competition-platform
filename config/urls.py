@@ -31,6 +31,11 @@ urlpatterns = [
         name="login",
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+
+
+    path("api/", include("api.urls")),
+
+
 ]
 
 if settings.DEBUG:

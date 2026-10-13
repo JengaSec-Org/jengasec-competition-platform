@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Leaderboard{% endblock %}
+
+{% block content %}
+<style>.card table th, .card table td { padding: 0.6rem 0.9rem; }</style>
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// LEADERBOARD</span></div>
+  <h1>Final <span class="text-gold">Leaderboard</span></h1>
+  <p class="text-muted">
+    {{ competition.name|default:"No competition" }} - only approved evaluations count.
+    Teams missing a component are listed as Incomplete, never scored as zero.
+  </p>
+</div>
+
+<form method="get" style="margin-bottom:1.5rem; max-width:320px;">
+  <div class="form-group">
+    <label class="form-label" for="comp">Competition</label>
+    <select class="input" id="comp" onchange="if(this.value){location.href='/judging/leaderboard/'+this.value+'/'}">
+      {% for c in competitions %}
+        <option value="{{ c.id }}" {% if c.id == competition.id %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+
+<div class="card">
+  <table style="width:100%; border-collapse:collapse;">
+    <thead>
+      <tr style="text-align:left;">
+        <th class="tlabel">Rank</th>
+        <th class="tlabel">Team</th>
+        <th class="tlabel">Type</th>
+        <th class="tlabel" style="text-align:right;">Proposal</th>
+        <th class="tlabel" style="text-align:right;">Documentation</th>
+        <th class="tlabel" style="text-align:right;">Report</th>
+        <th class="tlabel" style="text-align:right;">Final</th>
+        <th class="tlabel">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr class="criterion-row">
+          <td style="padding:0.6rem 0.5rem;">{% if r.complete %}{{ r.rank }}{% else %}-{% endif %}</td>
+          <td style="padding:0.6rem 0.5rem; font-weight:500;">{{ r.team.team_name }}</td>
+          <td class="text-muted" style="padding:0.6rem 0.5rem;">{{ r.team.get_team_type_display }}</td>
+          <td style="padding:0.6rem 0.5rem; text-align:right;">{{ r.components.proposal|default_if_none:"-" }}</td>
+          <td style="padding:0.6rem 0.5rem; text-align:right;">{{ r.components.documentation|default_if_none:"-" }}</td>
+          <td style="padding:0.6rem 0.5rem; text-align:right;">{{ r.components.report|default_if_none:"-" }}</td>
+          <td class="score-final" style="padding:0.6rem 0.5rem; text-align:right;">{{ r.final|default_if_none:"-" }}</td>
+          <td style="padding:0.6rem 0.5rem;">
+            {% if r.complete %}
+              {% include "components/badge.html" with label="Complete" color="green" %}
+            {% else %}
+              {% include "components/badge.html" with label="Incomplete" color="gold" %}
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="text-muted" style="padding:1rem 0;">No teams yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

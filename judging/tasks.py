@@ -7,6 +7,8 @@ from services.ai_service import evaluate_document
 from ai_engine.models import AIEvaluationRun, AICriterionResult
 from .models import Evaluation, CriterionScore
 
+from services.parser_service import parse_document
+
 
 def extract_pdf_text(file_field):
     """
@@ -40,10 +42,11 @@ def run_ai_evaluation_task(evaluation_id):
     if submission_file is None:
         return f"Evaluation {evaluation_id}: no file uploaded -- skipped."
 
-    if not submission_file.file.name.lower().endswith(".pdf"):
-        return f"Evaluation {evaluation_id}: non-PDF submission -- skipped (PDF-only stopgap)."
 
-    document_text = extract_pdf_text(submission_file.file)
+    parsed = parse_document(submission_file.file.path)
+    document_text = parsed["text"]
+
+    
     if not document_text.strip():
         return f"Evaluation {evaluation_id}: no extractable text (scanned/image PDF?) -- skipped."
 

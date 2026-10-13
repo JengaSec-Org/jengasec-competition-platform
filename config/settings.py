@@ -39,6 +39,8 @@ INSTALLED_APPS = [
 
 
     "django_q",
+    "rest_framework",
+    "api",
 
 
 ]
