@@ -280,6 +280,7 @@ DEPLOY_TOKEN = os.environ.get("DJANGO_DEPLOY_TOKEN", "")
 # Shared secret for POST /api/feed, where the observability side pushes
 # published marks. Unset, the endpoint answers 404.
 FEED_TOKEN = os.environ.get("DJANGO_FEED_TOKEN", "")
+SCORING_IDENTITY_TOKEN = os.environ.get("DJANGO_SCORING_IDENTITY_TOKEN", "")
 
 EMAIL_BACKEND = os.environ.get("DJANGO_EMAIL_BACKEND") or (
     "config.email_backends.BrevoAPIBackend"

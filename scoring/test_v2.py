@@ -292,6 +292,24 @@ class VersionedFeedTests(TestCase):
         self.assertEqual(scoring_service.recompute(self.team).main, 8)
         self.identity.enroll_identity.assert_called_once()
 
+    def test_enrollment_rejects_even_a_subsecond_unrecorded_identity_gap(self):
+        from scoring.enrollment import enroll_policy
+
+        self.enrollment.delete()
+        self.identity.enroll_identity = Mock()
+        now = timezone.now()
+        with patch("django.utils.timezone.now", return_value=now):
+            for lag in (timezone.timedelta(seconds=1), timezone.timedelta(microseconds=1)):
+                with self.subTest(lag=lag), self.assertRaisesRegex(ValueError, "historical identity"):
+                    enroll_policy(self.comp, window_start=now - lag,
+                                  window_end=now + timezone.timedelta(hours=1),
+                                  archive_budget_bytes=10000)
+            self.identity.enroll_identity.assert_not_called()
+            enrollment = enroll_policy(self.comp, window_start=now,
+                                       window_end=now + timezone.timedelta(hours=1),
+                                       archive_budget_bytes=10000)
+        self.assertEqual(enrollment.window_start, enrollment.enrolled_at)
+
     def test_finalization_requires_final_windows_or_explicit_criterion_overrides(self):
         from scoring.enrollment import finalize_policy
 

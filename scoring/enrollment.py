@@ -45,7 +45,7 @@ def enroll_policy(competition, *, window_start, window_end, archive_budget_bytes
     now = timezone.now()
     if timezone.is_naive(window_start) or timezone.is_naive(window_end) or not window_start < window_end:
         raise ValueError("an aware positive measurement window is required")
-    if window_start < now - timezone.timedelta(seconds=2):
+    if window_start < now:
         raise ValueError("enrollment cannot manufacture historical identity; choose a future start")
     if type(archive_budget_bytes) is not int or archive_budget_bytes <= 0:
         raise ValueError("approved evidence capacity must be a positive byte count")
