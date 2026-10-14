@@ -93,14 +93,11 @@ SUBMISSION_REQUIREMENTS = [
     "Architecture",
 ]
 
-# §22 — how a blue team's final score is composed.
-SCORE_WEIGHTS = [
-    ("Technical performance", 40),
-    ("Security and resilience", 25),
-    ("Documentation", 15),
-    ("AI defence", 15),
-    ("Human evaluation", 5),
-]
+# §22 — how a team's final mark is composed. The scheme itself lives in
+# `competitions.grading`, which is the one place the stage weights, the
+# per-side criteria and the scorecard all read, so they cannot disagree.
+# Re-exported here because the dashboards already import it from this module.
+from competitions.grading import SCORE_WEIGHTS  # noqa: E402,F401
 
 # §14 — graduated outcomes; attacks are not scored as pass/fail.
 GRADUATED_OUTCOMES = [
@@ -130,7 +127,11 @@ RED_POINT_ACTIONS = [
 ]
 
 # §20 — participants get a delayed view; admins see real time.
-LEADERBOARD_DELAY_MINUTES = 30
+# How far behind the participants' view runs. The Guide said thirty; set to
+# five on 14 October so a team can see the effect of its own work inside the
+# window it is working in, which thirty minutes did not allow. Staff and
+# judges always see live.
+LEADERBOARD_DELAY_MINUTES = 5
 
 
 # ---------------------------------------------------------------- helpers
@@ -196,47 +197,53 @@ def availability_band(percentage):
 
 
 def scorecard(team):
-    """§18 — the blue team scorecard structure, out of 100.
+    """The team's mark, out of 100, in the three published stages.
 
-    Values stay None until the Part II scoring engine (CompetitionEvent →
-    ScoringRule → ScoreEvent → TeamScore) is built. Replace the body of
-    this function with a ScoreEvent aggregation; the templates already
-    render whatever it returns.
+    Structure comes from `competitions.grading`, so the scorecard a team
+    watches during the event and the criteria on its Info page are the
+    same list — they used to be two hardcoded tables that had already
+    drifted apart.
 
-    Section maxima: Security 40 · Resilience 35 · Documentation 25.
+    Values stay None until the scoring engine fills them in; the template
+    renders whatever this returns, so only the body below changes.
     """
-    sections = [
-        {
-            "name": "Security",
-            "rows": [
-                {"label": "Authentication", "score": None, "max": 10},
-                {"label": "Authorisation", "score": None, "max": 10},
-                {"label": "Input validation", "score": None, "max": 10},
-                {"label": "Logging", "score": None, "max": 10},
-            ],
-        },
-        {
-            "name": "Resilience",
-            "rows": [
-                {"label": "Attack scenario 01", "score": None, "max": 15},
-                {"label": "Attack scenario 02", "score": None, "max": 10},
-                {"label": "Availability", "score": None, "max": 10},
-            ],
-        },
-        {
-            "name": "Documentation",
-            "rows": [
-                {"label": "Architecture", "score": None, "max": 15},
-                {"label": "Security report", "score": None, "max": 10},
-            ],
-        },
-    ]
+    from competitions import grading
+    from services import scoring_service
+
+    awarded = {}
+    for stage in scoring_service.breakdown(team):
+        for event in stage["events"]:
+            awarded[(event.stage, event.criterion)] = event.marks
+    stage_totals = scoring_service.stage_totals(team)
+
+    sections = []
+    for stage in grading.stages(team):
+        rows = [
+            {
+                "label": row["label"],
+                "score": awarded.get((stage["key"], row["key"])),
+                "max": row["marks"],
+            }
+            for row in stage["rows"]
+        ]
+        if not rows:
+            # Entry is one mark carried in from the proposal or the
+            # qualifier, not a list of criteria scored here.
+            rows = [{
+                "label": stage["summary"],
+                "score": stage_totals.get(stage["key"]) or None,
+                "max": stage["weight"],
+            }]
+        sections.append({"name": stage["name"], "rows": rows})
+
     total_max = sum(row["max"] for section in sections for row in section["rows"])
+    total = sum(stage_totals.values())
+    marked = any(row["score"] is not None for s in sections for row in s["rows"])
     return {
         "sections": sections,
-        "total": None,
+        "total": total if marked else None,
         "total_max": total_max,
-        "pending": True,
+        "pending": not marked,
         "last_updated": timezone.now(),
     }
 
@@ -308,19 +315,35 @@ def briefs_for(team):
 
 
 def can_propose(team, brief):
-    """A team may propose while registration is open and the cap holds.
+    """A team may propose while the proposal window is open and the cap holds.
+
+    The gate is the **proposal deadline**, not the registration one. They
+    are separate dates in the Entry Guide and on the site -- registration
+    closed on the Tuesday, proposals ran past it -- and tying proposing to
+    `registration_open` meant that the moment registration shut, an
+    already-registered team could no longer file the proposal it had been
+    told to file. Reopening proposals then required reopening registration
+    to new teams, which is not the same decision at all.
 
     Also honours the organiser's Close Submissions switch, so shutting the
     window actually stops proposals rather than only hiding the button.
     """
+    from services.submission_service import proposal_type_name
+
     if not team or not brief:
         return False
     if brief.competition_id != team.competition_id:
         return False
-    if not team.competition.registration_open:
+    settings_row = team.competition.settings
+    if not settings_row.submissions_open:
         return False
-    if not team.competition.settings.submissions_open:
-        return False
+    # Whatever deadline governs this team's proposal type, by the same
+    # resolver the upload path uses, so the button and the upload agree.
+    type_name = proposal_type_name(team)
+    if type_name:
+        deadline = settings_row.deadline_for_type(type_name)
+        if deadline and timezone.now() > deadline:
+            return False
     return brief.is_open and not brief.is_full
 
 

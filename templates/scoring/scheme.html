@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Marking scheme — JengaSec{% endblock %}
+
+{% comment %}
+Everything a judge applies, on one page: the three stages, the four sides'
+live criteria, the documentation criteria, the proposal rubrics as
+published in the Entry Guide, and the penalties.
+
+Teams see their own side on the Info page. This is the whole of it.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="MARKING_SCHEME" title="How everything is marked" %}
+
+<div class="card">
+  <span class="tlabel">// THE_THREE_STAGES</span>
+  <h3 class="card-title">100 marks</h3>
+  {% for stage in stages %}
+    <div class="weight-row">
+      <span style="min-width:11rem;">{{ stage.name }}</span>
+      <span class="bar"><i style="width: {{ stage.weight }}%;"></i></span>
+      <span class="pct">{{ stage.weight }}%</span>
+    </div>
+  {% endfor %}
+  <p class="form-help" style="margin-top:0.85rem;">
+    Entry is carried in — a proposal mark or a qualifier score, scaled to 30.
+    Main competition is the three engagement days. Documentation is the written
+    record. A team's own page shows only its own side.
+  </p>
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+  <span class="tlabel">// MAIN_COMPETITION :: {{ main_weight }} EACH SIDE</span>
+  <h3 class="card-title">The engagement days, per side</h3>
+  {% for side in sides %}
+    <div style="margin-top:1.1rem;">
+      <span class="tlabel">// {{ side.name|upper }}</span>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Criterion</th><th style="width:5rem;">Marks</th><th>What it means</th></tr></thead>
+          <tbody>
+            {% for row in side.rows %}
+              <tr>
+                <td><strong>{{ row.label }}</strong></td>
+                <td>{{ row.marks }}</td>
+                <td class="text-muted">{{ row.note }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endfor %}
+  <div class="note-body" style="margin-top:1rem;">
+    <p>
+      <strong>Application Red is computed, not typed.</strong> Those marks are
+      rebuilt from the team's findings every time a judge reviews one, so a
+      downgrade or a duplicate takes marks away. Change the finding, not the mark.
+      Currently {{ finding_marks.valid_each }} marks per valid finding, severity
+      worth {{ finding_marks.severity_each.critical }}/{{ finding_marks.severity_each.high }}/{{ finding_marks.severity_each.medium }}/{{ finding_marks.severity_each.low }}
+      for critical/high/medium/low, and {{ finding_marks.conduct_penalty }} marks
+      off conduct per out-of-scope report.
+    </p>
+  </div>
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+  <span class="tlabel">// DOCUMENTATION :: 30</span>
+  <h3 class="card-title">The written record — same for every side</h3>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Criterion</th><th style="width:5rem;">Marks</th><th>What it means</th></tr></thead>
+      <tbody>
+        {% for row in documentation %}
+          <tr>
+            <td><strong>{{ row.label }}</strong></td>
+            <td>{{ row.marks }}</td>
+            <td class="text-muted">{{ row.note }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% for rubric in rubrics %}
+  <div class="card" style="margin-top:1.5rem;">
+    <span class="tlabel">// PROPOSAL_RUBRIC</span>
+    <h3 class="card-title">{{ rubric.title }}</h3>
+    <p class="text-muted">
+      Each section is scored out of 100 and weighted. The weights are the Entry
+      Guide's own and sum to {{ rubric.total_weight }}, so the mark is the
+      weighted total divided by that — then scaled to the Entry stage's 30.
+      A missing section scores zero on its criterion and is not inferred from
+      elsewhere in the document.
+    </p>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th style="width:3rem;">#</th><th>Section</th><th style="width:5rem;">Weight</th><th>What it must contain</th></tr></thead>
+        <tbody>
+          {% for criterion in rubric.criteria.all %}
+            <tr>
+              <td>{{ criterion.display_order }}</td>
+              <td><strong>{{ criterion.criterion }}</strong></td>
+              <td>{% if criterion.weight %}{{ criterion.weight|floatformat:0 }}{% else %}—{% endif %}</td>
+              <td class="text-muted">{{ criterion.description }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% empty %}
+  <div class="card note-body" style="margin-top:1.5rem;">
+    <span class="tlabel">// NO_RUBRICS</span>
+    <p>
+      No proposal rubric has been created yet. Run
+      <code>python manage.py seed_proposal_rubrics --confirm</code>.
+    </p>
+  </div>
+{% endfor %}
+
+<div class="card" style="margin-top:1.5rem;">
+  <span class="tlabel">// PENALTIES</span>
+  <h3 class="card-title">Applied to the proposal score, not to eligibility</h3>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Breach</th><th style="width:6rem;">Deduction</th><th></th></tr></thead>
+      <tbody>
+        {% for key, label, percent, note in penalties %}
+          <tr>
+            <td><strong>{{ label }}</strong></td>
+            <td>{{ percent }}%</td>
+            <td class="text-muted">{{ note }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="form-help" style="margin-top:0.85rem;">
+    The Entry Guide's full penalty table also covers breaches that end a team's
+    proposal outright — plagiarism, fabricated evidence, work authored outside
+    the team. Those are organiser decisions, not deductions.
+  </p>
+</div>
+{% endblock %}

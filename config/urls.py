@@ -11,6 +11,7 @@ from django.views.generic import TemplateView
 
 from accounts.security import ThrottledLoginView
 from config import tasks
+from scoring.ingest import feed as feed_ingest
 
 
 @never_cache
@@ -36,6 +37,25 @@ def healthz(request):
             status=503,
         )
     return JsonResponse({"status": "ok", "database": "ok"})
+
+
+class ProgrammeView(TemplateView):
+    """The published three-day running order.
+
+    The data lives in `competitions.programme` rather than the template,
+    because a running order changes on the day and whoever fixes it
+    should be editing one list, not hunting through markup.
+    """
+
+    template_name = "programme.html"
+
+    def get_context_data(self, **kwargs):
+        from competitions import programme
+
+        context = super().get_context_data(**kwargs)
+        context["days"] = programme.days()
+        context["deadlines"] = programme.deadlines()
+        return context
 
 
 class LandingView(TemplateView):
@@ -90,6 +110,7 @@ urlpatterns = [
     # the design repo (its own inline CSS/JS, like the landing page), served
     # here so the whole site ships as one app on one domain.
     path("prepare/", TemplateView.as_view(template_name="prepare.html"), name="prepare"),
+    path("programme/", ProgrammeView.as_view(), name="programme"),
     path("partner/", TemplateView.as_view(template_name="partner.html"), name="partner"),
     path(
         "tracks/application-blue/",
@@ -123,6 +144,10 @@ urlpatterns = [
     path("audit/", include("audit.urls")),
     path("range/", include("cyberrange.urls")),
     path("deployments/", include("deployments.urls")),
+    path("scoring/", include("scoring.urls")),
+    # Observability pushes published marks here (architecture 14.1).
+    # Token-guarded; see scoring/ingest.py and docs/CONTRACT-feed.md.
+    path("api/feed/", feed_ingest, name="api_feed"),
     # Built-in auth until the accounts module ships its own views.
     # Throttled: repeated failures lock the username+IP pair for a window.
     path(

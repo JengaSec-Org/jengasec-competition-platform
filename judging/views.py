@@ -161,7 +161,14 @@ def ai_evaluation_detail(request, eval_id):
             evaluation.status = Evaluation.Status.APPROVED
             evaluation.save(update_fields=["status", "updated_at"])
             evaluation.recalculate_total()
-            messages.success(request, "AI scores approved.")
+            # Approval is the moment the mark becomes real: the model's
+            # numbers alone never reach a team's Entry stage.
+            from services import scoring_service
+
+            scoring_service.award_for_proposal(evaluation, recorded_by=request.user)
+            messages.success(
+                request, "Approved. The team's Entry mark has been recorded."
+            )
 
         elif review_action == "save_overrides":
             reason = request.POST.get("override_reason", "").strip()

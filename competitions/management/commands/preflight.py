@@ -88,6 +88,22 @@ class Command(BaseCommand):
         else:
             self.notes.append(f"SITE_URL is {site}.")
 
+        if getattr(settings, "INSECURE_COOKIES", False):
+            site = getattr(settings, "SITE_URL", "")
+            message = (
+                "DJANGO_INSECURE_COOKIES is on: session cookies will travel in "
+                "clear over HTTP. Correct only for the venue instance on the "
+                "isolated range network."
+            )
+            # On anything with a public https:// address this is not a trade-off,
+            # it is a session-hijacking hole.
+            if site.startswith("https://"):
+                self.blockers.append(
+                    message + f" This instance answers on {site}, which is public."
+                )
+            else:
+                self.warnings.append(message)
+
         if settings.SESSION_COOKIE_AGE > 60 * 60 * 4:
             self.warnings.append(
                 f"Sessions last {settings.SESSION_COOKIE_AGE // 3600}h; an idle "
