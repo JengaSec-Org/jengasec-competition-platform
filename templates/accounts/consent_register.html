@@ -39,6 +39,8 @@ is agreement to the rules.
   {% else %}
     Showing everyone.
     <a href="{% url 'accounts:consent_register' %}?missing=1">Show only those still owing one</a>
+    &middot;
+    <a href="{% url 'accounts:consent_register' %}?black=1">Black lanyards only ({{ black_lanyards }})</a>
   {% endif %}
 </p>
 
@@ -49,6 +51,7 @@ is agreement to the rules.
         <tr>
           <th>Name</th><th>Team</th>
           <th>Privacy notice</th><th>Code of conduct</th>
+          <th>Participant terms</th><th>Lanyard</th>
         </tr>
       </thead>
       <tbody>
@@ -74,9 +77,25 @@ is agreement to the rules.
                 {% include "components/badge.html" with label="Outstanding" color="gold" %}
               {% endif %}
             </td>
+            <td>
+              {% if row.terms %}
+                {% include "components/badge.html" with label="Agreed" color="green" %}
+              {% else %}
+                {% include "components/badge.html" with label="No entry" color="red" %}
+              {% endif %}
+            </td>
+            <td>
+              {% if row.black_lanyard %}
+                {% include "components/badge.html" with label="BLACK" color="red" %}
+                <span class="person-sub">no photography</span>
+              {% else %}
+                <span class="text-muted">Standard</span>
+              {% endif %}
+              {% if row.recruiters %}<span class="person-sub">recruiters: yes</span>{% endif %}
+            </td>
           </tr>
         {% empty %}
-          <tr><td colspan="4" class="text-muted">No competitor accounts yet.</td></tr>
+          <tr><td colspan="6" class="text-muted">No competitor accounts yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

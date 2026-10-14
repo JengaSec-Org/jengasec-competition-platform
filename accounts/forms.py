@@ -10,7 +10,7 @@ from competitions.constants import Enterprise, Track
 from competitions.models import ApplicationBrief, Competition
 
 from .institutions import recognise
-from .models import PolicyVersion, Team, TeamMember, UserProfile
+from .models import ParticipantConsent, PolicyVersion, Team, TeamMember, UserProfile
 
 # Identity document rules (Guide section 6, step 2).
 IDENTITY_MAX_BYTES = 5 * 1024 * 1024
@@ -86,6 +86,59 @@ class ConductAcceptanceForm(forms.Form):
     def __init__(self, *args, version=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.version = version or PolicyVersion.current()
+
+
+class ParticipantTermsForm(forms.ModelForm):
+    """The required tick, and the optional choices that stand beside it.
+
+    One required field and sixteen optional ones, which is the document's
+    own shape: "Only the first box is required. Every other box starts
+    empty and stands alone." Nothing here is pre-ticked, and nothing is
+    grouped in a way that would let one tick imply another.
+    """
+
+    accept = forms.BooleanField(
+        required=True,
+        label=(
+            "I have read and I agree to the JengaSec 2026 Participant Terms and "
+            "Conditions, the Entry Guide and Competition Rules, and the Strathmore "
+            "University Privacy Policy."
+        ),
+        error_messages={
+            "required": "You cannot enter the venue without agreeing to the terms."
+        },
+    )
+
+    class Meta:
+        model = ParticipantConsent
+        fields = (
+            ["black_lanyard"]
+            + [f for f, _, _ in ParticipantConsent.MEDIA_FIELDS]
+            + [f for f, _, _ in ParticipantConsent.RECRUITER_FIELDS]
+        )
+
+    def __init__(self, *args, version=None, already_accepted=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.version = version or PolicyVersion.current(PolicyVersion.Kind.TERMS)
+        # Somebody returning to change an optional choice has already
+        # agreed; asking them to tick it again to save a preference would
+        # suggest the agreement itself lapses, which it does not.
+        if already_accepted:
+            self.fields["accept"].required = False
+            self.fields["accept"].initial = True
+
+    def clean(self):
+        cleaned = super().clean()
+        # Clause 5.4: portraits are not available with a black lanyard.
+        # Refused rather than silently unticked, so the person sees the
+        # contradiction and chooses which one they meant.
+        if cleaned.get("black_lanyard") and cleaned.get("m4_portraits"):
+            self.add_error(
+                "m4_portraits",
+                "Portraits and interviews are not available with a black lanyard. "
+                "Untick one of the two.",
+            )
+        return cleaned
 
 
 class TeamEditForm(forms.ModelForm):

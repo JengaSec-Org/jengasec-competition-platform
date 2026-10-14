@@ -10,6 +10,7 @@ import datetime
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from competitions.constants import (
@@ -218,14 +219,29 @@ class EmailVerification(models.Model):
 
 
 class PolicyVersion(models.Model):
-    """One published version of the code of conduct (Guide section 6, step 4).
+    """One published version of a document participants must accept.
 
-    Exactly one version is current. Publishing a new one makes everybody
-    re-accept: a registration cannot be submitted until every member has
-    accepted the version current at that moment.
+    Two kinds, each with its own current version: the code of conduct
+    (Guide section 6, step 4) and the Participant Terms and Conditions.
+    They are separate documents agreed separately -- the terms carry
+    intellectual property, photography and recruiter clauses that have
+    nothing to do with the rules of conduct -- so bundling them into one
+    tick would make it impossible to say what somebody actually agreed to.
+
+    Exactly one version of each kind is current. Publishing a new one makes
+    everybody re-accept that kind: a registration cannot be submitted until
+    every member has accepted the versions current at that moment.
     """
 
-    version = models.CharField(max_length=20, unique=True, help_text="e.g. 1.0")
+    class Kind(models.TextChoices):
+        CONDUCT = "conduct", "Code of Conduct"
+        TERMS = "terms", "Participant Terms and Conditions"
+
+    kind = models.CharField(
+        max_length=20, choices=Kind.choices, default=Kind.CONDUCT
+    )
+    # Unique per kind, not globally: conduct v1.1 and terms v1.1 can coexist.
+    version = models.CharField(max_length=20, help_text="e.g. 1.0")
     title = models.CharField(max_length=200, default="JengaSec Code of Conduct")
     summary = models.TextField(blank=True, help_text="What changed; goes into the notice.")
     body = models.TextField()
@@ -237,18 +253,141 @@ class PolicyVersion(models.Model):
         ordering = ["-published_at", "-created_at"]
         constraints = [
             models.UniqueConstraint(
-                fields=["is_current"],
+                fields=["kind", "is_current"],
                 condition=models.Q(is_current=True),
-                name="one_current_policy_version",
-            )
+                name="one_current_policy_per_kind",
+            ),
+            models.UniqueConstraint(
+                fields=["kind", "version"], name="one_version_number_per_kind"
+            ),
         ]
 
     def __str__(self):
         return f"{self.title} v{self.version}{' (current)' if self.is_current else ''}"
 
     @classmethod
-    def current(cls):
-        return cls.objects.filter(is_current=True).first()
+    def current(cls, kind=None):
+        """The current version of one kind. Defaults to the conduct, which
+        is what every existing caller means."""
+        return cls.objects.filter(
+            is_current=True, kind=kind or cls.Kind.CONDUCT
+        ).first()
+
+
+class ParticipantConsent(models.Model):
+    """The optional choices that sit beside the Participant Terms.
+
+    The terms themselves are one required tick, recorded as a
+    `PolicyAcceptance` like any other policy. Everything here is optional,
+    starts empty and stands alone -- which is the document's own wording,
+    and the reason each choice is its own column rather than a list. An
+    auditor asked "did this person agree to be photographed?" must get an
+    answer about photography, not about a bundle.
+
+    `black_lanyard` is an opt-OUT and the only field whose true value means
+    less permission, not more. It is held separately from the media boxes
+    because the check-in desk reads it to decide which lanyard to issue,
+    and it must be answerable without interpreting nine other fields.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="consent"
+    )
+
+    # O1 — clause 5.2. Not photographed or filmed; black lanyard issued.
+    black_lanyard = models.BooleanField(default=False)
+
+    # M1–M10 — what the Club may use, and who else may use it.
+    m1_name_and_placing = models.BooleanField(default=False)
+    m2_quotes = models.BooleanField(default=False)
+    m3_project_description = models.BooleanField(default=False)
+    m4_portraits = models.BooleanField(default=False)
+    m5_campaign_graphics = models.BooleanField(default=False)
+    m6_strathmore = models.BooleanField(default=False)
+    m7_scesa = models.BooleanField(default=False)
+    m8_ncba = models.BooleanField(default=False)
+    m9_future_events = models.BooleanField(default=False)
+    m10_learning_library = models.BooleanField(default=False)
+
+    # R1–R4 — what recruiters and sponsors may receive.
+    r1_contact_details = models.BooleanField(default=False)
+    r2_academic_details = models.BooleanField(default=False)
+    r3_performance_summary = models.BooleanField(default=False)
+    r4_shortlist = models.BooleanField(default=False)
+
+    # Which published version these choices were made against, so a later
+    # version cannot silently reinterpret them.
+    version = models.ForeignKey(
+        "accounts.PolicyVersion", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="consents",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # Clause 6: withdrawal is by email, and the Club records when it acted.
+    withdrawn_at = models.DateTimeField(null=True, blank=True)
+    withdrawal_note = models.TextField(blank=True)
+
+    MEDIA_FIELDS = [
+        ("m1_name_and_placing", "M1", "Name, institution, team and final placing"),
+        ("m2_quotes", "M2", "Quotes and testimonials (approved by me first)"),
+        ("m3_project_description", "M3", "A short description of my team's project"),
+        ("m4_portraits", "M4", "Portraits, interviews and team photos"),
+        ("m5_campaign_graphics", "M5", "Campaign graphics carrying my name or team"),
+        ("m6_strathmore", "M6", "Strathmore University may also use what I ticked"),
+        ("m7_scesa", "M7", "SCESA may also use what I ticked"),
+        ("m8_ncba", "M8", "NCBA (including NCBA Loop) may also use what I ticked"),
+        ("m9_future_events", "M9", "Reuse to promote future Club events, 24 months"),
+        ("m10_learning_library", "M10", "Keep my team's write-up as a learning resource"),
+    ]
+    RECRUITER_FIELDS = [
+        ("r1_contact_details", "R1", "My name, email address and phone number"),
+        ("r2_academic_details", "R2", "Institution, programme, year, GitHub or GitLab"),
+        ("r3_performance_summary", "R3", "A summary of my performance and strengths"),
+        ("r4_shortlist", "R4", "Include me on the recruiter shortlist"),
+    ]
+
+    class Meta:
+        verbose_name = "participant consent"
+        verbose_name_plural = "participant consents"
+
+    def __str__(self):
+        return f"Consent for {self.user}"
+
+    @property
+    def lanyard(self):
+        """What the check-in desk issues."""
+        return "Black" if self.black_lanyard else "Standard"
+
+    @property
+    def media_choices(self):
+        return [
+            (code, label, getattr(self, field))
+            for field, code, label in self.MEDIA_FIELDS
+        ]
+
+    @property
+    def recruiter_choices(self):
+        return [
+            (code, label, getattr(self, field))
+            for field, code, label in self.RECRUITER_FIELDS
+        ]
+
+    @property
+    def shares_with_recruiters(self):
+        return any(getattr(self, f) for f, _, _ in self.RECRUITER_FIELDS)
+
+    def clean(self):
+        """M4 is not available with a black lanyard (clause 5.2, 5.4).
+
+        Enforced on the model rather than only in the form: a portrait
+        consent from somebody wearing a black lanyard is a contradiction
+        whichever screen created it.
+        """
+        if self.black_lanyard and self.m4_portraits:
+            raise ValidationError({
+                "m4_portraits": "Portraits are not available with a black lanyard."
+            })
 
 
 class PolicyAcceptance(models.Model):

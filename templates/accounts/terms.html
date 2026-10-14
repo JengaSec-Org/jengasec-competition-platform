@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Participant Terms — JengaSec{% endblock %}
+
+{% comment %}
+The terms, the one required tick, and the optional choices.
+
+The document is shown in full above the form rather than behind a link:
+"I have read" has to be true, and a link somebody never opens does not
+make it so. The optional boxes are grouped by who ends up with the
+information, because that is the question people actually have.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="PARTICIPANT_TERMS" title="Terms and Conditions" %}
+
+{% if not version %}
+  <div class="card note-body">
+    <span class="tlabel">// NOT_PUBLISHED</span>
+    <p>No terms have been published yet. There is nothing to agree to.</p>
+  </div>
+{% else %}
+
+  <div class="card">
+    <span class="tlabel">// {{ version.title|upper }} :: v{{ version.version }}</span>
+    {% if accepted %}
+      {% include "components/badge.html" with label="You have agreed" color="green" %}
+      <p class="form-help" style="margin-top:0.6rem;">
+        Agreed {{ acceptance.accepted_at|date:"j M Y, H:i" }}. You can change the
+        optional choices below at any time — agreeing again is not needed.
+      </p>
+    {% else %}
+      {% include "components/badge.html" with label="Not yet agreed" color="gold" %}
+      <p class="form-help" style="margin-top:0.6rem;">
+        Nobody is admitted to the venue until they have ticked the agreement box.
+        The check-in desk confirms it and issues your lanyard.
+      </p>
+    {% endif %}
+  </div>
+
+  <div class="card" style="margin-top:1.5rem;">
+    <span class="tlabel">// THE_TERMS</span>
+    <div class="note-body policy-body">{{ version.body|linebreaks }}</div>
+  </div>
+
+  <form method="post" style="margin-top:1.5rem;">
+    {% csrf_token %}
+    {% if request.GET.next %}
+      <input type="hidden" name="next" value="{{ request.GET.next }}">
+    {% endif %}
+
+    {% if not accepted %}
+      <div class="card" style="border-left:4px solid var(--primary);">
+        <span class="tlabel">// REQUIRED</span>
+        <h3 class="card-title">Agree to the terms</h3>
+        <div class="consent-check">
+          <label>
+            {{ form.accept }}
+            <span>{{ form.accept.label }}</span>
+          </label>
+        </div>
+        {% for error in form.accept.errors %}
+          <div class="form-error">// {{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="card" style="margin-top:1.5rem;">
+      <span class="tlabel">// OPTIONAL :: PHOTOGRAPHY</span>
+      <h3 class="card-title">Your lanyard</h3>
+      <p class="text-muted">
+        Your choice never affects your place, score, prizes or recruiter access.
+      </p>
+      <div class="consent-check">
+        <label>
+          {{ form.black_lanyard }}
+          <span>
+            <strong>O1 — Black lanyard.</strong> I do not want to be photographed
+            or filmed. You can also ask for one at the desk at any time.
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:1.5rem;">
+      <span class="tlabel">// OPTIONAL :: NAME, WORDS AND WORK</span>
+      <h3 class="card-title">What the Club may use</h3>
+      <p class="text-muted">
+        Every box starts empty and stands alone. Leave them all unticked and
+        nothing of yours is used.
+      </p>
+      {% for row in media_fields %}
+        <div class="consent-check">
+          <label>
+            {{ row.field }}
+            <span><strong>{{ row.code }}</strong> — {{ row.label }}</span>
+          </label>
+        </div>
+      {% endfor %}
+      {% for error in form.m4_portraits.errors %}
+        <div class="form-error">// {{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="card" style="margin-top:1.5rem;">
+      <span class="tlabel">// OPTIONAL :: RECRUITERS AND SPONSORS</span>
+      <h3 class="card-title">What recruiters may receive</h3>
+      <p class="text-muted">
+        By default recruiters and sponsors see only aggregated, de-identified
+        information. Tick to let them contact you about internships, graduate
+        programmes, jobs and mentorship — nothing else.
+      </p>
+      {% for row in recruiter_fields %}
+        <div class="consent-check">
+          <label>
+            {{ row.field }}
+            <span><strong>{{ row.code }}</strong> — {{ row.label }}</span>
+          </label>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="form-actions" style="margin-top:1.5rem;">
+      {% if accepted %}
+        {% include "components/button.html" with label="Save my choices" type="submit" variant="primary" size="sm" %}
+      {% else %}
+        {% include "components/button.html" with label="Agree and continue" type="submit" variant="primary" size="sm" %}
+      {% endif %}
+      {% url 'accounts:team_requests' as back_url %}
+      {% include "components/button.html" with label="Back to My Team" href=back_url variant="ghost" size="sm" %}
+    </div>
+
+    <p class="form-help" style="margin-top:1rem;">
+      To withdraw a choice later, email
+      <a href="mailto:sucybersec@strathmore.edu">sucybersec@strathmore.edu</a>
+      from your registered address with the subject
+      <code>JengaSec consent withdrawal</code>. You do not need to give a reason.
+    </p>
+  </form>
+{% endif %}
+{% endblock %}
