@@ -120,4 +120,14 @@
     </div>
   {% endfor %}
 </div>
+
+{% if show_build %}
+  {% comment %}
+  Registration and build run concurrently, so both halves are on one
+  page rather than behind a phase switch.
+  {% endcomment %}
+  <div class="phase-divider"><span>Building</span></div>
+  {% include "dashboard/blue/_build_body.html" %}
+{% endif %}
+
 {% endblock %}

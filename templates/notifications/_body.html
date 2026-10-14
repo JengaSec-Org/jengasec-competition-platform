@@ -1,0 +1,26 @@
+{% comment %}
+A notification body, rendered as the blocks it was written as.
+
+The plain text carries paragraph breaks, "  - " bullets and "Label: value"
+field rows, and the emails already render those through
+services.email_render.parse_body. The dashboard used to drop the whole
+thing into a single <p>, where HTML collapses the newlines and a
+four-paragraph message with a checklist arrives as one run-on sentence.
+
+Context: `blocks`, from Notification.body_blocks.
+{% endcomment %}
+{% for block in blocks %}
+  {% if block.kind == "list" %}
+    <ul class="note-list">
+      {% for item in block.items %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  {% elif block.kind == "fields" %}
+    <dl class="note-fields">
+      {% for row in block.items %}
+        <dt>{{ row.label }}</dt><dd>{{ row.value }}</dd>
+      {% endfor %}
+    </dl>
+  {% else %}
+    <p class="note-text">{{ block.text }}</p>
+  {% endif %}
+{% endfor %}

@@ -86,6 +86,17 @@ class Notification(models.Model):
             self.save(update_fields=["is_read"])
 
     @property
+    def body_blocks(self):
+        """The body split into paragraph / list / field blocks.
+
+        Same parser the branded email uses, so the in-app copy and the
+        emailed copy of a notification cannot drift apart in structure.
+        """
+        from services.email_render import parse_body
+
+        return parse_body(self.body)
+
+    @property
     def email_pending(self):
         return self.send_email and self.sent_at is None
 

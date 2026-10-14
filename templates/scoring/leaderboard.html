@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard — JengaSec{% endblock %}
+
+{% comment %}
+The standing. Markers see it live; everyone else sees it as it stood
+`delay_minutes` ago, which is stated on the page rather than implied —
+a team comparing its own dashboard with the board must be able to work
+out why the two disagree.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="LEADERBOARD" title="Standing" %}
+
+<div class="card">
+  <span class="tlabel">// {{ competition.name|upper }}</span>
+  <p class="text-muted" style="margin-top:0.4rem;">
+    {% if live %}
+      Live. You are seeing marks the moment they are recorded, because you mark.
+    {% else %}
+      As it stood {{ delay_minutes }} minutes ago. Marks recorded since then are
+      not shown here — your own team's page always shows everything.
+    {% endif %}
+    Out of 100:
+    {% for stage in stages %}{{ stage.name|lower }} {{ stage.weight }}{% if not forloop.last %} · {% endif %}{% endfor %}.
+    Bonus sits outside the hundred, so a total can read above 100.
+  </p>
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width:4rem;">#</th>
+          <th>Team</th>
+          <th>Side</th>
+          {% for stage in stages %}<th style="width:6rem;">{{ stage.name }}</th>{% endfor %}
+          <th style="width:5rem;">Bonus</th>
+          <th style="width:6rem;">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr{% if row.team.pk in my_team_ids %} class="is-next"{% endif %}>
+            <td><strong>{{ row.rank }}</strong></td>
+            <td>
+              <a href="{% url 'scoring:breakdown' row.team.pk %}">{{ row.team.team_name }}</a>
+              {% if row.team.cell_label %}<span class="person-sub">{{ row.team.cell_label }}</span>{% endif %}
+            </td>
+            <td>{{ row.team.get_team_type_display }}<span class="person-sub">{{ row.team.get_track_display|default:"—" }}</span></td>
+            <td>{{ row.score.entry }}</td>
+            <td>{{ row.score.main }}</td>
+            <td>{{ row.score.documentation }}</td>
+            <td>{% if row.score.bonus %}+{{ row.score.bonus }}{% else %}—{% endif %}</td>
+            <td><strong>{{ row.score.total }}</strong></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" class="text-muted">No teams in this competition yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -29,6 +29,10 @@ ACTION_CATEGORY = {
     AuditLog.Action.FINDING_REVIEWED: AuditLog.Category.RANGE,
     AuditLog.Action.WIREGUARD_DOWNLOADED: AuditLog.Category.RANGE,
     AuditLog.Action.RANGE_EXPORTED: AuditLog.Category.RANGE,
+    AuditLog.Action.APP_SUBMITTED: AuditLog.Category.RANGE,
+    AuditLog.Action.APP_STATUS_CHANGED: AuditLog.Category.RANGE,
+    AuditLog.Action.APP_TOKEN_REVEALED: AuditLog.Category.RANGE,
+    AuditLog.Action.APP_FROZEN: AuditLog.Category.RANGE,
 }
 
 

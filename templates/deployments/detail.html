@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Attempt {{ submission.attempt }} — JengaSec{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="ATTEMPT" title=submission %}
+
+<div class="card">
+  <div class="check-strip">
+    {% for check in submission.progress %}
+      <span class="check {% if check.done %}is-done{% endif %}">{{ check.label }}</span>
+    {% endfor %}
+  </div>
+  <p class="form-help">
+    {{ submission.get_status_display }}
+    {% if submission.status_changed_at %} · {{ submission.status_changed_at|date:"j M H:i" }}{% endif %}
+  </p>
+  {% if submission.status_detail %}
+    <div class="note-body"><p>{{ submission.status_detail }}</p></div>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+  <span class="tlabel">// WHAT_YOU_SUBMITTED</span>
+  <table class="table">
+    <tbody>
+      <tr><th>Image</th><td><code>{{ submission.image_reference }}</code></td></tr>
+      <tr><th>Registry user</th><td>{{ submission.registry_username }}</td></tr>
+      <tr><th>Token</th><td>{% if submission.has_pull_token %}Stored, encrypted{% else %}None stored{% endif %}</td></tr>
+      <tr><th>Port</th><td>{{ submission.port }}</td></tr>
+      <tr><th>Health path</th><td><code>{{ submission.health_path }}</code></td></tr>
+      <tr><th>Database</th><td>{{ submission.needs_database|yesno:"PostgreSQL 16 provided,None" }}</td></tr>
+      {% if submission.env_vars %}
+        <tr><th>Environment</th><td>
+          {% for key, value in submission.env_vars.items %}<code>{{ key }}={{ value }}</code><br>{% endfor %}
+        </td></tr>
+      {% endif %}
+      {% if submission.extra_images %}
+        <tr><th>Extra images</th><td>
+          {% for image in submission.extra_images %}<code>{{ image }}</code><br>{% endfor %}
+        </td></tr>
+      {% endif %}
+      {% if submission.frozen_at %}
+        <tr><th>Frozen</th><td>{{ submission.frozen_at|date:"j M Y H:i" }} · <code>{{ submission.frozen_digest }}</code></td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% if submission.scan_report %}
+  <div class="card" style="margin-top:1.5rem;">
+    <span class="tlabel">// SCAN_REPORT</span>
+    <pre class="code-block">{{ submission.scan_report|pprint }}</pre>
+  </div>
+{% endif %}
+
+{% if submission.logs_excerpt %}
+  <div class="card" style="margin-top:1.5rem;">
+    <span class="tlabel">// RECENT_LOGS</span>
+    <pre class="code-block">{{ submission.logs_excerpt }}</pre>
+  </div>
+{% endif %}
+
+<div class="form-actions" style="margin-top:1.5rem;">
+  {% url 'deployments:submit' as submit_url %}
+  {% include "components/button.html" with label="Back to your application" href=submit_url variant="ghost" size="sm" %}
+  {% if user.is_staff %}
+    {% url 'deployments:review' submission.pk as review_url %}
+    {% include "components/button.html" with label="Record a check" href=review_url variant="primary" size="sm" %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -15,6 +15,7 @@ from accounts.roles import BLUE_TEAM, JUDGE, PARTNER, RED_TEAM, user_in_role
 from competitions.models import Competition
 from judging.models import Evaluation
 from services import competition_service as comp
+from services import deployment_service
 from services import submission_service
 from services.submission_service import PROPOSAL_TYPES
 from services.audit_service import recent as audit_recent
@@ -136,10 +137,18 @@ def _resolve_phase(request, team, requested):
 
 
 def _blue_context(request, team, phase):
-    """Phase-specific context for a blue team."""
+    """Phase-specific context for a blue team.
+
+    Registration and build are merged: the competition reached the point
+    where teams are still completing registration *and* expected to be
+    building, and sending them between two dashboards to see both halves
+    hid whichever one they were not looking at. The registration context
+    therefore carries the build context as well.
+    """
     if phase == Competition.Phase.REGISTRATION:
         briefs = list(comp.briefs_for(team))
-        return {
+        merged = dict(_blue_context(request, team, Competition.Phase.BUILD))
+        merged.update({
             "briefs": briefs,
             "proposal": comp.proposal_for(team),
             "registration_open": team.competition.registration_open,
@@ -151,7 +160,9 @@ def _blue_context(request, team, phase):
                 team.competition.settings.proposal_deadline
                 or team.competition.settings.submission_deadline
             ),
-        }
+            "show_build": True,
+        })
+        return merged
     if phase == Competition.Phase.BUILD:
         submissions = Submission.objects.filter(team=team).select_related(
             "submission_type", "application_brief"
@@ -170,6 +181,10 @@ def _blue_context(request, team, phase):
             ],
             "submission_requirements": comp.SUBMISSION_REQUIREMENTS,
             "submissions": submissions,
+            # The image, which answers to the freeze rather than a document
+            # deadline. `submits_application` comes from the team context.
+            "app_submission": deployment_service.latest_for_team(team),
+            "app_passing": deployment_service.last_passing(team),
         }
     # Live
     return {
@@ -185,9 +200,13 @@ def _blue_context(request, team, phase):
 
 
 def _red_context(request, team, phase):
-    """Phase-specific context for a red team."""
+    """Phase-specific context for a red team.
+
+    Registration and build are merged, as for blue: see `_blue_context`.
+    """
     if phase == Competition.Phase.REGISTRATION:
-        return {
+        merged = dict(_red_context(request, team, Competition.Phase.BUILD))
+        merged.update({
             "qualifier_locked": comp.red_qualifier_locked(team),
             "qualifier_opens": team.competition.settings.red_qualifier_opens_at,
             "qualifier_closes": team.competition.settings.red_qualifier_closes_at,
@@ -203,7 +222,9 @@ def _red_context(request, team, phase):
                 team.competition.settings.proposal_deadline
                 or team.competition.settings.submission_deadline
             ),
-        }
+            "show_build": True,
+        })
+        return merged
     if phase == Competition.Phase.BUILD:
         return {
             "qualifier_locked": comp.red_qualifier_locked(team),
@@ -361,6 +382,10 @@ def info(request):
         "delay_minutes": comp.LEADERBOARD_DELAY_MINUTES,
     }
 
+    from competitions import grading
+
+    context["grade_stages"] = grading.stages(team)
+
     if is_red:
         context["red_actions"] = comp.RED_POINT_ACTIONS
         return render(request, "dashboard/info_red.html", context)
@@ -368,7 +393,6 @@ def info(request):
     context.update(
         {
             "blue_actions": comp.BLUE_POINT_ACTIONS,
-            "score_weights": comp.SCORE_WEIGHTS,
             "objectives": team.objectives.all() if team else [],
             "availability_bands": [
                 ("99–100%", "Excellent"),

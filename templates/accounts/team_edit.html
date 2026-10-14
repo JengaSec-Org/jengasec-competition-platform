@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ team.team_name }} — JengaSec{% endblock %}
+
+{% comment %}
+The captain's own edit. Until this existed, institution and track were
+set once at creation and then unreachable from the interface.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="EDIT_TEAM" title="Team details" %}
+
+<div class="card" style="max-width:720px;">
+  <span class="tlabel">// {{ team.team_name|upper }}</span>
+  <p class="text-muted">
+    Change these any time before your registration is submitted. Once it is in
+    review the details are frozen.
+  </p>
+
+  <form method="post" style="margin-top:1.25rem;">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-warning" role="alert">
+        <span class="alert-tag">[NOTE]</span><span>{{ form.non_field_errors.0 }}</span>
+      </div>
+    {% endif %}
+
+    {% include "components/form_field.html" with field=form.team_name %}
+    {% include "components/form_field.html" with field=form.institution %}
+
+    <span class="tlabel" style="display:block; margin:1.5rem 0 0.75rem;">// TRACK</span>
+    {% include "components/form_field.html" with field=form.team_type %}
+    {% include "components/form_field.html" with field=form.track %}
+    {% include "components/form_field.html" with field=form.application_brief %}
+
+    <div class="form-actions" style="margin-top:1.5rem;">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+      <a class="btn btn-ghost" href="{% url 'accounts:team_requests' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

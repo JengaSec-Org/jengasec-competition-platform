@@ -1,0 +1,201 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programme | JengaSec 2026</title>
+<meta name="description" content="The full three-day running order for JengaSec 2026 at Strathmore University, Nairobi: keynotes, Morani bug bounty windows, Kikao panels and the closing ceremony, 14 to 16 October 2026.">
+<meta name="author" content="Strathmore Cybersecurity Club">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#007A3D">
+<link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
+<link rel="canonical" href="https://www.jengasec.com/programme/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.jengasec.com/programme/">
+<meta property="og:title" content="Programme | JengaSec 2026">
+<meta property="og:description" content="The full three-day running order: keynotes, Morani bug bounty, Kikao panels and the closing ceremony, 14 to 16 October 2026.">
+<meta property="og:image" content="https://www.jengasec.com/static/images/Jengasec.jpg">
+<meta property="og:site_name" content="JengaSec">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* Self-contained, like the other public pages: this one is read on a phone
+   in a corridor between sessions, so it carries only what it needs. */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --g:#007A3D;--gd:#004D26;--gl:#00C853;
+  --red:#B3000C;--gold:#C9960A;
+  --black:#080C08;--white:#F8FAF8;--off:#EEF1EE;
+  --muted:#5A6A5A;--border:#CDD8CD;--card:#FFFFFF;
+  --dg:#0A2416;
+}
+html{scroll-behavior:smooth}
+html,body{overflow-x:hidden;max-width:100%}
+body{background:var(--white);color:var(--black);font-family:'DM Sans',sans-serif;
+  -webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:1000px;margin:0 auto;padding:0 1.25rem}
+
+/* ---- header ---- */
+.top{background:var(--dg);color:var(--white);padding:1rem 0;position:sticky;top:0;z-index:50;
+  border-bottom:1px solid rgba(255,255,255,0.08)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.brand{display:flex;align-items:center;gap:0.6rem;text-decoration:none;
+  font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.06em}
+.brand span{color:var(--gl)}
+.top nav{display:flex;gap:1.25rem;font-family:'Space Mono',monospace;font-size:11px;
+  letter-spacing:0.06em;text-transform:uppercase}
+.top nav a{text-decoration:none;color:rgba(255,255,255,0.75);transition:color 0.2s}
+.top nav a:hover{color:var(--gl)}
+@media(max-width:620px){.top nav a:not(.keep){display:none}}
+
+/* ---- hero ---- */
+.hero{background:var(--dg);color:var(--white);padding:3rem 0 3.5rem}
+.eyebrow{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.18em;
+  text-transform:uppercase;color:var(--gl);margin-bottom:0.9rem}
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.6rem,9vw,4.6rem);
+  line-height:0.95;letter-spacing:0.01em}
+.hero p{margin-top:1rem;max-width:46rem;color:rgba(255,255,255,0.78);font-size:1.02rem;
+  line-height:1.65}
+.hero .where{margin-top:1.4rem;font-family:'Space Mono',monospace;font-size:12px;
+  letter-spacing:0.06em;color:rgba(255,255,255,0.55)}
+
+/* ---- key moments ---- */
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:0.75rem;
+  margin:-2rem auto 3rem;position:relative;z-index:2}
+.key{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--red);
+  padding:0.9rem 1.1rem;box-shadow:0 10px 30px rgba(8,12,8,0.07)}
+.key b{display:block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.06em;
+  color:var(--red);text-transform:uppercase}
+.key span{display:block;margin-top:0.3rem;font-weight:500}
+
+/* ---- day ---- */
+.day{margin:0 0 2.75rem}
+.day-head{display:flex;align-items:baseline;gap:0.9rem;flex-wrap:wrap;
+  padding-bottom:0.7rem;margin-bottom:0.2rem;border-bottom:2px solid var(--g)}
+.day-n{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.14em;
+  text-transform:uppercase;color:var(--g)}
+.day-head h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.8rem,5vw,2.5rem);
+  letter-spacing:0.02em}
+.day-date{margin-left:auto;font-family:'Space Mono',monospace;font-size:12px;
+  color:var(--muted)}
+
+/* One row per session. A table on a phone becomes unreadable, so this is a
+   grid that collapses to two lines instead of scrolling sideways. */
+.s{display:grid;grid-template-columns:7.5rem 7rem 1fr;gap:0.9rem;align-items:start;
+  padding:0.85rem 0.6rem;border-bottom:1px solid var(--border)}
+.s:hover{background:var(--off)}
+.s-time{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;white-space:nowrap}
+.s-time em{display:block;font-style:normal;font-weight:400;font-size:11px;color:var(--muted)}
+.s-kind{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.08em;
+  text-transform:uppercase;color:var(--muted);border:1px solid var(--border);
+  padding:0.2rem 0.45rem;text-align:center;align-self:start}
+.s-what{font-weight:500;line-height:1.5}
+.s-who{display:block;margin-top:0.25rem;font-size:0.88rem;color:var(--muted);font-weight:400}
+.s.is-key{background:rgba(0,122,61,0.045)}
+.s.is-key .s-kind{color:var(--g);border-color:var(--g)}
+.s.is-key .s-what{font-weight:700}
+.s.is-buffer{opacity:0.55}
+@media(max-width:700px){
+  .s{grid-template-columns:6.5rem 1fr;gap:0.6rem}
+  .s-kind{grid-row:2;grid-column:1;justify-self:start}
+  .s-what{grid-row:1 / span 2;grid-column:2}
+}
+
+/* ---- note + footer ---- */
+.note{background:var(--off);border-left:4px solid var(--gold);padding:1rem 1.2rem;
+  margin:0 0 2.5rem;font-size:0.94rem;line-height:1.6;color:var(--muted)}
+.foot{background:var(--dg);color:rgba(255,255,255,0.6);padding:2.25rem 0;margin-top:3rem;
+  font-size:0.88rem}
+.foot a{color:var(--gl);text-decoration:none}
+.foot .cta{margin-top:1rem}
+.btn{display:inline-block;padding:0.8rem 1.8rem;background:var(--g);color:var(--white);
+  font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.08em;
+  text-transform:uppercase;text-decoration:none;border:2px solid var(--g);transition:0.2s}
+.btn:hover{background:transparent;color:var(--gl);border-color:var(--gl)}
+@media print{
+  .top,.foot .cta{display:none}
+  body{background:#fff}
+  .hero{background:#fff;color:#000;padding:1rem 0}
+  .hero p,.hero .where{color:#333}
+  .s:hover{background:none}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="{% url 'landing' %}">JENGA<span>SEC</span></a>
+    <nav>
+      <a href="{% url 'landing' %}">Home</a>
+      <a href="{% url 'prepare' %}">Prepare</a>
+      <a class="keep" href="{% url 'landing' %}#faq">FAQ</a>
+      <a class="keep" href="{% url 'login' %}">Login</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">// PROGRAMME :: 14—16 OCT 2026 :: EAT</div>
+    <h1>Three days,<br>one running order.</h1>
+    <p>
+      Each day opens with keynotes, runs the attack-and-defence window through the
+      middle, and closes in the Kikao room where executives review what actually
+      happened. Times are East Africa Time and are the published ones — the room
+      runs to this sheet.
+    </p>
+    <div class="where">STRATHMORE UNIVERSITY · NAIROBI</div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="keys">
+    {% for when, what in deadlines %}
+      <div class="key"><b>{{ when }}</b><span>{{ what }}</span></div>
+    {% endfor %}
+  </div>
+
+  {% for day in days %}
+    <section class="day">
+      <div class="day-head">
+        <span class="day-n">Day {{ day.number }}</span>
+        <h2>{{ day.title }}</h2>
+        <span class="day-date">{{ day.date }}</span>
+      </div>
+      {% for s in day.sessions %}
+        <div class="s{% if s.key %} is-key{% endif %}{% if s.kind == 'buffer' %} is-buffer{% endif %}">
+          <div class="s-time">{{ s.start }}<em>to {{ s.end }}</em></div>
+          <div class="s-kind">{{ s.kind_label }}</div>
+          <div class="s-what">
+            {{ s.session }}
+            {% if s.who %}<span class="s-who">{{ s.who }}</span>{% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </section>
+  {% endfor %}
+
+  <p class="note">
+    Buffers are deliberate. They absorb an overrunning session so the Morani and
+    Kikao windows start on time — those two are what the scoring depends on.
+    If the running order shifts on the day, this page is updated and the
+    announcement reaches your dashboard.
+  </p>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    Strathmore Cybersecurity Club · Strathmore University, Nairobi ·
+    <a href="mailto:sucybersec@strathmore.edu">sucybersec@strathmore.edu</a>
+    <div class="cta">
+      <a class="btn" href="{% url 'landing' %}">Back to the main site</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

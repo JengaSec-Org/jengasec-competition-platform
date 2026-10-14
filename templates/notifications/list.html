@@ -50,7 +50,11 @@
   <div class="card notif {% if notification.is_read %}notif-read{% else %}notif-unread{% endif %}">
     <span class="tlabel">// {{ notification.get_type_display|upper }}</span>
     <h3 class="card-title">{{ notification.subject }}</h3>
-    {% if notification.body %}<p class="text-muted">{{ notification.body }}</p>{% endif %}
+    {% if notification.body %}
+      <div class="note-body">
+        {% include "notifications/_body.html" with blocks=notification.body_blocks %}
+      </div>
+    {% endif %}
 
     <div class="notif-meta">
       {% if notification.is_read %}

@@ -8,11 +8,14 @@
 {% include "components/page_header.html" with tag="RED_TEAM :: INFO" title="Scenarios & Scoring" %}
 
 <nav class="info-nav" aria-label="Info sections">
+  <a href="#composition">How you are marked</a>
   <a href="#scenarios">Attack scenarios</a>
   <a href="#points">Earning points</a>
   <a href="#outcomes">Graduated outcomes</a>
   <a href="#rules">Rules of engagement</a>
 </nav>
+
+{% include "dashboard/_grading.html" %}
 
 {# ---- Attack scenarios ---- #}
 <div id="scenarios" style="margin-bottom:1.5rem;">

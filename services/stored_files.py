@@ -14,6 +14,10 @@ cause -- a missing object, bad credentials, an unreachable endpoint --
 is distinguishable in the Render log.
 """
 import logging
+import os
+import tempfile
+from contextlib import contextmanager
+from pathlib import Path
 
 from django.http import FileResponse
 from django.shortcuts import render
@@ -50,3 +54,48 @@ def _missing(request, label, name, *, reason):
         {"label": label, "name": name, "reason": reason},
         status=status,
     )
+
+
+@contextmanager
+def local_copy(field):
+    """A real filesystem path for a stored file, whatever the backend.
+
+    The parser and the image extractor both need a path they can hand to
+    PyMuPDF and python-docx, and both reached for `field.path`. That only
+    exists on `FileSystemStorage`: `S3Storage.path()` raises
+    NotImplementedError by design, because an object in a bucket has no
+    local path. Moving uploads to Backblaze therefore made every parse
+    fail -- recorded as FAILED rather than crashing, so uploads kept
+    working and nothing surfaced except "document processing is broken".
+
+    Uses the real path when the backend has one (no copy, no temp file),
+    and otherwise streams the object to a temporary file and removes it
+    afterwards.
+    """
+    try:
+        path = field.path
+    except (NotImplementedError, AttributeError, ValueError):
+        path = None
+
+    if path:
+        yield path
+        return
+
+    suffix = Path(field.name).suffix or ""
+    handle = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+    try:
+        with field.open("rb") as source:
+            for chunk in iter(lambda: source.read(1024 * 256), b""):
+                handle.write(chunk)
+        handle.close()
+        yield handle.name
+    finally:
+        try:
+            handle.close()
+        except Exception:  # noqa: BLE001 — already closed
+            pass
+        try:
+            os.unlink(handle.name)
+        except OSError:
+            # A temp file we cannot remove is untidy, not a failure.
+            logger.warning("Could not remove temporary copy %s", handle.name)

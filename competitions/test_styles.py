@@ -23,6 +23,7 @@ TEMPLATES = Path(settings.BASE_DIR) / "templates"
 SELF_CONTAINED = {
     "website_landing_page.html",
     "prepare.html",
+    "programme.html",
     "partner.html",
     "track_application_red.html",
     "track_application_blue.html",

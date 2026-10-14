@@ -53,6 +53,7 @@ urlpatterns = [
     path("verify/<token:token>/", views.verify_email, name="verify_email"),
     # Code of conduct (Guide s.6 step 4)
     path("conduct/", views.conduct, name="conduct"),
+    path("terms/", views.terms, name="terms"),
     path("choose-role/", views.choose_role, name="choose_role"),
     path("team-form/", views.team_form, name="team_form"),
     # Members wait for their captain's invitation here (Guide s.6 step 7).
@@ -68,6 +69,8 @@ urlpatterns = [
     ),
     # My Team (captain: invite, remove, mark specialists; member: read-only)
     path("team-requests/", views.team_requests, name="team_requests"),
+    # Captains correcting their own team: institution, track, brief.
+    path("team-requests/edit/", views.team_edit, name="team_edit"),
     path("team-requests/submit/", views.registration_submit, name="registration_submit"),
     path("invitations/revoke/<int:pk>/", views.invitation_revoke, name="invitation_revoke"),
     path(
@@ -136,6 +139,9 @@ urlpatterns = [
     path("consent/export.csv", views.consent_export, name="consent_export"),
     path("roles/", views.role_list, name="role_list"),
     path("teams/", views.team_list, name="team_list"),
+    # Rosters: one row per seat, filtered and exportable.
+    path("members/", views.member_list, name="member_list"),
+    path("members/export.csv", views.member_export, name="member_export"),
     path("teams/<int:pk>/", views.team_detail, name="team_detail"),
     path("teams/<int:pk>/decide/", views.team_decide, name="team_decide"),
     path("teams/<int:pk>/welcome-pack/", views.team_welcome_pack, name="team_welcome_pack"),

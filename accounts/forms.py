@@ -6,11 +6,11 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from competitions.constants import Enterprise
+from competitions.constants import Enterprise, Track
 from competitions.models import ApplicationBrief, Competition
 
 from .institutions import recognise
-from .models import PolicyVersion, Team, TeamMember, UserProfile
+from .models import ParticipantConsent, PolicyVersion, Team, TeamMember, UserProfile
 
 # Identity document rules (Guide section 6, step 2).
 IDENTITY_MAX_BYTES = 5 * 1024 * 1024
@@ -88,17 +88,104 @@ class ConductAcceptanceForm(forms.Form):
         self.version = version or PolicyVersion.current()
 
 
-class TeamForm(forms.ModelForm):
+class ParticipantTermsForm(forms.ModelForm):
+    """The required tick, and the optional choices that stand beside it.
+
+    One required field and sixteen optional ones, which is the document's
+    own shape: "Only the first box is required. Every other box starts
+    empty and stands alone." Nothing here is pre-ticked, and nothing is
+    grouped in a way that would let one tick imply another.
+    """
+
+    accept = forms.BooleanField(
+        required=True,
+        label=(
+            "I have read and I agree to the JengaSec 2026 Participant Terms and "
+            "Conditions, the Entry Guide and Competition Rules, and the Strathmore "
+            "University Privacy Policy."
+        ),
+        error_messages={
+            "required": "You cannot enter the venue without agreeing to the terms."
+        },
+    )
+
+    class Meta:
+        model = ParticipantConsent
+        fields = (
+            ["black_lanyard"]
+            + [f for f, _, _ in ParticipantConsent.MEDIA_FIELDS]
+            + [f for f, _, _ in ParticipantConsent.RECRUITER_FIELDS]
+        )
+
+    def __init__(self, *args, version=None, already_accepted=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.version = version or PolicyVersion.current(PolicyVersion.Kind.TERMS)
+        # Somebody returning to change an optional choice has already
+        # agreed; asking them to tick it again to save a preference would
+        # suggest the agreement itself lapses, which it does not.
+        if already_accepted:
+            self.fields["accept"].required = False
+            self.fields["accept"].initial = True
+
+    def clean(self):
+        cleaned = super().clean()
+        # Clause 5.4: portraits are not available with a black lanyard.
+        # Refused rather than silently unticked, so the person sees the
+        # contradiction and chooses which one they meant.
+        if cleaned.get("black_lanyard") and cleaned.get("m4_portraits"):
+            self.add_error(
+                "m4_portraits",
+                "Portraits and interviews are not available with a black lanyard. "
+                "Untick one of the two.",
+            )
+        return cleaned
+
+
+class TeamEditForm(forms.ModelForm):
+    """What a captain may change about their own team after creating it.
+
+    There was no such form and no route: `institution` and `track` were
+    set once at creation and then frozen, with nothing in the interface
+    to change them -- which is exactly the "I cannot find the button"
+    report. Competition, captain and status stay out: those are
+    organiser decisions, not the captain's.
+    """
+
     class Meta:
         model = Team
-        fields = [
-            "competition",
-            "team_name",
-            "track",
-            "captain",
-            "institution",
-            "status",
-        ]
+        fields = ["team_name", "team_type", "track", "application_brief", "institution"]
+        widgets = {"team_type": forms.RadioSelect, "track": forms.RadioSelect}
+        labels = {
+            "team_type": "Which side are you competing on?",
+            "track": "Specialisation",
+            "application_brief": "JengaBank application (Application track only)",
+            "institution": "Lead institution",
+        }
+        help_texts = {
+            "institution": "The university or college entering this team.",
+            "application_brief": "Application teams only. Leave blank on the AI tracks.",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["application_brief"].queryset = (
+            ApplicationBrief.objects.filter(is_open=True).order_by("code")
+        )
+        self.fields["application_brief"].required = False
+        self.fields["institution"].required = True
+
+    def clean(self):
+        data = super().clean()
+        # Same pairing rule the create form enforces, repeated here so a
+        # later edit cannot produce a combination creation would refuse.
+        if data.get("track") == Track.APPLICATION and not data.get("application_brief"):
+            self.add_error(
+                "application_brief",
+                "Application teams pick the JengaBank application they are working on.",
+            )
+        if data.get("track") == Track.AI and data.get("application_brief"):
+            data["application_brief"] = None
+        return data
 
 
 class TeamMemberForm(forms.ModelForm):
@@ -444,8 +531,14 @@ class WelcomePackForm(forms.ModelForm):
 
     class Meta:
         model = Team
-        fields = ["repository_url", "namespace"]
-        labels = {"repository_url": "Repository URL"}
+        fields = ["repository_url", "namespace", "service_ip"]
+        labels = {
+            "repository_url": "Repository URL",
+            "service_ip": "Reserved MetalLB IPv4 address",
+        }
+        help_texts = {
+            "service_ip": "Required for Application Blue cells; leave blank for other tracks.",
+        }
 
 
 # Guide section 6: the reasons a registration is turned down. Organisers

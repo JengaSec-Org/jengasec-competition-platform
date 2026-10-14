@@ -13,6 +13,7 @@ from django.utils import timezone
 from services import account_service
 from competitions.models import Competition
 from services import competition_service
+from services import deployment_service
 from services import matching_service
 from services import notification_catalogue as cat
 from services import stored_files
@@ -22,6 +23,8 @@ from notifications.management.commands.send_outstanding_digest import outstandin
 from notifications.management.commands.send_registration_reminders import outstanding_for
 
 from .forms import (
+    ParticipantTermsForm,
+    TeamEditForm,
     ConductAcceptanceForm,
     InviteForm,
     ProfileForm,
@@ -34,7 +37,9 @@ from .forms import (
     UserRegistrationForm,
     WelcomePackForm,
 )
-from .models import PolicyVersion, Team, TeamInvitation, TeamMember, UserProfile
+from .models import (
+    ParticipantConsent, PolicyVersion, Team, TeamInvitation, TeamMember, UserProfile,
+)
 from .roles import ALL_ROLES, TEAM_ROLES
 from . import storage_diagnostics
 from .security import client_ip
@@ -157,6 +162,77 @@ def conduct(request):
         "accounts/conduct.html",
         {"version": version, "accepted": accepted, "acceptance": acceptance, "form": form},
     )
+
+
+@login_required
+def terms(request):
+    """Read the Participant Terms, agree, and make the optional choices.
+
+    The agreement is one tick recorded as a `PolicyAcceptance`, like any
+    other policy. The optional choices live on `ParticipantConsent` and can
+    be changed afterwards without re-agreeing -- clause 7.1 says a change
+    never reduces a choice already made, so coming back to tick one more
+    box must not look like starting again.
+    """
+    version = PolicyVersion.current(PolicyVersion.Kind.TERMS)
+    accepted = version is not None and account_service.has_accepted_current_policy(
+        request.user, PolicyVersion.Kind.TERMS
+    )
+    consent = ParticipantConsent.objects.filter(user=request.user).first()
+
+    form = ParticipantTermsForm(
+        instance=consent, version=version, already_accepted=accepted
+    )
+    if request.method == "POST" and version is not None:
+        form = ParticipantTermsForm(
+            request.POST, instance=consent, version=version,
+            already_accepted=accepted,
+        )
+        if form.is_valid():
+            record = form.save(commit=False)
+            record.user = request.user
+            record.version = version
+            record.save()
+            if not accepted:
+                account_service.accept_policy(
+                    request.user, version, ip_address=client_ip(request) or None
+                )
+                messages.success(
+                    request,
+                    f"Terms v{version.version} accepted. Your choices are saved — "
+                    f"you can change them here at any time.",
+                )
+            else:
+                messages.success(request, "Your choices have been updated.")
+            next_url = request.POST.get("next") or ""
+            if next_url.startswith("/"):
+                return redirect(next_url)
+            return redirect("accounts:terms")
+
+    acceptance = (
+        request.user.policy_acceptances.filter(version=version).first()
+        if version else None
+    )
+    def group(rows):
+        """Bound fields with their published code and wording.
+
+        Built here because a template cannot look a form field up by a
+        name it has to read out of a list first.
+        """
+        return [
+            {"field": form[name], "code": code, "label": label}
+            for name, code, label in rows
+        ]
+
+    return render(request, "accounts/terms.html", {
+        "version": version,
+        "accepted": accepted,
+        "acceptance": acceptance,
+        "consent": consent,
+        "form": form,
+        "media_fields": group(ParticipantConsent.MEDIA_FIELDS),
+        "recruiter_fields": group(ParticipantConsent.RECRUITER_FIELDS),
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -307,6 +383,9 @@ def team_requests(request):
             # here rather than only on the dashboard.
             "key_dates": competition_service.key_dates(team.competition, team),
             "seats_free": matching_service.seats_free(team),
+            # The application image, for the card the briefing points at.
+            "app_submission": deployment_service.latest_for_team(team),
+            "app_passing": deployment_service.last_passing(team),
         },
     )
 
@@ -645,26 +724,44 @@ def role_list(request):
 @login_required
 @staff_required
 def team_list(request):
-    status = request.GET.get("status", "")
-    teams = (
-        Team.objects.select_related("competition", "captain")
-        .annotate(
-            member_count=Count("members", distinct=True),
-            pending_count=Count(
-                "invitations",
-                filter=Q(invitations__status=TeamInvitation.Status.PENDING),
-                distinct=True,
-            ),
-        )
-        .order_by("competition__name", "team_name")
-    )
-    if status:
-        teams = teams.filter(status=status)
-    counts = {s: Team.objects.filter(status=s).count() for s, _ in Team.Status.choices}
+    """Organiser team list, narrowed by side, track, status and state.
+
+    Filtering lives in `services.roster_filters` so the CSV an organiser
+    downloads is the same set they are looking at -- the export used to
+    dump every team regardless of the filters on screen.
+    """
+    from services import roster_filters
+
+    params = request.GET
+    teams = roster_filters.teams(params)
+    total = Team.objects.count()
+
     return render(
         request,
         "accounts/teams.html",
-        {"teams": teams, "status": status, "statuses": Team.Status.choices, "counts": counts},
+        {
+            "teams": teams,
+            "shown": teams.count(),
+            "total": total,
+            "filters": roster_filters.TEAM_FILTERS,
+            "states": roster_filters.COMPLETENESS,
+            "active": roster_filters.active(params),
+            "params": params,
+            "side": params.get("side", ""),
+            "track": params.get("track", ""),
+            "status": params.get("status", ""),
+            "state": params.get("state", ""),
+            "institution": params.get("institution", ""),
+            "q": params.get("q", ""),
+            "export_query": roster_filters.querystring(params),
+            "counts": {
+                s: Team.objects.filter(status=s).count() for s, _ in Team.Status.choices
+            },
+            "side_counts": {
+                t: Team.objects.filter(team_type=t).count()
+                for t, _ in Team.TeamType.choices
+            },
+        },
     )
 
 
@@ -923,11 +1020,20 @@ def consent_register(request):
     view that is actually actionable before a deadline.
     """
     current = PolicyVersion.current()
+    terms = PolicyVersion.current(PolicyVersion.Kind.TERMS)
     accepted_ids = set()
     if current:
         accepted_ids = set(
             current.acceptances.values_list("user_id", flat=True)
         )
+    terms_ids = set(
+        terms.acceptances.values_list("user_id", flat=True)
+    ) if terms else set()
+    # One query for the lanyards rather than one per person: the check-in
+    # desk opens this with the whole field on it.
+    consents = {
+        c.user_id: c for c in ParticipantConsent.objects.all()
+    }
 
     rows = []
     for profile_obj in (
@@ -936,16 +1042,28 @@ def consent_register(request):
         .order_by("username")
     ):
         profile = getattr(profile_obj, "profile", None)
+        consent = consents.get(profile_obj.pk)
         rows.append({
             "user": profile_obj,
             "privacy_at": getattr(profile, "privacy_accepted_at", None),
             "privacy_ip": getattr(profile, "privacy_accepted_ip", None),
             "conduct": profile_obj.pk in accepted_ids,
+            "terms": profile_obj.pk in terms_ids,
+            # What the desk issues. Shown for everybody, because "no row"
+            # and "standard lanyard" must not look the same.
+            "lanyard": consent.lanyard if consent else "Standard",
+            "black_lanyard": bool(consent and consent.black_lanyard),
+            "recruiters": bool(consent and consent.shares_with_recruiters),
             "team": team_service.team_for(profile_obj),
         })
 
     if request.GET.get("missing"):
-        rows = [r for r in rows if not r["privacy_at"] or not r["conduct"]]
+        rows = [
+            r for r in rows
+            if not r["privacy_at"] or not r["conduct"] or not r["terms"]
+        ]
+    if request.GET.get("black"):
+        rows = [r for r in rows if r["black_lanyard"]]
 
     return render(
         request,
@@ -953,8 +1071,13 @@ def consent_register(request):
         {
             "rows": rows,
             "policy": current,
+            "terms": terms,
             "missing_only": bool(request.GET.get("missing")),
-            "complete": sum(1 for r in rows if r["privacy_at"] and r["conduct"]),
+            "black_only": bool(request.GET.get("black")),
+            "complete": sum(
+                1 for r in rows if r["privacy_at"] and r["conduct"] and r["terms"]
+            ),
+            "black_lanyards": sum(1 for r in rows if r["black_lanyard"]),
         },
     )
 
@@ -1006,3 +1129,149 @@ def _stamp(value):
     from django.utils import timezone
 
     return timezone.localtime(value).strftime("%Y-%m-%d %H:%M") if value else ""
+
+
+@login_required
+def team_edit(request):
+    """Let a captain correct their own team's details.
+
+    There was no route for this: institution and track were set at
+    creation and then unreachable, so a captain who picked the wrong one
+    -- or left the institution blank -- had nowhere to go. Locked while
+    organisers review, like every other roster change.
+    """
+    team = team_service.team_for(request.user)
+    if not team:
+        return redirect("accounts:choose_role")
+    if not team_service.is_captain_of(request.user, team):
+        messages.error(request, "Only the captain can change the team's details.")
+        return redirect("accounts:team_requests")
+
+    if team.is_locked:
+        messages.error(
+            request,
+            f"{team.team_name} is {team.get_status_display().lower()} and its details "
+            f"are frozen while organisers review it. Ask an organiser to return it "
+            f"if something needs correcting.",
+        )
+        return redirect("accounts:team_requests")
+
+    if request.method == "POST":
+        form = TeamEditForm(request.POST, instance=team)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"{team.team_name} updated.")
+            return redirect("accounts:team_requests")
+    else:
+        form = TeamEditForm(instance=team)
+
+    return render(
+        request,
+        "accounts/team_edit.html",
+        {"form": form, "team": team},
+    )
+
+
+@login_required
+@staff_required
+def member_list(request):
+    """Every person on a team, filtered the same way as the team list.
+
+    Distinct from `user_list`, which is accounts. This is rosters: one
+    row per seat, so an organiser checking who is on which team sees the
+    team on every line and can click straight through to the account.
+    """
+    from services import roster_filters
+
+    params = request.GET
+    members = roster_filters.members(params)
+    return render(
+        request,
+        "accounts/members.html",
+        {
+            "members": members,
+            "shown": members.count(),
+            "total": TeamMember.objects.count(),
+            "filters": roster_filters.TEAM_FILTERS,
+            "states": roster_filters.MEMBER_STATES,
+            "roles": TeamMember.MemberRole.choices,
+            "active": roster_filters.active(params),
+            "params": params,
+            "side": params.get("side", ""),
+            "track": params.get("track", ""),
+            "status": params.get("status", ""),
+            "state": params.get("state", ""),
+            "role": params.get("role", ""),
+            "institution": params.get("institution", ""),
+            "q": params.get("q", ""),
+            "export_query": roster_filters.querystring(params),
+            "export_columns": [(k, v[0]) for k, v in EXPORT_COLUMNS.items()],
+            "default_columns": DEFAULT_COLUMNS,
+        },
+    )
+
+
+# Columns an organiser may pick for a roster export. Key -> (header, getter).
+EXPORT_COLUMNS = {
+    "team": ("Team", lambda m: m.team.team_name),
+    "identifier": ("Team ID", lambda m: m.team.team_identifier or ""),
+    "side": ("Side", lambda m: m.team.get_team_type_display()),
+    "track": ("Track", lambda m: m.team.get_track_display() if m.team.track else ""),
+    "team_status": ("Team status", lambda m: m.team.get_status_display()),
+    "institution": ("Institution", lambda m: m.team.institution),
+    "name": ("Name", lambda m: m.student_name),
+    "email": ("Email", lambda m: m.email),
+    "role": ("Role", lambda m: m.get_role_display()),
+    "specialist": ("Security specialist", lambda m: "yes" if m.is_security_specialist else "no"),
+    "username": ("Username", lambda m: m.user.username if m.user else ""),
+    "phone": ("Phone", lambda m: getattr(getattr(m.user, "profile", None), "phone", "") or ""),
+    "student_number": ("Student number", lambda m: getattr(getattr(m.user, "profile", None), "student_number", "") or ""),
+    "programme": ("Programme", lambda m: getattr(getattr(m.user, "profile", None), "programme", "") or ""),
+    "verified": ("Email verified", lambda m: _verified(m)),
+    "has_id": ("ID uploaded", lambda m: _has_id(m)),
+}
+
+DEFAULT_COLUMNS = ["team", "side", "track", "name", "email", "role", "institution"]
+
+
+def _verified(member):
+    profile = getattr(member.user, "profile", None)
+    if profile is None:
+        return "no account"
+    return "yes" if profile.is_email_verified else "no"
+
+
+def _has_id(member):
+    profile = getattr(member.user, "profile", None)
+    if profile is None:
+        return "no account"
+    return "yes" if profile.identity_document else "no"
+
+
+@login_required
+@staff_required
+def member_export(request):
+    """The filtered roster, with the columns the organiser picked.
+
+    Honours exactly the filters on screen -- same `roster_filters.members`
+    call as the list -- so what downloads is what was being looked at.
+    """
+    import csv
+
+    from django.http import HttpResponse
+
+    from services import roster_filters
+
+    chosen = [c for c in request.GET.getlist("columns") if c in EXPORT_COLUMNS]
+    if not chosen:
+        chosen = DEFAULT_COLUMNS
+
+    members = roster_filters.members(request.GET)
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="jengasec-roster.csv"'
+    writer = csv.writer(response)
+    writer.writerow([EXPORT_COLUMNS[c][0] for c in chosen])
+    for member in members:
+        writer.writerow([EXPORT_COLUMNS[c][1](member) for c in chosen])
+    return response

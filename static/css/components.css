@@ -348,3 +348,198 @@
 .job-card { display: flex; flex-direction: column; }
 .job-card .card-title { margin-bottom: 0.5rem; }
 .job-card form { margin-top: auto; padding-top: 0.9rem; }
+
+/* ---- notification body ------------------------------------------------
+   Notifications are written as plain text with paragraphs, bullets and
+   "Label: value" rows, and used to render inside one <p>, where HTML
+   collapses the newlines into a single run-on sentence. These give the
+   parsed blocks the shape they were written with. */
+.note-body { color: var(--muted); }
+.note-body .note-text { margin: 0 0 0.6rem; line-height: 1.55; }
+.note-body .note-text:last-child { margin-bottom: 0; }
+.note-list { margin: 0 0 0.6rem 1.1rem; padding: 0; }
+.note-list li { margin-bottom: 0.25rem; line-height: 1.5; }
+.note-fields {
+  display: grid;
+  grid-template-columns: minmax(7rem, auto) 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0 0 0.6rem;
+}
+.note-fields dt {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.note-fields dd { margin: 0; color: var(--text); }
+
+/* ---- FAQ --------------------------------------------------------------
+   A reading page, so the question leads and the answer sits under it with
+   room to breathe. Two columns of contents at desktop width, one on a
+   phone. */
+.faq-toc {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  columns: 2;
+  column-gap: 2rem;
+}
+.faq-toc li { margin-bottom: 0.35rem; break-inside: avoid; }
+@media (max-width: 640px) { .faq-toc { columns: 1; } }
+
+.faq-list { margin: 0.5rem 0 0; }
+.faq-list dt {
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 1.1rem;
+  line-height: 1.4;
+}
+.faq-list dt:first-child { margin-top: 0; }
+.faq-list dd {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ---- phase divider ----------------------------------------------------
+   Separates the two halves of a merged dashboard. A rule with a label, so
+   a long page still reads as two sections rather than one scroll. */
+.phase-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 2.25rem 0 1.5rem;
+}
+.phase-divider::before,
+.phase-divider::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--border);
+}
+.phase-divider span {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ---- filter bar -------------------------------------------------------
+   The organiser screens narrow by several things at once, so the controls
+   wrap on one line and the summary underneath says what is in force and
+   offers the matching export. */
+.filter-bar { margin-bottom: 1.5rem; }
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+/* The global `select { width: 100% }` makes every control claim a whole
+   row, which turned a one-line filter bar into a seven-row stack. */
+.filter-row select,
+.filter-row input[type="search"],
+.filter-row input[type="text"] {
+  width: auto;
+  flex: 0 1 auto;
+  min-width: 8.5rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  background: var(--surface);
+  color: var(--text);
+}
+.filter-row .filter-search { flex: 2 1 16rem; }
+.filter-row .filter-inst { flex: 1 1 10rem; }
+.filter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.filter-summary code {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--primary);
+}
+
+/* ---- column picker ----------------------------------------------------
+   Ticking which columns to export. A grid rather than a list, because
+   sixteen stacked checkboxes is a scroll, not a choice. */
+.column-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.4rem 1rem;
+  margin: 0.75rem 0 0;
+}
+.column-picker label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.column-picker input[type="checkbox"] { accent-color: var(--primary); }
+
+/* ---- check strip ------------------------------------------------------
+   The four checks an application image goes through: Pulled, Scanned,
+   Deployed, Healthy. The team was shown these four names in the briefing
+   and the Image Submission Guide, so they are named, not numbered, and
+   the ones still ahead stay visible rather than being hidden -- a team
+   stuck at Deployed needs to see what it has not reached yet. */
+.check-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.9rem 0 0.6rem;
+}
+.check {
+  flex: 1 1 7rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface-off);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--muted);
+}
+.check.is-done {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--text-inverse);
+}
+
+/* ---- code block -------------------------------------------------------
+   A scan report or a log excerpt, as it came back. Wraps rather than
+   scrolling sideways, because the useful part of a Trivy line or a stack
+   trace is usually past the right-hand edge. */
+.code-block {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.85rem;
+  max-height: 22rem;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-off);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

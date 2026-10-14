@@ -8,6 +8,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -15,7 +16,7 @@ from accounts.models import Team
 from accounts.roles import JUDGE, user_in_role
 from audit.models import AuditLog
 from competitions.models import TargetAssignment
-from services import stored_files
+from services import scoring_service, stored_files
 from services.audit_service import record as audit
 from services.submission_service import teams_for
 
@@ -158,7 +159,14 @@ def finding_detail(request, pk):
                 target=finding,
                 description=f"{finding.get_status_display()} / {finding.severity or 'no severity'}",
             )
-            messages.success(request, "Review saved.")
+            # Every review re-scores the whole team, not just this finding:
+            # a downgrade or a duplicate has to be able to take marks away,
+            # which an incremental award cannot do. Deferred to commit so a
+            # rolled-back review never leaves a mark behind.
+            transaction.on_commit(
+                lambda: scoring_service.award_for_finding(finding, recorded_by=request.user)
+            )
+            messages.success(request, "Review saved. The team's marks were updated.")
             return redirect("cyberrange:finding_detail", pk=finding.pk)
 
     return render(request, "cyberrange/finding_detail.html", {

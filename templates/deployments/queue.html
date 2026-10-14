@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Application submissions — JengaSec{% endblock %}
+
+{% comment %}
+The deploy desk: one row per team, its latest attempt. The counts at the
+top are the ones that matter at the freeze -- a team with no passing
+image has no application in the competition.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="APPLICATIONS" title="Application submissions" %}
+
+{% if summary %}
+  <div class="card">
+    <span class="tlabel">// {{ competition.name }}</span>
+    <div class="column-picker" style="margin-top:0.6rem;">
+      <div><strong>{{ summary.teams }}</strong> <span class="text-muted">application teams</span></div>
+      <div><strong>{{ summary.passing }}</strong> <span class="text-muted">passing</span></div>
+      <div><strong>{{ summary.submitted_not_passing }}</strong> <span class="text-muted">submitted, not passing</span></div>
+      <div><strong>{{ summary.never_submitted }}</strong> <span class="text-muted">never submitted</span></div>
+      <div><strong>{{ summary.frozen }}</strong> <span class="text-muted">frozen</span></div>
+    </div>
+  </div>
+{% endif %}
+
+<div class="card" style="margin-top:1.5rem;">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Cell</th><th>Team</th><th>#</th><th>Image</th><th>Result</th><th>When</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>{{ row.team.cell_label|default:"—" }}</td>
+            <td><a href="{% url 'accounts:team_detail' row.team.pk %}">{{ row.team.team_name }}</a></td>
+            <td>{{ row.attempt }}</td>
+            <td><code>{{ row.image_reference }}</code></td>
+            <td>
+              {% if row.is_passing %}
+                {% include "components/badge.html" with label="Healthy" color="green" %}
+              {% elif row.has_stopped %}
+                {% include "components/badge.html" with label=row.get_status_display color="red" %}
+              {% else %}
+                {% include "components/badge.html" with label=row.get_status_display color="gold" %}
+              {% endif %}
+              {% if row.frozen_at %}{% include "components/badge.html" with label="Frozen" color="green" %}{% endif %}
+            </td>
+            <td>{{ row.created_at|date:"j M H:i" }}</td>
+            <td><a href="{% url 'deployments:review' row.pk %}">Record</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="text-muted">No team has submitted an application image yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

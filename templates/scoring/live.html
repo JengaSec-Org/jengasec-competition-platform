@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Live scoring — JengaSec{% endblock %}
+
+{% comment %}
+The venue scoreboard. Two halves: where everyone stands, and the marks as
+they land. Refreshes itself, because this is meant to be left open on a
+projector and on 324 phones.
+
+Whose clock it is showing is stated, not implied. A participant comparing
+this with their own team page must be able to work out why the two differ.
+{% endcomment %}
+
+{% block extra_head %}
+<meta http-equiv="refresh" content="{{ refresh_seconds }}">
+{% endblock %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="LIVE_SCORING" title="Live scoring" %}
+
+<div class="card">
+  <span class="tlabel">// {{ competition.name|upper }}</span>
+  <p class="text-muted" style="margin-top:0.4rem;">
+    {% if live %}
+      <strong>Live.</strong> You see each mark the moment it is recorded, because you mark.
+    {% else %}
+      Showing the board as it stood at <strong>{{ showing|date:"H:i" }}</strong> —
+      marks appear here {{ delay_minutes }} minutes after a judge records them.
+      Your own team's page always shows everything immediately.
+    {% endif %}
+    Refreshes every {{ refresh_seconds }} seconds.
+  </p>
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+  <span class="tlabel">// STANDING</span>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width:3.5rem;">#</th>
+          <th>Team</th>
+          {% for stage in stages %}<th style="width:5.5rem;">{{ stage.name }}</th>{% endfor %}
+          <th style="width:4.5rem;">Bonus</th>
+          <th style="width:5.5rem;">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr{% if row.team.pk in my_team_ids %} class="is-next"{% endif %}>
+            <td><strong>{{ row.rank }}</strong></td>
+            <td>
+              <a href="{% url 'scoring:breakdown' row.team.pk %}">{{ row.team.team_name }}</a>
+              {% if row.team.cell_label %}<span class="person-sub">{{ row.team.cell_label }}</span>{% endif %}
+            </td>
+            <td>{{ row.score.entry }}</td>
+            <td>{{ row.score.main }}</td>
+            <td>{{ row.score.documentation }}</td>
+            <td>{% if row.score.bonus %}+{{ row.score.bonus }}{% else %}—{% endif %}</td>
+            <td><strong>{{ row.score.total }}</strong></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="text-muted">Nothing scored yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="form-actions">
+    {% url 'scoring:leaderboard' as board_url %}
+    {% include "components/button.html" with label="Full standing" href=board_url variant="ghost" size="sm" %}
+  </div>
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+  <span class="tlabel">// AS_IT_HAPPENS</span>
+  <h3 class="card-title">Marks as they land</h3>
+  {% if events %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:5rem;">Time</th>
+            <th>Team</th>
+            <th>What</th>
+            <th style="width:4.5rem;">Marks</th>
+            <th style="width:7rem;">Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in events %}
+            <tr{% if event.team.pk in my_team_ids %} class="is-next"{% endif %}>
+              <td class="kd-when">{{ event.recorded_at|date:"H:i" }}</td>
+              <td>
+                <a href="{% url 'scoring:breakdown' event.team.pk %}">{{ event.team.team_name }}</a>
+                {% if event.team.cell_label %}<span class="person-sub">{{ event.team.cell_label }}</span>{% endif %}
+              </td>
+              <td>
+                {{ event.criterion|default:event.stage }}
+                {% if event.note %}<span class="person-sub">{{ event.note }}</span>{% endif %}
+              </td>
+              <td><strong>{{ event.marks }}</strong></td>
+              <td><span class="person-sub">{{ event.get_source_display }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted">
+      {% if live %}
+        No marks recorded yet.
+      {% else %}
+        Nothing yet. Marks appear here {{ delay_minutes }} minutes after they are recorded.
+      {% endif %}
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

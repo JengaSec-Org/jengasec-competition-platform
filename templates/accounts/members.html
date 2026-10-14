@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Rosters — JengaSec{% endblock %}
+
+{% comment %}
+One row per seat, so an organiser checking who is on which team sees the
+team on every line and can click a name straight through to the account.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="ROSTERS" title="People on teams" %}
+
+{% url 'accounts:member_export' as export_url %}
+{% include "accounts/_roster_filters.html" %}
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th><th>Team</th><th>Side / track</th>
+          <th>Role</th><th>Account</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+          <tr>
+            <td>
+              {% if m.user %}
+                <a href="{% url 'accounts:user_edit' m.user.pk %}">{{ m.student_name|default:m.user.username }}</a>
+              {% else %}
+                {{ m.student_name|default:"—" }}
+              {% endif %}
+              <span class="person-sub">{{ m.email }}</span>
+            </td>
+            <td>
+              <a href="{% url 'accounts:team_detail' m.team.pk %}">{{ m.team.team_name }}</a>
+              {% if m.team.team_identifier %}
+                <span class="person-sub">{{ m.team.team_identifier }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {{ m.team.get_team_type_display }}
+              <span class="person-sub">{{ m.team.get_track_display|default:"—" }} &middot; {{ m.team.institution|default:"no institution" }}</span>
+            </td>
+            <td>
+              {{ m.get_role_display }}
+              {% if m.is_security_specialist %}
+                <span class="person-sub">security specialist</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if not m.user %}
+                {% include "components/badge.html" with label="No account" color="muted" %}
+              {% else %}
+                {% if m.user.profile.is_email_verified %}
+                  {% include "components/badge.html" with label="Verified" color="green" %}
+                {% else %}
+                  {% include "components/badge.html" with label="Unverified" color="red" %}
+                {% endif %}
+                {% if not m.user.profile.identity_document %}
+                  {% include "components/badge.html" with label="No ID" color="gold" %}
+                {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-muted">Nobody matches these filters.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:1.5rem;">
+  <span class="tlabel">// EXPORT</span>
+  <h3 class="card-title">Download these {{ shown }} with chosen columns</h3>
+  <p class="text-muted">
+    Exports exactly the rows above, with only the columns you tick.
+  </p>
+  <form method="get" action="{% url 'accounts:member_export' %}">
+    {% for key, value in active.items %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endfor %}
+    <div class="column-picker">
+      {% for key, label in export_columns %}
+        <label>
+          <input type="checkbox" name="columns" value="{{ key }}"
+                 {% if key in default_columns %}checked{% endif %}>
+          <span>{{ label }}</span>
+        </label>
+      {% endfor %}
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary btn-sm">Download CSV</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

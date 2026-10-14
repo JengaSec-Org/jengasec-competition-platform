@@ -33,7 +33,11 @@
             {% for m, items in checklist %}
               <tr>
                 <td>
-                  {{ m.student_name }}
+                  {% if m.user %}
+                    <a href="{% url 'accounts:user_edit' m.user.pk %}">{{ m.student_name|default:m.user.username }}</a>
+                  {% else %}
+                    {{ m.student_name }}
+                  {% endif %}
                   <div class="form-help">{{ m.email }}{% if m.user.profile.phone %} &middot; {{ m.user.profile.phone }}{% endif %}</div>
                   {% if m.user.profile.date_of_birth %}<div class="form-help">DOB {{ m.user.profile.date_of_birth|date:"j M Y" }}{% if m.user.profile.student_number %} &middot; {{ m.user.profile.student_number }}{% endif %}{% if m.user.profile.programme %} &middot; {{ m.user.profile.programme }}{% endif %}</div>{% endif %}
                 </td>
@@ -137,11 +141,12 @@
     <div class="card">
       <span class="tlabel">// WELCOME_PACK</span>
       <h3 class="card-title">Repository and namespace</h3>
-      <p class="text-muted" style="margin-bottom:1rem;">Recorded here, shown on the team's page, and quoted in the approval notice when set before approval. Credentials never go through the platform.</p>
+      <p class="text-muted" style="margin-bottom:1rem;">Record the team's access details. Application Blue cells also need their unique reserved MetalLB IPv4 address. Credentials never go through the platform.</p>
       <form method="post" action="{% url 'accounts:team_welcome_pack' team.pk %}">
         {% csrf_token %}
         {% include "components/form_field.html" with field=pack_form.repository_url %}
         {% include "components/form_field.html" with field=pack_form.namespace %}
+        {% include "components/form_field.html" with field=pack_form.service_ip %}
         {% include "components/button.html" with label="Save welcome pack" variant="ghost" size="sm" type="submit" %}
       </form>
     </div>

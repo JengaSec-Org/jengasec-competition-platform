@@ -1,0 +1,37 @@
+name: Publish private deploy demo
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_USER: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GH_USER" --password-stdin
+
+      - name: Build and publish the demo image
+        env:
+          IMAGE_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          owner=$(printf '%s' "$IMAGE_OWNER" | tr '[:upper:]' '[:lower:]')
+          image="ghcr.io/${owner}/jengasec-deploy-demo:demo"
+          docker buildx build \
+            --platform linux/amd64 \
+            --tag "$image" \
+            --push \
+            tools/deploy-agent/demo-image
+          echo "Published $image"

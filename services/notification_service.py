@@ -276,19 +276,23 @@ def deliver_after_commit(pks=None, *, dedupe_key=None, user_ids=None, subject=No
     else:
         return
 
-    def _send():
+    def _send(*, close_connections=False):
         try:
             send_pending_emails(queryset=pending_email_queryset().filter(**filters))
         except Exception:  # noqa: BLE001 -- never let delivery break a request
             logger.exception("Post-commit email delivery failed")
         finally:
-            close_old_connections()
+            # A worker owns a separate connection; inline delivery uses the
+            # caller's connection, which may still have an open transaction.
+            if close_connections:
+                close_old_connections()
 
     def _on_commit():
         if any(name in settings.EMAIL_BACKEND for name in _INLINE_BACKENDS):
             _send()
         else:
-            threading.Thread(target=_send, name="notification-email", daemon=True).start()
+            threading.Thread(target=_send, kwargs={"close_connections": True},
+                             name="notification-email", daemon=True).start()
 
     transaction.on_commit(_on_commit)
 

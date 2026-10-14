@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ team.team_name }} — marks{% endblock %}
+
+{% comment %}
+Every mark behind a total, with the reason attached. A team can always
+read this about itself: a mark it cannot see is a mark it cannot appeal.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="MARKS" title=team.team_name %}
+
+<div class="card">
+  <span class="tlabel">// TOTAL</span>
+  <h3 class="card-title">{{ score.total }} / 100</h3>
+  <div class="check-strip">
+    {% for stage in stages %}
+      <span class="check{% if stage.awarded %} is-done{% endif %}">
+        {{ stage.name }} {{ stage.awarded }}/{{ stage.weight }}
+      </span>
+    {% endfor %}
+  </div>
+  {% if can_mark %}
+    <div class="form-actions">
+      {% url 'scoring:mark' team.pk as mark_url %}
+      {% include "components/button.html" with label="Record marks" href=mark_url variant="primary" size="sm" %}
+    </div>
+  {% endif %}
+</div>
+
+{% for stage in stages %}
+  <div class="card" style="margin-top:1.5rem;">
+    <span class="tlabel">// {{ stage.name|upper }} :: {{ stage.awarded }}/{{ stage.weight }}</span>
+    <h3 class="card-title">{{ stage.summary }}</h3>
+
+    {% if stage.events %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Criterion</th><th style="width:5rem;">Marks</th><th>Why</th><th style="width:8rem;">Source</th></tr></thead>
+          <tbody>
+            {% for event in stage.events %}
+              <tr>
+                <td>{{ event.criterion|default:"—" }}</td>
+                <td><strong>{{ event.marks }}</strong></td>
+                <td class="text-muted">
+                  {{ event.note|default:"—" }}
+                  {% if event.finding %}
+                    <span class="person-sub">finding #{{ event.finding.pk }}</span>
+                  {% endif %}
+                </td>
+                <td><span class="person-sub">{{ event.get_source_display }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted">Not marked yet.</p>
+    {% endif %}
+  </div>
+{% endfor %}
+
+<div class="form-actions" style="margin-top:1.5rem;">
+  {% url 'scoring:leaderboard' as board_url %}
+  {% include "components/button.html" with label="Back to the standing" href=board_url variant="ghost" size="sm" %}
+</div>
+{% endblock %}

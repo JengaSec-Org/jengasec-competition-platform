@@ -15,6 +15,7 @@ committing it. Observability consumes the privacy-safe database views instead.
 import pathlib
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 
 from audit.models import AuditLog
 from competitions.models import Competition
@@ -31,7 +32,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--fill-namespaces",
             action="store_true",
-            help="Retained for compatibility; canonical namespaces are always reconciled.",
+            help="Store the canonical namespace only on Blue teams whose namespace is empty.",
         )
         parser.add_argument(
             "--enable-optional",
@@ -46,9 +47,12 @@ class Command(BaseCommand):
             raise CommandError(f"No competition with id {opts['competition']}") from exc
 
         try:
-            result = range_service.sync_observability_data(
-                competition, enable_optional=opts["enable_optional"]
-            )
+            with transaction.atomic():
+                if opts["fill_namespaces"]:
+                    range_service.fill_namespaces(competition)
+                result = range_service.sync_observability_data(
+                    competition, enable_optional=opts["enable_optional"]
+                )
         except range_service.ObservabilitySyncError as exc:
             raise CommandError(str(exc)) from exc
         self.stdout.write(

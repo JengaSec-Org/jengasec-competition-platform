@@ -265,13 +265,19 @@ class ChecklistAndConductTests(CommitMixin, TestCase):
 
     def test_policy_gate_and_republish(self):
         v1 = publish_policy("1.0")
-        self.assertIn("code of conduct", " ".join(outstanding_for_member(self.member)))
+        # The outstanding item now names the document, so match case-insensitively:
+        # the assertion is "the conduct is chased", not "chased in lower case".
+        self.assertIn(
+            "code of conduct", " ".join(outstanding_for_member(self.member)).lower()
+        )
         account_service.accept_policy(self.captain, v1, ip_address="127.0.0.1")
         self.assertEqual(outstanding_for_member(self.member), [])
         # A new version needs accepting again and notifies competitors.
         with self.committed():
             publish_policy("1.1")
-        self.assertIn("code of conduct", " ".join(outstanding_for_member(self.member)))
+        self.assertIn(
+            "code of conduct", " ".join(outstanding_for_member(self.member)).lower()
+        )
         self.assertTrue(
             Notification.objects.filter(user=self.captain, type=Notification.Type.POLICY_UPDATED).exists()
         )
@@ -407,6 +413,20 @@ class SubmitRegistrationTests(CommitMixin, TestCase):
         self.assertIn("Repository: https://git.jengasec.org/js26/simba", approved.body)
         self.assertIn("Namespace: js26-simba", approved.body)
         self.assertIn("JS26-R-001", approved.body)
+
+    def test_welcome_pack_accepts_the_reserved_cell_service_ip(self):
+        from accounts.forms import WelcomePackForm
+
+        form = WelcomePackForm(
+            {
+                "repository_url": "",
+                "namespace": "jengasec-ent-a-app01",
+                "service_ip": "10.108.0.11",
+            },
+            instance=self.team,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["service_ip"], "10.108.0.11")
 
     def test_submit_view_end_to_end(self):
         self.client.login(username="wanjiru", password=PASSWORD)

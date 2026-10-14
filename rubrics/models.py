@@ -38,11 +38,26 @@ class Rubric(models.Model):
         return f"{self.title} ({self.submission_type.name})"
 
     def total_weight(self):
-        """Sum of criterion weights — the app requires this to equal 100."""
+        """Sum of criterion weights.
+
+        Not required to be 100. The Entry Guide's proposal weights are
+        relative and sum to 150 (Threat Model 20, Problem Statement 10 and
+        so on), which is the published rubric teams were given. Scoring
+        divides by this total, so the ratios are what matter and the scale
+        does not have to be.
+        """
         return sum((c.weight for c in self.criteria.all()), Decimal("0"))
 
     def weights_valid(self):
-        return self.total_weight() == Decimal("100.00")
+        """Usable for scoring: every criterion counts for something.
+
+        A zero total would divide by zero; a negative weight would let one
+        section subtract from another. Sections the Guide leaves unweighted
+        (Executive Summary, Objectives) are required but carry no mark, so
+        a weight of zero on an individual criterion is legitimate.
+        """
+        weights = [c.weight for c in self.criteria.all()]
+        return bool(weights) and all(w >= 0 for w in weights) and sum(weights) > 0
 
 
 class RubricCriterion(models.Model):

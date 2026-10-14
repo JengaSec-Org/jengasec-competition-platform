@@ -7,6 +7,17 @@
 
 {% include "dashboard/_key_dates.html" %}
 
+{% if is_captain and not team.is_locked %}
+  <p style="margin-bottom:1.25rem;">
+    <a class="btn btn-ghost btn-sm" href="{% url 'accounts:team_edit' %}">
+      Edit team details
+    </a>
+    <span class="text-muted" style="margin-left:0.5rem;">
+      Lead institution, side, specialisation and application.
+    </span>
+  </p>
+{% endif %}
+
 {% if is_captain and playing_count < max_members %}
   {% comment %}
   A short roster is the one thing that blocks submission and cannot be fixed
@@ -59,12 +70,13 @@
   <div style="white-space:pre-wrap; margin:0.5rem 0 0;">{{ team.rejection_reason }}</div>
   {% if is_captain %}<p class="form-help" style="margin-top:0.75rem;">// Correct the above and submit again before registration closes.</p>{% endif %}
 </div>
-{% elif team.status == "approved" and team.repository_url or team.status == "approved" and team.namespace %}
+{% elif team.status == "approved" and team.repository_url or team.status == "approved" and team.namespace or team.status == "approved" and team.service_ip %}
 <div class="card" style="margin-bottom:1.5rem;">
   <span class="tlabel">// WELCOME_PACK</span>
   <h3 class="card-title">Your access</h3>
   {% if team.repository_url %}<p>Repository: <a href="{{ team.repository_url }}">{{ team.repository_url }}</a></p>{% endif %}
   {% if team.namespace %}<p>Namespace: <code class="tlabel">{{ team.namespace }}</code></p>{% endif %}
+  {% if team.service_ip %}<p>Application address: <code class="tlabel">{{ team.service_ip }}</code></p>{% endif %}
   <p class="form-help" style="margin-top:0.5rem;">// Credentials are issued separately by the organisers, never through this page.</p>
 </div>
 {% endif %}
@@ -89,6 +101,36 @@
     {% for item in outstanding %}<li>{{ item }}</li>{% endfor %}
   </ul>
   <p class="form-help" style="margin-top:0.75rem;">// Teams are {{ min_members }} to {{ max_members }} people plus one optional reserve, with at least one security specialist.</p>
+</div>
+{% endif %}
+
+{% if submits_application %}
+{% comment %}
+The application image. The compulsory briefing and the Image Submission
+Guide both send teams to "your team page", so the card lives here even
+though the form has its own page.
+{% endcomment %}
+<div class="card" style="margin-bottom:1.5rem;">
+  <span class="tlabel">// YOUR_APPLICATION</span>
+  <h3 class="card-title">Submit your application image</h3>
+  <p class="text-muted" style="margin-bottom:0.75rem;">
+    {% if app_submission %}
+      Attempt {{ app_submission.attempt }} — {{ app_submission.get_status_display }}.
+      {% if app_passing %}Your last passing image is the one that runs.
+      {% else %}You do not have a passing image yet.{% endif %}
+    {% else %}
+      You hand over a private image reference and a read-only token, not your code.
+    {% endif %}
+  </p>
+  {% if app_submission %}
+    <div class="check-strip">
+      {% for check in app_submission.progress %}
+        <span class="check {% if check.done %}is-done{% endif %}">{{ check.label }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% url 'deployments:submit' as app_url %}
+  {% include "components/button.html" with label="Submit application" href=app_url variant="primary" size="sm" %}
 </div>
 {% endif %}
 
