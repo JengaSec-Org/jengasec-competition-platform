@@ -106,9 +106,13 @@ def status(request):
         return refusal
 
     try:
+        if len(request.body) > 65536:
+            return JsonResponse({"error": "body too large"}, status=413)
         body = json.loads(request.body or b"{}")
     except ValueError:
         return JsonResponse({"error": "body is not JSON"}, status=400)
+    if not isinstance(body, dict):
+        return JsonResponse({"error": "body must be an object"}, status=400)
 
     try:
         submission = AppSubmission.objects.get(pk=body.get("id"))
@@ -122,13 +126,17 @@ def status(request):
             status=400,
         )
 
-    deploy.record_status(
-        submission,
-        new_status,
-        detail=(body.get("detail") or "").strip(),
-        scan_report=body.get("scan_report"),
-        logs_excerpt=body.get("logs_excerpt"),
-    )
+    detail = body.get("detail") or ""
+    if not isinstance(detail, str):
+        return JsonResponse({"error": "detail must be text"}, status=400)
+    try:
+        deploy.record_status(
+            submission, new_status, detail=detail.strip(),
+            scan_report=body.get("scan_report"), logs_excerpt=body.get("logs_excerpt"),
+            resolved_digest=body.get("resolved_digest"),
+        )
+    except ValueError as error:
+        return JsonResponse({"error": str(error)}, status=400)
     audit(
         AuditLog.Action.APP_STATUS_CHANGED,
         request=request,
@@ -141,3 +149,44 @@ def status(request):
         "status": submission.status,
         "is_passing": submission.is_passing,
     })
+
+
+@never_cache
+@require_GET
+def active(request):
+    """Bounded artifact checks. This response never contains registry credentials."""
+    refusal = _authorise(request)
+    if refusal is not None:
+        return refusal
+    try:
+        after = int(request.GET.get("after", "0"))
+        if after < 0:
+            raise ValueError
+    except ValueError:
+        return JsonResponse({"error": "invalid cursor"}, status=400)
+    rows = list(AppSubmission.objects.filter(pk__gt=after, frozen_at__isnull=False)
+                .exclude(frozen_verified_digest="").select_related("team").order_by("pk")[:100])
+    return JsonResponse({"active": [{"id": row.pk, "enterprise": row.team.enterprise,
+                                    "cell": row.team.cell_id,
+                                    "frozen_verified_digest": row.frozen_verified_digest}
+                                   for row in rows], "next_cursor": rows[-1].pk if rows else after})
+
+
+@csrf_exempt
+@never_cache
+@require_POST
+def artifact(request):
+    refusal = _authorise(request)
+    if refusal is not None:
+        return refusal
+    try:
+        if len(request.body) > 4096:
+            return JsonResponse({"error": "body too large"}, status=413)
+        body = json.loads(request.body)
+        if not isinstance(body, dict) or set(body) != {"id", "resolved_digest"} or type(body["id"]) is not int:
+            raise ValueError("Expected an id and verified digest.")
+        row = AppSubmission.objects.get(pk=body["id"])
+        row = deploy.record_artifact(row, body["resolved_digest"])
+    except (ValueError, TypeError, AppSubmission.DoesNotExist) as error:
+        return JsonResponse({"error": "invalid artifact receipt"}, status=400)
+    return JsonResponse({"id": row.pk, "matches_frozen": row.resolved_digest == row.frozen_verified_digest})

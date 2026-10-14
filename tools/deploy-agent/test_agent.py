@@ -12,8 +12,30 @@ import json
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 import agent
+
+
+class ArtifactReceiptTests(unittest.TestCase):
+    def test_manifest_digest_is_resolved_and_ambiguous_values_fail(self):
+        value = "ghcr.io/team/app@sha256:" + "a" * 64
+        with mock.patch.object(agent, "docker", return_value=(0, json.dumps([value]), "")):
+            self.assertEqual(agent.pinned_reference("ghcr.io/team/app:v1"), value)
+        with mock.patch.object(agent, "docker", return_value=(0, "[]", "")):
+            with self.assertRaises(agent.Infra):
+                agent.pinned_reference("ghcr.io/team/app:v1")
+
+    def test_readiness_does_not_change_artifact_identity(self):
+        digest = "sha256:" + "a" * 64
+        workload = {"spec": {"template": {"spec": {"containers": [{"name": "app", "image": "example/app@" + digest}]}}},
+                    "status": {"readyReplicas": 0}}
+        with mock.patch.object(agent, "kubectl", return_value=(0, json.dumps(workload), "")):
+            self.assertEqual(agent.observed_artifact("assigned-cell"), digest)
+        workload["spec"]["template"]["spec"]["containers"][0]["image"] = "example/app:changed"
+        with mock.patch.object(agent, "kubectl", return_value=(0, json.dumps(workload), "")):
+            with self.assertRaises(agent.Infra):
+                agent.observed_artifact("assigned-cell")
 
 
 SUBMISSION = {

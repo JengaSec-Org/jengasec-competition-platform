@@ -140,3 +140,28 @@ store that instead — say the word and I will add a field to `/api/status/`.
 - Red-team toolbox images are **not** offered. `k8s-red` is held in reserve and
   was deliberately not promised to teams before the event, so the platform does
   not invite a submission it may not be able to honour.
+# Verified artifacts for scoring
+
+The authenticated status receiver accepts an optional `resolved_digest` in
+`sha256:<64 lowercase hexadecimal digits>` form. The range resolves the pulled
+registry manifest and deploys that reference. A healthy receipt records when the
+range verified the deployed artifact. An image tag alone is insufficient.
+
+Freeze preserves the existing `frozen_digest` reference for compatibility and
+sets `frozen_verified_digest` only from a verification at most 120 seconds old.
+An older freeze does not acquire invented historical proof when the command is
+repeated.
+
+`GET /deployments/api/active/` returns frozen submission IDs, enterprise, cell and
+verified digests. It returns no registry credentials. Use `after` and
+`next_cursor` to page through up to 100 entries per response.
+
+`POST /deployments/api/artifact/` accepts `{id, resolved_digest}` with the same
+`X-Deploy-Token`. The range must inspect the assigned deployment before sending
+this receipt. It refreshes artifact identity without changing application health.
+A different digest is recorded as a mismatch and cannot replace the frozen
+digest. A missing confirmation expires scoring eligibility after 120 seconds.
+
+Run the deployment agent with `--verify-artifacts` and a polling interval of
+30 seconds after these endpoints are deployed. App health failures remain
+measurable availability failures while the frozen workload identity is known.

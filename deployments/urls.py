@@ -13,4 +13,6 @@ urlpatterns = [
     # Machine endpoints for the range; see deployments/ingest.py.
     path("api/pending/", ingest.pending, name="api_pending"),
     path("api/status/", ingest.status, name="api_status"),
+    path("api/active/", ingest.active, name="api_active"),
+    path("api/artifact/", ingest.artifact, name="api_artifact"),
 ]

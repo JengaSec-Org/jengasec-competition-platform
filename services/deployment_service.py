@@ -18,6 +18,7 @@ calls it "Build ends" and the Guide says the last passing image is locked
 then. Until now that field enforced nothing anywhere on the site.
 """
 import logging
+import re
 
 from django.db import transaction
 from django.utils import timezone
@@ -133,7 +134,8 @@ def submit(team, user, **fields):
     return submission
 
 
-def record_status(submission, status, *, detail="", scan_report=None, logs_excerpt=None):
+def record_status(submission, status, *, detail="", scan_report=None, logs_excerpt=None,
+                  resolved_digest=None):
     """The single write path for the four checks.
 
     Used by the organiser screen and by the range's ingest endpoint, so
@@ -143,6 +145,8 @@ def record_status(submission, status, *, detail="", scan_report=None, logs_excer
 
     if status not in AppSubmission.Status.values:
         raise ValueError(f"Unknown status {status!r}.")
+    if resolved_digest is not None and not valid_digest(resolved_digest):
+        raise ValueError("A verified digest must be sha256 followed by 64 lowercase hex digits.")
 
     submission.status = status
     submission.status_detail = detail or ""
@@ -151,10 +155,36 @@ def record_status(submission, status, *, detail="", scan_report=None, logs_excer
         submission.scan_report = scan_report
     if logs_excerpt is not None:
         submission.logs_excerpt = logs_excerpt
-    submission.save(update_fields=[
-        "status", "status_detail", "status_changed_at", "scan_report", "logs_excerpt",
-    ])
+    fields = ["status", "status_detail", "status_changed_at", "scan_report", "logs_excerpt"]
+    if resolved_digest is not None:
+        submission.resolved_digest = resolved_digest
+        fields.append("resolved_digest")
+        if status == AppSubmission.Status.HEALTHY:
+            submission.digest_verified_at = timezone.now()
+            submission.deployed_digest_verified_at = submission.digest_verified_at
+            fields.extend(["digest_verified_at", "deployed_digest_verified_at"])
+    submission.save(update_fields=fields)
     return submission
+
+
+def valid_digest(value):
+    return isinstance(value, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", value) is not None
+
+
+@transaction.atomic
+def record_artifact(submission, resolved_digest):
+    """Refresh workload identity independently of application availability."""
+    from deployments.models import AppSubmission
+
+    if not valid_digest(resolved_digest):
+        raise ValueError("Invalid verified digest.")
+    current = AppSubmission.objects.select_for_update().get(pk=submission.pk)
+    if not current.frozen_verified_digest:
+        raise ValueError("The application has no verified frozen artifact.")
+    current.resolved_digest = resolved_digest
+    current.deployed_digest_verified_at = timezone.now()
+    current.save(update_fields=["resolved_digest", "deployed_digest_verified_at"])
+    return current
 
 
 @transaction.atomic
@@ -186,7 +216,10 @@ def freeze(competition, *, now=None):
             # The digest is the range's to supply; recording the reference
             # it was pinned from is what the platform can honestly assert.
             passing.frozen_digest = passing.frozen_digest or passing.image_reference
-            passing.save(update_fields=["frozen_at", "frozen_digest"])
+            if (valid_digest(passing.resolved_digest) and passing.digest_verified_at
+                    and timezone.timedelta(0) <= stamp - passing.digest_verified_at <= timezone.timedelta(seconds=120)):
+                passing.frozen_verified_digest = passing.resolved_digest
+            passing.save(update_fields=["frozen_at", "frozen_digest", "frozen_verified_digest"])
         pinned.append(passing)
     return {"pinned": pinned, "missing": missing}
 

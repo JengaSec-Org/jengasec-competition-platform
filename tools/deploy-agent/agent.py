@@ -36,6 +36,7 @@ import base64
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -46,7 +47,7 @@ import urllib.request
 
 log = logging.getLogger("deploy-agent")
 
-DEFAULT_BASE = "https://jengasec.com"
+DEFAULT_BASE = "https://www.jengasec.com"
 # architecture section 2.3: jengasec-<enterprise>-<cell>, e.g. jengasec-ent-a-app01
 DEFAULT_NAMESPACE = "jengasec-ent-{enterprise}-{cell}"
 # Guide: 2 CPU and 3 GB in total for the cell, database included.
@@ -154,13 +155,21 @@ class Api:
     def pending(self):
         return self._call("/deployments/api/pending/").get("pending", [])
 
-    def report(self, submission_id, status, *, detail="", scan_report=None, logs=None):
+    def report(self, submission_id, status, *, detail="", scan_report=None, logs=None, resolved_digest=None):
         payload = {"id": submission_id, "status": status, "detail": detail}
         if scan_report is not None:
             payload["scan_report"] = scan_report
         if logs:
             payload["logs_excerpt"] = logs[-4000:]
+        if resolved_digest is not None:
+            payload["resolved_digest"] = resolved_digest
         return self._call("/deployments/api/status/", payload)
+
+    def active(self, after=0):
+        return self._call(f"/deployments/api/active/?after={after}")
+
+    def artifact(self, identifier, resolved_digest):
+        return self._call("/deployments/api/artifact/", {"id": identifier, "resolved_digest": resolved_digest})
 
 
 # ----------------------------------------------------------------- docker
@@ -287,6 +296,62 @@ def inspect(image):
             status="rejected",
         )
     return {"architecture": architecture, "user": user, "size_bytes": int(size)}
+
+
+def pinned_reference(image):
+    """Resolve the pulled registry manifest, not Docker's image-config ID."""
+    code, out, _ = docker(["image", "inspect", image, "--format", "{{json .RepoDigests}}"])
+    if code:
+        raise Infra("Cannot read the pulled image's registry digest.")
+    repository = image.split("@", 1)[0]
+    tail = repository.rsplit("/", 1)[-1]
+    if ":" in tail:
+        repository = repository.rsplit(":", 1)[0]
+    try:
+        candidates = [value for value in json.loads(out) if isinstance(value, str)
+                      and value.startswith(repository + "@sha256:")
+                      and re.fullmatch(r".+@sha256:[a-f0-9]{64}", value)]
+    except (TypeError, ValueError):
+        raise Infra("Cannot parse the pulled registry digest.") from None
+    if len(set(candidates)) != 1:
+        raise Infra("The pulled registry digest is missing or ambiguous.")
+    return candidates[0]
+
+
+def observed_artifact(namespace):
+    """Read the pinned workload template independently of readiness."""
+    code, out, _ = kubectl(["get", "deployment", "app", "-n", namespace, "-o", "json"], timeout=15)
+    if code:
+        raise Infra("Cannot verify the assigned application deployment.")
+    try:
+        containers = json.loads(out)["spec"]["template"]["spec"]["containers"]
+        matches = [row["image"] for row in containers if row.get("name") == "app"]
+        if len(matches) != 1 or not re.fullmatch(r".+@sha256:[a-f0-9]{64}", matches[0]):
+            raise ValueError
+        return matches[0].rsplit("@", 1)[1]
+    except (ValueError, TypeError, KeyError):
+        raise Infra("The deployed application is not pinned to a verified digest.") from None
+
+
+def verify_artifacts(api, options):
+    after = 0
+    while True:
+        response = api.active(after)
+        for row in response["active"]:
+            if options.only and row["id"] != options.only:
+                continue
+            namespace = namespace_for(row, options.namespace_template)
+            # A missing deployment stops freshness updates; it does not fabricate
+            # an app failure or refresh an earlier digest from local memory.
+            try:
+                value = observed_artifact(namespace)
+                api.artifact(row["id"], value)
+            except (Infra, Stop):
+                log.warning("Artifact confirmation unavailable for submission %s", row["id"])
+        following = response["next_cursor"]
+        if following <= after or len(response["active"]) < 100:
+            break
+        after = following
 
 
 def scan(image, *, fail_on_critical=True):
@@ -506,8 +571,11 @@ def process(submission, api, options):
             )
         pull(submission, workdir)
         details = inspect(image)
+        image = pinned_reference(image)
+        resolved_digest = image.rsplit("@", 1)[1]
         api.report(identifier, "pulled",
-                   detail=f"{details['size_bytes'] // (1024*1024)} MB, runs as {details['user']}")
+                   detail=f"{details['size_bytes'] // (1024*1024)} MB, runs as {details['user']}",
+                   resolved_digest=resolved_digest)
         log.info("[%s] pulled", label)
 
         # ---- Scanned
@@ -540,9 +608,11 @@ def process(submission, api, options):
         log.info("[%s] deployed to %s", label, namespace)
 
         logs = wait_healthy(namespace, options.health_timeout)
+        if observed_artifact(namespace) != resolved_digest:
+            raise Infra("The deployed artifact differs from the verified image.")
         api.report(identifier, "healthy",
                    detail=f"{submission['health_path']} answered on port {submission['port']}.",
-                   logs=logs)
+                   logs=logs, resolved_digest=resolved_digest)
         log.info("[%s] healthy", label)
 
     except Infra:
@@ -577,6 +647,8 @@ def process(submission, api, options):
 
 
 def one_pass(api, options):
+    if getattr(options, "verify_artifacts", False):
+        verify_artifacts(api, options)
     try:
         waiting = api.pending()
     except Stop as stop:
@@ -606,6 +678,8 @@ def one_pass(api, options):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--verify-artifacts", action="store_true",
+                        help="Refresh frozen workload identity each pass for scoring.")
     parser.add_argument("--base", default=os.environ.get("JENGASEC_BASE", DEFAULT_BASE),
                         help="Website base URL (env JENGASEC_BASE).")
     parser.add_argument("--token", default=os.environ.get("JENGASEC_DEPLOY_TOKEN", ""),
