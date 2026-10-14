@@ -68,7 +68,7 @@ An optional `pending_reasons` array explains missing prerequisites. Incomplete t
 
 Use the direct HTTPS `/api/feed/` and `/api/scoring/evidence/` paths, including the trailing slash. Both accept POST with `Content-Type: application/json` and `X-Feed-Token: <DJANGO_FEED_TOKEN>`. An unset token returns 404; an invalid token returns 403. Token comparison is constant-time.
 
-Bodies are limited to one MiB. Feed requests contain at most 100 rows. Credentials, personal data, raw request/response bodies and prompts are prohibited in evidence. A retryable archive-capacity response does not permit dropping evidence or publishing without it.
+Bodies are limited to one MiB. Duplicate JSON field names at any nesting level and non-finite numbers are rejected before processing. Feed requests contain at most 100 rows. Credentials, personal data, raw request/response bodies and prompts are prohibited in evidence. A retryable archive-capacity response does not permit dropping evidence or publishing without it.
 
 ## Archive before publication
 
@@ -169,6 +169,14 @@ HTTP 200 means all rows were accepted or exact duplicates. HTTP 202 means at lea
 ```
 
 Accepted and duplicate outcomes echo the exact key and producer revision. Held or rejected object rows also echo them. Pending observation, grace periods, stale identity, active overrides and server failures are retryable. Invalid facts, policy mismatches, changed/older revisions and finalized competitions require correction or an explicit appeal workflow. Do not treat HTTP 202 as blanket acknowledgement. Preserve unacknowledged outbox rows across restarts and retry transport errors, throttling and server errors with bounded backoff.
+
+## Appeals and retained proof
+
+The captain can appeal a specific accepted revision from its score explanation page after results are published. The platform uses the existing configured appeal deadline, procedural grounds and appeal workflow. A submission appeal continues to name its submission. A score appeal names exactly one immutable revision and its logical component; only one appeal for that component may remain open across revisions.
+
+Organizers assign an active independent judge from the internal Appeals queue. Every recorded decision-maker for the score component and every current member of the appealing team is excluded. Only the assigned independent judge can resolve the appeal, with a written explanation. An upheld appeal records the procedural decision; an authorized score correction is a separate action that appends its own score revision. The captain can withdraw an open appeal with an explanation.
+
+Opening a score appeal links its available archives and sets their appeal holds. Missing archived proof is recorded for the reviewer and does not remove the right to appeal. Closing or withdrawing an appeal clears a hold only when no other open appeal references the archive. The archive's existing retention deadline is preserved and extended to the configured appeal deadline when needed. Teams see appeal status and outcome on their original result; raw proof remains restricted to internal reviewers.
 
 ## Legacy compatibility
 

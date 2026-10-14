@@ -84,6 +84,23 @@ class VersionedFeedTests(TestCase):
         return self.post(reverse("api_feed"), {"schema_version": "scoring-feed/2.0",
                          "competition": self.comp.pk, "scores": rows})
 
+    def test_duplicate_json_fields_are_rejected_before_processing(self):
+        ambiguous = [
+            '{"competition": 1, "competition": 2}',
+            '{"scores": [{"facts": {"successful": 90, "successful": 100}}]}',
+            '{"snapshot": {"quality": {"source_authenticated": false, "source_authenticated": true}}}',
+            '{"team": "JS26-B-014", "te\\u0061m": "JS26-B-015"}',
+        ]
+        for endpoint in ("api_feed", "api_scoring_evidence", "api_scoring_readiness"):
+            for raw in ambiguous:
+                with self.subTest(endpoint=endpoint, raw=raw):
+                    response = self.client.post(reverse(endpoint), raw, content_type="application/json",
+                                                headers={"X-Feed-Token": "test-feed-credential"})
+                    self.assertEqual(response.status_code, 400, response.content)
+                    self.assertIn("unambiguous finite JSON", response.json()["error"])
+        self.assertFalse(ScoreRevision.objects.exists())
+        self.assertFalse(ScoringEvidence.objects.exists())
+
     def test_archive_publish_duplicate_and_explicit_per_row_acknowledgement(self):
         row = self.row()
         first = self.publish([row])

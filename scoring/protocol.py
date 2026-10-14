@@ -33,6 +33,15 @@ def authenticated(request):
     return bool(offered) and secrets.compare_digest(offered.encode(), expected.encode())
 
 
+def _unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON object key")
+        result[key] = value
+    return result
+
+
 def read_json(request):
     try:
         length = int(request.META.get("CONTENT_LENGTH") or 0)
@@ -49,9 +58,10 @@ def read_json(request):
     if len(raw) > MAX_BODY_BYTES:
         raise ProtocolError("request exceeds one MiB", code="too_large")
     try:
-        body = json.loads(raw, parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+        body = json.loads(raw, object_pairs_hook=_unique_object,
+                          parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
     except (ValueError, UnicodeDecodeError, RecursionError) as exc:
-        raise ProtocolError("body must be finite JSON") from exc
+        raise ProtocolError("body must be unambiguous finite JSON") from exc
     if not isinstance(body, dict):
         raise ProtocolError("body must be a JSON object")
     return body

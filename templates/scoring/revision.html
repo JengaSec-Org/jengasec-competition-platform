@@ -30,6 +30,36 @@
   {% endif %}
 </div>
 <div class="card">
+  <h3>Procedural appeals</h3>
+  {% if appeal_closes_at %}<p>The appeal window closes {{ appeal_closes_at }}.</p>{% else %}<p>Appeals open when competition results are published.</p>{% endif %}
+  {% for appeal in appeals %}
+    <p><strong>{{ appeal.get_grounds_display }}</strong> · {{ appeal.get_status_display }} · <a href="{% url 'scoring:revision' appeal.score_revision_id %}">Revision {{ appeal.score_revision_id }}</a>.</p>
+    <p style="white-space:pre-wrap">{{ appeal.reason }}</p>
+    {% if appeal.evidence_gaps %}<p>Some archived proof is unavailable. The reviewer will check this gap.</p>{% endif %}
+    {% if appeal.resolution %}<p style="white-space:pre-wrap"><strong>Decision:</strong> {{ appeal.resolution }}</p>{% endif %}
+    {% if appeal.can_review %}<p><a href="{% url 'judging:appeal_detail' appeal.pk %}">Appeal review</a></p>{% endif %}
+    {% if user.pk == team.captain_id %}
+      {% if appeal.status == "open" or appeal.status == "under_review" %}
+        <form method="post" action="{% url 'judging:appeal_withdraw' appeal.pk %}">
+          {% csrf_token %}
+          <label for="withdraw-{{ appeal.pk }}">Reason for withdrawing</label>
+          <textarea id="withdraw-{{ appeal.pk }}" class="textarea" name="reason" minlength="20" maxlength="5000" required></textarea>
+          <button type="submit" class="btn btn-ghost">Withdraw appeal</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+  {% if appeal_form.errors and not can_file_appeal %}{{ appeal_form.errors }}{% endif %}
+  {% if can_file_appeal %}
+    <form method="post" action="{% url 'scoring:file_appeal' revision.pk %}">
+      {% csrf_token %}
+      <p>Describe how the published process or calculation was applied incorrectly to this result.</p>
+      {{ appeal_form.as_p }}
+      <button type="submit" class="btn btn-primary">File appeal for revision {{ revision.pk }}</button>
+    </form>
+  {% endif %}
+</div>
+<div class="card">
   <h3>Correction history</h3>
   <ul>{% for item in history %}
     <li><a href="{% url 'scoring:revision' item.pk %}">{{ item.accepted_at }}: {{ item.marks }}</a> — {{ item.get_source_display }}</li>

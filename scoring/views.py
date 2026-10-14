@@ -27,6 +27,9 @@ from services.submission_service import teams_for
 from jengasec_scoring_policy import FORMULAS
 from scoring.models import ScoreEvent, ScoreRevision, ScoringEvidence, ScoringReadiness
 from scoring.protocol import ProtocolError
+from services import appeal_service
+from judging.forms import AppealForm
+from judging.models import Appeal
 
 
 def _is_marker(user):
@@ -258,12 +261,48 @@ def revision_detail(request, pk):
     staff = _is_marker(request.user)
     if not (staff or teams_for(request.user).filter(pk=team.pk).exists()):
         raise Http404("Not found")
-    return render(request, "scoring/revision.html", {
-        "revision": revision, "team": team, "can_mark": staff,
+    return render(request, "scoring/revision.html", _revision_context(revision, request.user))
+
+
+def _revision_context(revision, user, *, form=None):
+    team = revision.team
+    appeals = Appeal.objects.filter(score_event=revision.event).select_related("score_revision", "second_judge", "resolved_by")
+    active = appeals.filter(status__in=appeal_service.ACTIVE_STATUSES).exists()
+    appeals = list(appeals)
+    for appeal in appeals:
+        appeal.can_review = _is_marker(user) and (user.is_staff or user.is_superuser or appeal.second_judge_id == user.pk)
+    is_open, closes = appeal_service.appeal_window(revision)
+    return {
+        "revision": revision, "team": team, "can_mark": _is_marker(user),
         "formula": FORMULAS.get(grading.side_key(team), {}).get(revision.criterion, ""),
         "history": revision.event.revisions.order_by("-sequence"),
         "facts": revision.facts.items(), "quality": revision.quality.items(),
-    })
+        "appeals": appeals, "appeal_form": form or AppealForm(), "appeal_closes_at": closes,
+        "can_file_appeal": is_open and user.pk == team.captain_id and not active,
+    }
+
+
+@login_required
+def file_score_appeal(request, pk):
+    revision = get_object_or_404(ScoreRevision.objects.select_related("event__team"), pk=pk)
+    if not teams_for(request.user).filter(pk=revision.team_id).exists():
+        raise Http404("Not found")
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    from judging.appeal_views import _bounded
+    if not _bounded(request):
+        return HttpResponse("Appeal request is too large.", status=413)
+    form = AppealForm(request.POST)
+    if form.is_valid():
+        try:
+            appeal_service.file_score_appeal(revision, request.user,
+                                             form.cleaned_data["grounds"], form.cleaned_data["reason"])
+        except appeal_service.AppealError as exc:
+            form.add_error(None, str(exc))
+        else:
+            messages.success(request, "Appeal filed against this score revision.")
+            return redirect("scoring:revision", pk=revision.pk)
+    return render(request, "scoring/revision.html", _revision_context(revision, request.user, form=form), status=400)
 
 
 @login_required

@@ -150,6 +150,14 @@ def on_evaluation_saved(sender, instance, **kwargs):
 APPEAL_DECIDED = (Appeal.Status.UPHELD, Appeal.Status.REJECTED)
 
 
+def _appeal_target(appeal):
+    if appeal.score_revision_id:
+        revision = appeal.score_revision
+        label = f"{revision.criterion or revision.stage}, score revision {revision.pk}"
+        return label, reverse("scoring:revision", args=[revision.pk])
+    return appeal.submission.submission_type.name, reverse("submissions:detail", args=[appeal.submission_id])
+
+
 @receiver(post_save, sender=Appeal, dispatch_uid="notifications.appeal_saved")
 def on_appeal_saved(sender, instance, created, **kwargs):
     """A team filed an appeal, or organisers decided one."""
@@ -158,17 +166,16 @@ def on_appeal_saved(sender, instance, created, **kwargs):
             _appeal_resolved(instance)
         return
 
-    submission = instance.submission
-    detail = reverse("submissions:detail", args=[submission.pk])
+    label, detail = _appeal_target(instance)
 
     def send():
         ns.notify_admins(
             subject="Appeal submitted",
             body=(
                 f"{instance.team.team_name} has appealed the result for "
-                f"{submission.submission_type.name}. Grounds: {instance.reason[:200]}"
+                f"{label}. Grounds: {instance.reason[:200]}"
             ),
-            link=detail,
+            link=reverse("judging:appeal_detail", args=[instance.pk]),
             notification_type=Notification.Type.APPEAL_SUBMITTED,
             dedupe_key=f"appeal:{instance.pk}:admin",
         )
@@ -198,7 +205,7 @@ def _appeal_resolved(appeal):
     differently notifies only the first time. Rare enough to accept, and
     the alternative is a key that lets a status flip-flop spam the team.
     """
-    detail = reverse("submissions:detail", args=[appeal.submission_id])
+    label, detail = _appeal_target(appeal)
     outcome = appeal.get_status_display()
     resolution = appeal.resolution or "No further detail was recorded."
 
@@ -208,7 +215,7 @@ def _appeal_resolved(appeal):
             subject=f"Appeal {outcome.lower()}",
             body=(
                 f"Your appeal regarding "
-                f"{appeal.submission.submission_type.name} has been "
+                f"{label} has been "
                 f"{outcome.lower()}.\n\n{resolution}"
             ),
             link=detail,

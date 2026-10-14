@@ -94,6 +94,7 @@ Replace "#" with {% url %} tags as each module ships its views.
     <a class="side-link" href="{% url 'dashboard:insights_dashboard' %}"><span class="glyph">&#9998;</span> Insights Dashboard</a>
     {% if "judge" in user_roles or user.is_staff %}
     <a class="side-link" href="{% url 'judging:ai_results' %}"><span class="glyph">&#9878;</span> Review Queue</a>
+    <a class="side-link" href="{% url 'judging:appeal_list' %}"><span class="glyph">&#9878;</span> Appeals</a>
     <a class="side-link" href="{% url 'judging:rubric_builder' %}"><span class="glyph">&#9636;</span> Rubrics</a>
     <a class="side-link" href="{% url 'scoring:leaderboard' %}"><span class="glyph">&#9650;</span> Marks &amp; Standing</a>
     <a class="side-link" href="{% url 'scoring:scheme' %}"><span class="glyph">&#9878;</span> Marking Scheme</a>

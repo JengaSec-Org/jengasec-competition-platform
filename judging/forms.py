@@ -57,21 +57,21 @@ CriterionScoreFormSet = forms.modelformset_factory(
 )
 
 
-class AppealForm(forms.ModelForm):
+class AppealForm(forms.Form):
     """Filed by a team disputing a published result."""
 
-    class Meta:
-        model = Appeal
-        fields = ["reason"]
-        widgets = {"reason": forms.Textarea(attrs={"rows": 5})}
+    grounds = forms.ChoiceField(choices=Appeal.Grounds.choices)
+    reason = forms.CharField(min_length=50, max_length=5000,
+                             widget=forms.Textarea(attrs={"rows": 5}),
+                             label="What went wrong")
 
 
-class AppealResolutionForm(forms.ModelForm):
+class AppealResolutionForm(forms.Form):
     """Admin/judge resolving an appeal."""
 
-    class Meta:
-        model = Appeal
-        fields = ["status", "resolution"]
+    status = forms.ChoiceField(choices=[("", "Choose an outcome"), (Appeal.Status.UPHELD, "Upheld"), (Appeal.Status.REJECTED, "Rejected")])
+    resolution = forms.CharField(min_length=20, max_length=5000,
+                                 widget=forms.Textarea(attrs={"rows": 5}))
 
     def clean(self):
         cleaned = super().clean()
