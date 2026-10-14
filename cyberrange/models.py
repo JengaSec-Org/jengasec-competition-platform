@@ -95,6 +95,8 @@ class WireGuardProfile(models.Model):
     )
     address = models.CharField(max_length=43, blank=True, help_text="Tunnel address, e.g. 10.60.3.7/32.")
     config = models.FileField(upload_to="range/wireguard/")
+    active = models.BooleanField(default=False)
+    last_handshake_at = models.DateTimeField(null=True, blank=True)
     issued_at = models.DateTimeField(auto_now_add=True)
     downloaded_at = models.DateTimeField(null=True, blank=True)
     revoked = models.BooleanField(default=False, help_text="Revoked at teardown (SEC-15).")

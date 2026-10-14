@@ -24,7 +24,7 @@ the site is on Render today or on the web VM tonight — only `--base` changes.
 Python 3.9+ and nothing from pip. On the shared VM:
 
 ```bash
-sudo apt install -y docker.io
+sudo apt install -y docker.io python3-yaml
 curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
 # kubectl: already there if this box talks to k8s-blue
 ```
@@ -32,6 +32,42 @@ curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/inst
 The agent degrades rather than refusing: no Trivy and the scan is recorded as
 skipped; no kubectl and it stops after the scan and says so. Docker is the only
 hard requirement.
+
+## Kubernetes access
+
+The range agent only updates the `app` Deployment and LoadBalancer Service and
+creates the per-team `team-registry` pull Secret in an existing cell namespace.
+The infrastructure chart owns namespaces, database resources and credentials,
+quotas, network policies, ingress, and MetalLB configuration. The agent does
+not create namespaces or a second database.
+
+Install or upgrade the cell chart in the target namespaces before enabling
+deployment. It grants the external Kubernetes identity
+`jengasec-range-agent` namespace-scoped access to deployments, services,
+secrets, pod status, and pod logs. Configure the agent's kubeconfig so its
+client certificate authenticates with that exact username; do not use a
+cluster-admin kubeconfig. Keep the kubeconfig and private key on the range
+host with restrictive permissions and never commit or paste them.
+
+Check the identity's effective scope before processing submissions:
+
+```bash
+kubectl auth can-i patch deployments/app -n jengasec-ent-a-app01
+kubectl auth can-i patch services/app -n jengasec-ent-a-app01
+kubectl auth can-i create secrets -n jengasec-ent-a-app01
+kubectl auth can-i get pods/log -n jengasec-ent-a-app01
+kubectl auth can-i get secrets/db-credentials -n jengasec-ent-a-app01
+kubectl auth can-i create namespaces
+```
+
+The first four checks should say `yes`; the final check should say `no`.
+The `db-credentials` check should also say `no`. Repeat checks against another
+cell namespace to confirm the expected agent scope. The agent does not manage
+Helm releases; coordinate chart upgrades with the range operator because a
+Helm upgrade can restore chart values over the runtime image or service
+settings. This setup does not establish that the cluster's network path or
+participant access works; verify those from the school network before a real
+deployment.
 
 ## Configure
 
@@ -108,18 +144,51 @@ again. To re-queue it: open the submission on the website
 (**Operations → Applications → Record**), set it back to **Submitted**, save.
 The agent takes it on the next pass.
 
-## The freeze
+## Range lifecycle (Server 3)
 
-At the build deadline, on the website:
+The lifecycle wrapper uses the same agent and authenticated website API:
 
 ```bash
-python manage.py freeze_applications --dry-run
-python manage.py freeze_applications --confirm
+python3 make-cells.py --process-pending
+python3 make-cells.py --freeze
+python3 make-cells.py --reset-day 1
+python3 reconcile.py
 ```
 
-It pins each team's last **Healthy** attempt and lists every team with none —
-that list is the one to act on, because those teams have no application in the
-competition.
+`--process-pending` runs one existing pull/scan/deploy pass. For scheduled
+processing, run it from cron; `agent.py --watch --interval 30` remains
+available during the build window.
+
+Configure `JENGASEC_COMPETITION_ID`, `JENGASEC_DEPLOY_TOKEN`,
+`JENGASEC_REGISTRY`, and `JENGASEC_STATE_DIR` (default
+`/var/lib/jengasec-range`). `--freeze --dry-run` and
+`--reset-day N --dry-run` preview without making range changes. The freeze
+copies approved images into the private registry by digest, stores the actual
+digest on the website, and saves/checksums database dumps locally. The state
+directory must be private, persistent, and backed up.
+
+Each Application Blue team also needs a unique reserved MetalLB IPv4 address
+recorded by an organiser in its welcome-pack record. The agent applies it to
+the cell's `LoadBalancer` Service and reconciliation checks that MetalLB has
+assigned it.
+
+Day reset requires `JENGASEC_MAKE_SCOPE` to point to the existing
+infrastructure repo's `make-scope.py`; it resets apps/databases, waits for
+health, and then reapplies the competition's current scope rules fetched from
+the website API. The script validates the scope in dry-run mode before reset
+mutations. This repository does not create the Kubernetes cluster, Proxmox
+VMs, or network policies. The range
+exports the reserved cell IP in `cells.yaml`, `allocation.csv`, and
+`scope-assignments.csv`; the infrastructure repository must consume those
+fields and provision the IPs in its MetalLB pool before participant access.
+
+The WireGuard endpoint runs on the separate network VM. Set
+`JENGASEC_WG_DUMP_COMMAND` to an argv command that reads its `wg show all dump`
+output (such as restricted SSH access); the default local command only works
+if WireGuard is on the Server 3 host.
+
+The platform/agent contract and API shapes are documented in
+`../../docs/CONTRACT-deployments.md`.
 
 ## Testing it
 
@@ -127,10 +196,33 @@ competition.
 python3 -m unittest -v          # the decision logic
 ```
 
-End to end, before any team depends on it: push a tiny private image to your
-own GHCR, submit it on the website as a test team, and run
-`python3 agent.py --once -v`. It should walk to Healthy. Then try it with the
-package set to Public and confirm it is rejected with the right message.
+### Private GHCR demo image
+
+This repository includes a tiny HTTP app and a manually triggered workflow
+that builds it for `linux/amd64` and publishes
+`ghcr.io/<repository-owner>/jengasec-deploy-demo:demo`. The app runs as a
+non-root user on port `8080`; `/healthz` returns HTTP 200.
+
+After this workflow is merged to the repository's default branch:
+
+1. Open **Actions → Publish private deploy demo → Run workflow**.
+2. Once it succeeds, open the package in GitHub and confirm its visibility is
+   **Private**. Do not change it to Public.
+3. Create a disposable GitHub **classic** personal access token with only
+   `read:packages`. Make sure the GitHub account that owns the token can read
+   the package. Never put this token in chat or commit it.
+4. Submit the image reference shown in the workflow log on the website, using
+   that account's username, port `8080`, health path `/healthz`, and the token.
+5. Run `python3 agent.py --once -v` on a machine with Docker, Trivy, and the
+   competition Kubernetes access configured. It should pull and scan the
+   private image, deploy it, then report it Healthy. Finally, confirm a public
+   image is rejected.
+
+The workflow only runs when manually dispatched; it does not publish on every
+push. GHCR initially creates a package as Private, but always verify its
+visibility before submitting it. The full Healthy path cannot be tested on a
+machine without Docker and a configured cluster; use `--no-deploy` only for a
+pull-and-scan check.
 
 ## Contract
 

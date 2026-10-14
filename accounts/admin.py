@@ -73,6 +73,7 @@ class TeamAdmin(admin.ModelAdmin):
         "track",
         "enterprise",
         "responsibility",
+        "service_ip",
         "competition",
         "status",
     )

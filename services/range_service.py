@@ -24,12 +24,12 @@ from competitions.models import TargetAssignment
 RED_RANGE = "10.60.{n}.0/24"
 
 ALLOCATION_COLUMNS = [
-    "enterprise", "cell_id", "namespace", "kind", "side", "track",
+    "enterprise", "cell_id", "namespace", "service_ip", "kind", "side", "track",
     "team_identifier", "team_name",
 ]
 SCOPE_COLUMNS = [
     "red_team", "red_cell", "enterprise", "target_cell", "target_namespace",
-    "wg_range", "round_active", "notes",
+    "target_service_ip", "wg_range", "round_active", "notes",
 ]
 
 
@@ -39,16 +39,15 @@ def enterprise_slug(enterprise):
 
 
 def namespace_for(team):
-    """The team's cell as the range names it: 'enta-app03'.
-
-    An organiser-issued `Team.namespace` wins; otherwise it is derived from
-    the enterprise and cell. Empty until a cell is assigned.
-    """
-    if team.namespace:
-        return team.namespace
+    """The canonical infrastructure namespace for an assigned cell."""
     if not (team.enterprise and team.cell_id):
         return ""
-    return f"{enterprise_slug(team.enterprise)}-{team.cell_id.lower()}"
+    namespace = f"jengasec-ent-{team.enterprise}-{team.cell_id.lower()}"
+    if team.namespace and team.namespace != namespace:
+        raise ValueError(
+            f"Team {team.pk} namespace must be {namespace} to match the cyber range."
+        )
+    return namespace
 
 
 def cell_kind(team):
@@ -74,6 +73,11 @@ def allocation_rows(competition):
             "enterprise": enterprise_slug(team.enterprise),
             "cell_id": team.cell_id,
             "namespace": namespace_for(team) if team.team_type == Team.TeamType.BLUE else "",
+            "service_ip": (
+                team.service_ip
+                if team.team_type == Team.TeamType.BLUE and team.track == Track.APPLICATION
+                else ""
+            ),
             "kind": cell_kind(team),
             "side": team.team_type,
             "track": team.track,
@@ -112,6 +116,7 @@ def scope_rows(competition):
             "enterprise": enterprise_slug(a.target_team.enterprise),
             "target_cell": a.target_team.cell_id,
             "target_namespace": namespace_for(a.target_team),
+            "target_service_ip": a.target_team.service_ip,
             "wg_range": ranges.get(a.red_team_id, ""),
             "round_active": "true" if a.is_active else "false",
             "notes": "",
@@ -159,7 +164,8 @@ def cells_yaml(competition):
         lines.append(
             f"  - {{ name: {namespace_for(team)}, enterprise: {enterprise_slug(team.enterprise)}, "
             f"code: {team.cell_id}, kind: {kind}, enabled: true, service: {_yaml_str(service)}, "
-            f"team: {_yaml_str(team.team_identifier)} }}"
+            f"team: {_yaml_str(team.team_identifier)}"
+            f"{', service_ip: ' + _yaml_str(team.service_ip) if kind == 'app' else ''} }}"
         )
     return "\n".join(lines) + "\n"
 

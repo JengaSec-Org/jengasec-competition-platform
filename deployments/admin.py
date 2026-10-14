@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AppSubmission
+from .models import AppRuntimeStatus, AppSubmission
 
 
 @admin.register(AppSubmission)
@@ -18,3 +18,19 @@ class AppSubmissionAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False  # attempts come from the team's submission form
+
+
+@admin.register(AppRuntimeStatus)
+class AppRuntimeStatusAdmin(admin.ModelAdmin):
+    list_display = ("team", "status", "healthy", "checked_at")
+    list_filter = ("status", "healthy")
+    search_fields = ("team__team_name", "team__cell_id", "team__team_identifier")
+    readonly_fields = (
+        "team", "status", "healthy", "observed_image_digest", "detail", "checked_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
