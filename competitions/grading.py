@@ -181,6 +181,15 @@ STAGES = [
     },
 ]
 
+# Marks earned beyond the hundred. The qualifier is the first case: a team
+# that beat the mark that earns full Entry keeps the excess as bonus rather
+# than having it clipped off, so finishing far ahead still counts for
+# something. Deliberately outside STAGES — it has no cap and is not part of
+# the hundred, and a total may therefore read 104/100.
+BONUS_STAGE = "bonus"
+BONUS_LABEL = "Bonus"
+
+
 # What the rest of the app reads: (label, weight) pairs summing to 100.
 SCORE_WEIGHTS = [(stage["name"], stage["weight"]) for stage in STAGES]
 

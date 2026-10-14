@@ -315,19 +315,35 @@ def briefs_for(team):
 
 
 def can_propose(team, brief):
-    """A team may propose while registration is open and the cap holds.
+    """A team may propose while the proposal window is open and the cap holds.
+
+    The gate is the **proposal deadline**, not the registration one. They
+    are separate dates in the Entry Guide and on the site -- registration
+    closed on the Tuesday, proposals ran past it -- and tying proposing to
+    `registration_open` meant that the moment registration shut, an
+    already-registered team could no longer file the proposal it had been
+    told to file. Reopening proposals then required reopening registration
+    to new teams, which is not the same decision at all.
 
     Also honours the organiser's Close Submissions switch, so shutting the
     window actually stops proposals rather than only hiding the button.
     """
+    from services.submission_service import proposal_type_name
+
     if not team or not brief:
         return False
     if brief.competition_id != team.competition_id:
         return False
-    if not team.competition.registration_open:
+    settings_row = team.competition.settings
+    if not settings_row.submissions_open:
         return False
-    if not team.competition.settings.submissions_open:
-        return False
+    # Whatever deadline governs this team's proposal type, by the same
+    # resolver the upload path uses, so the button and the upload agree.
+    type_name = proposal_type_name(team)
+    if type_name:
+        deadline = settings_row.deadline_for_type(type_name)
+        if deadline and timezone.now() > deadline:
+            return False
     return brief.is_open and not brief.is_full
 
 

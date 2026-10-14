@@ -34,6 +34,8 @@ class ScoreEvent(models.Model):
         JUDGE = "judge", "Judge"
         # Carried in from the proposal or the qualifier.
         ENTRY = "entry", "Entry score"
+        # Earned beyond the hundred; see grading.BONUS_STAGE.
+        BONUS = "bonus", "Bonus"
 
     competition = models.ForeignKey(
         "competitions.Competition", on_delete=models.CASCADE, related_name="score_events"
@@ -111,6 +113,8 @@ class TeamScore(models.Model):
     documentation = models.DecimalField(
         max_digits=6, decimal_places=2, default=Decimal("0")
     )
+    # Outside the hundred and uncapped, so `total` can exceed 100.
+    bonus = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"))
     total = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"))
 
     computed_at = models.DateTimeField(auto_now=True)
@@ -124,7 +128,13 @@ class TeamScore(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.team}: {self.total}/100"
+        tail = f" (+{self.bonus} bonus)" if self.bonus else ""
+        return f"{self.team}: {self.total}/100{tail}"
 
     def by_stage(self):
-        return {"entry": self.entry, "main": self.main, "documentation": self.documentation}
+        return {
+            "entry": self.entry,
+            "main": self.main,
+            "documentation": self.documentation,
+            "bonus": self.bonus,
+        }

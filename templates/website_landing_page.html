@@ -1906,11 +1906,19 @@ const cdEl=document.getElementById('countdown');
 const cdD=document.getElementById('cd-d'),cdH=document.getElementById('cd-h'),
       cdM=document.getElementById('cd-m'),cdS=document.getElementById('cd-s');
 function pad(n){return String(n).padStart(2,'0')}
+/* Declared before the first tickCD() call, and with let rather than const.
+   The first call happens immediately; once the start date has passed it
+   takes the branch below and clears the timer. With `const cdTimer` sitting
+   after that call, clearing it threw a temporal-dead-zone ReferenceError
+   that killed the whole script -- and with it every scroll reveal, the
+   mobile menu and the accordions. It could only ever fire once the event
+   had started, which is exactly when it did. */
+let cdTimer=null;
 function tickCD(){
   const diff=target-Date.now();
   if(diff<=0){
     cdEl.innerHTML='<span class="cd-label">// EVENT_STATUS</span><span class="cd-live">&gt;&gt; EVENT LIVE &lt;&lt;</span>';
-    clearInterval(cdTimer);
+    if(cdTimer)clearInterval(cdTimer);
     return;
   }
   cdD.textContent=pad(Math.floor(diff/86400000));
@@ -1924,7 +1932,7 @@ function tickCD(){
   cdS.textContent=sv;
 }
 tickCD();
-const cdTimer=setInterval(tickCD,1000);
+cdTimer=setInterval(tickCD,1000);
 
 /* ---------- hero parallax ---------- */
 const heroImg=document.getElementById('heroimg');

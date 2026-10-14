@@ -48,10 +48,8 @@ Replace "#" with {% url %} tags as each module ships its views.
     {% endif %}
     <a class="side-link" href="{% url 'submissions:wizard_step1' %}"><span class="glyph">&#8679;</span> Upload Document</a>
     <a class="side-link" href="{% url 'submissions:list' %}"><span class="glyph">&#9776;</span> Submission History</a>
+    <a class="side-link" href="{% url 'cyberrange:wireguard' %}"><span class="glyph">&#9919;</span> VPN Profile</a>
     <a class="side-link" href="{% url 'dashboard:info' %}"><span class="glyph">&#9432;</span> Info &amp; Scoring</a>
-    {% if competition_phase == "live" or competition_phase == "judging" %}
-    <a class="side-link" href="{% url 'scoring:live' %}"><span class="glyph">&#9650;</span> Live Scoring</a>
-    {% endif %}
     {% if competition_phase == "live" or competition_phase == "judging" %}
     <a class="side-link" href="{% url 'scoring:live' %}"><span class="glyph">&#9650;</span> Live Scoring</a>
     {% endif %}
@@ -76,9 +74,15 @@ Replace "#" with {% url %} tags as each module ships its views.
     {% if competition_phase == "live" %}
     <a class="side-link" href="{% url 'dashboard:red_target_access' %}"><span class="glyph">&#9678;</span> Target Access</a>
     {% endif %}
-    <a class="side-link" href="{% url 'submissions:wizard_step1' %}"><span class="glyph">&#8679;</span> Submit Findings</a>
+    <a class="side-link" href="{% url 'cyberrange:finding_new' %}"><span class="glyph">&#8679;</span> Report a Finding</a>
+    <a class="side-link" href="{% url 'cyberrange:finding_list' %}"><span class="glyph">&#9873;</span> Our Findings</a>
+    <a class="side-link" href="{% url 'cyberrange:wireguard' %}"><span class="glyph">&#9919;</span> VPN Profile</a>
+    <a class="side-link" href="{% url 'submissions:wizard_step1' %}"><span class="glyph">&#8679;</span> Upload Document</a>
     <a class="side-link" href="{% url 'submissions:list' %}"><span class="glyph">&#9776;</span> Submission History</a>
     <a class="side-link" href="{% url 'dashboard:info' %}"><span class="glyph">&#9432;</span> Scenarios &amp; Scoring</a>
+    {% if competition_phase == "live" or competition_phase == "judging" %}
+    <a class="side-link" href="{% url 'scoring:live' %}"><span class="glyph">&#9650;</span> Live Scoring</a>
+    {% endif %}
   </div>
   {% endif %}
 

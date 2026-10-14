@@ -40,6 +40,7 @@ this with their own team page must be able to work out why the two differ.
           <th style="width:3.5rem;">#</th>
           <th>Team</th>
           {% for stage in stages %}<th style="width:5.5rem;">{{ stage.name }}</th>{% endfor %}
+          <th style="width:4.5rem;">Bonus</th>
           <th style="width:5.5rem;">Total</th>
         </tr>
       </thead>
@@ -54,10 +55,11 @@ this with their own team page must be able to work out why the two differ.
             <td>{{ row.score.entry }}</td>
             <td>{{ row.score.main }}</td>
             <td>{{ row.score.documentation }}</td>
+            <td>{% if row.score.bonus %}+{{ row.score.bonus }}{% else %}—{% endif %}</td>
             <td><strong>{{ row.score.total }}</strong></td>
           </tr>
         {% empty %}
-          <tr><td colspan="6" class="text-muted">Nothing scored yet.</td></tr>
+          <tr><td colspan="7" class="text-muted">Nothing scored yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

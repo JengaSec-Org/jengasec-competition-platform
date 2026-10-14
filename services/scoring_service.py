@@ -180,6 +180,11 @@ def stage_totals(team, *, as_of=None):
         # Capped at the stage weight and floored at zero: a conduct penalty
         # takes marks off that stage, never off the team's other work.
         totals[stage["key"]] = max(min(value, cap), ZERO)
+    # Bonus sits outside the hundred and is deliberately not capped, so a
+    # team that finished far ahead of the qualifying mark keeps the excess.
+    totals[grading.BONUS_STAGE] = max(
+        Decimal(str(raw.get(grading.BONUS_STAGE, ZERO))), ZERO
+    )
     return totals
 
 
@@ -189,20 +194,17 @@ def recompute(team, *, as_of=None, save=True):
 
     totals = stage_totals(team, as_of=as_of)
     total = sum(totals.values(), ZERO)
+    fields = {
+        "entry": totals["entry"],
+        "main": totals["main"],
+        "documentation": totals["documentation"],
+        "bonus": totals[grading.BONUS_STAGE],
+        "total": total,
+    }
     if not save:
-        return TeamScore(
-            competition=team.competition, team=team, total=total,
-            entry=totals["entry"], main=totals["main"],
-            documentation=totals["documentation"],
-        )
+        return TeamScore(competition=team.competition, team=team, **fields)
     score, _ = TeamScore.objects.update_or_create(
-        competition=team.competition, team=team,
-        defaults={
-            "entry": totals["entry"],
-            "main": totals["main"],
-            "documentation": totals["documentation"],
-            "total": total,
-        },
+        competition=team.competition, team=team, defaults=fields,
     )
     return score
 

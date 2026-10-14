@@ -8,12 +8,15 @@ Application Red files no proposal; its Entry mark is the qualifier score
 Hack The Box Enterprise, so the result arrives as a scoreboard rather than
 as anything the platform can read — hence this command.
 
-**Scaling.** Raw qualifier points are scaled to the Entry stage's 30. By
-default the top scorer sets the ceiling, so the best team gets 30 and
-everyone else sits proportionally below. Pass `--max` to scale against a
-fixed figure instead, which is fairer if a published qualifying mark
-exists — say so and nobody has to explain why a team's mark moved because
-somebody else did well.
+**Scaling.** `--max` is the points that earn the full Entry stage: 360 by
+default, so 360 points is 30 marks and 180 is 15. A fixed figure rather
+than a curve, so a team's mark never moves because somebody else did
+well, and anyone can check it with a calculator.
+
+**Above the mark is bonus.** A team that scored beyond `--max` keeps the
+excess as bonus marks rather than having it clipped at 30 — finishing far
+ahead should count for something. Bonus sits outside the hundred, so a
+total can read 104/100. `--no-bonus` turns that off and simply caps at 30.
 
 Teams are matched on team name, case-insensitively, after stripping
 spaces and punctuation: the name on the Hack The Box scoreboard and the
@@ -62,8 +65,12 @@ class Command(BaseCommand):
             "--csv", help="A CSV of team,points instead of the built-in scoreboard."
         )
         parser.add_argument(
-            "--max", type=float,
-            help="Points that earn full marks. Default: the highest score present.",
+            "--max", type=float, default=360.0,
+            help="Points that earn the full Entry stage (default 360).",
+        )
+        parser.add_argument(
+            "--no-bonus", action="store_true",
+            help="Cap at the Entry stage instead of carrying the excess as bonus.",
         )
         parser.add_argument("--dry-run", action="store_true")
         parser.add_argument("--confirm", action="store_true")
@@ -71,14 +78,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         competition = self._competition(options.get("competition"))
         scores = self._scores(options.get("csv"))
-        ceiling = options.get("max") or max((p for _, p in scores), default=0)
+        ceiling = options.get("max") or 360.0
         if ceiling <= 0:
-            raise CommandError("Every score is zero; there is nothing to scale.")
+            raise CommandError("--max must be above zero.")
 
         stage_weight = self._stage_weight()
+        bonus_on = not options["no_bonus"]
         self.stdout.write(
             f"{competition.name}: {len(scores)} qualifier result(s), "
             f"{ceiling:g} points = {stage_weight} marks"
+            f"{'; above that is bonus' if bonus_on else '; capped at the stage'}"
         )
 
         teams = {
@@ -92,15 +101,20 @@ class Command(BaseCommand):
         matched, missing = [], []
         for name, points in scores:
             team = teams.pop(normalise_name(name), None)
-            marks = round(points / ceiling * stage_weight, 2)
+            earned = points / ceiling * stage_weight
+            marks = round(min(earned, stage_weight), 2)
+            bonus = round(earned - stage_weight, 2) if (bonus_on and earned > stage_weight) else 0.0
             if team is None:
-                missing.append((name, points, marks))
+                missing.append((name, points, marks, bonus))
             else:
-                matched.append((team, name, points, marks))
+                matched.append((team, name, points, marks, bonus))
 
-        for team, name, points, marks in matched:
-            self.stdout.write(f"  {marks:>5.2f}  {team.team_name}  ({points:g} pts)")
-        for name, points, marks in missing:
+        for team, name, points, marks, bonus in matched:
+            tail = f" +{bonus:g} bonus" if bonus else ""
+            self.stdout.write(
+                f"  {marks:>5.2f}{tail:<12}  {team.team_name}  ({points:g} pts)"
+            )
+        for name, points, marks, bonus in missing:
             self.stdout.write(self.style.WARNING(
                 f"  ----   no registered team called '{name}' ({points:g} pts)"
             ))
@@ -114,7 +128,9 @@ class Command(BaseCommand):
             self.stdout.write("Nothing written. Re-run with --confirm.")
             return
 
-        for team, name, points, marks in matched:
+        from competitions import grading
+
+        for team, name, points, marks, bonus in matched:
             scoring_service.award(
                 team, "entry", Decimal(str(marks)),
                 source="entry",
@@ -122,6 +138,17 @@ class Command(BaseCommand):
                 # Keyed, so re-running after a correction replaces the mark
                 # rather than awarding it twice.
                 dedupe_key="qualifier",
+            )
+            # Always written, even at zero, so lowering --max on a re-run
+            # removes a bonus a team no longer earns.
+            scoring_service.award(
+                team, grading.BONUS_STAGE, Decimal(str(bonus)),
+                source="entry",
+                note=(
+                    f"Qualifier bonus: {points:g} points, "
+                    f"{ceiling:g} earns the full stage."
+                ) if bonus else "No qualifier bonus.",
+                dedupe_key="qualifier_bonus",
             )
             scoring_service.recompute(team)
 

@@ -129,18 +129,19 @@ class QualifierSeedTests(TestCase):
         self.assertEqual(normalise_name("Chmod 777"), normalise_name("chmod777"))
         self.assertEqual(normalise_name("0x1_Z3r0_D4y"), "0x1z3r0d4y")
 
-    def test_the_top_team_gets_the_full_entry_stage(self):
+    def test_a_team_past_the_mark_gets_the_full_entry_stage(self):
+        """487.5 is past the 360 that earns the stage, so Entry caps at 30."""
         team = self.red("pwners")
         call_command("seed_qualifier_scores", "--confirm", verbosity=0)
         self.assertEqual(TeamScore.objects.get(team=team).entry, Decimal("30.00"))
 
-    def test_marks_scale_proportionally(self):
+    def test_marks_scale_proportionally_against_the_mark(self):
+        """Not against whoever happened to come first: 360 points is the ruler."""
         top, mid = self.red("pwners"), self.red("Jaguar")  # 487.5 and 100
         call_command("seed_qualifier_scores", "--confirm", verbosity=0)
         self.assertEqual(TeamScore.objects.get(team=top).entry, Decimal("30.00"))
-        expected = round(100 / 487.5 * 30, 2)
         self.assertEqual(
-            float(TeamScore.objects.get(team=mid).entry), expected
+            float(TeamScore.objects.get(team=mid).entry), round(100 / 360 * 30, 2)
         )
 
     def test_a_fixed_ceiling_can_be_given_instead(self):
