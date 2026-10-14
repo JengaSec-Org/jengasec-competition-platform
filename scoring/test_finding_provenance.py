@@ -98,7 +98,7 @@ class FindingProvenanceTests(TestCase):
         self.assertEqual(b"".join(response.streaming_content), self.original)
         self.assertEqual(response["Cache-Control"], "private, no-store")
         self.assertEqual(response["X-Content-Type-Options"], "nosniff")
-        response.close()
+        self.assertTrue(response.closed)
 
     def test_private_proof_route_and_review_links_do_not_expose_storage_names_to_teams(self):
         revision = self.award()
@@ -154,5 +154,5 @@ class FindingProvenanceTests(TestCase):
         response = self.client.get(self.route(revision))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(b"".join(response.streaming_content), self.original)
-        response.close()
+        self.assertTrue(response.closed)
         self.assertEqual(ScoreRevision.objects.filter(event=revision.event).count(), 1)

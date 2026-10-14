@@ -613,9 +613,10 @@ class IdentityDocumentDeliveryTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertIn("attachment", response["Content-Disposition"])
-        # Windows will not unlink a file whose handle is still open, and
-        # a streaming response holds one until it is consumed.
-        response.close()
+        # Exhaust the client's stream so its closing iterator releases the
+        # file without closing the database connection owned by TestCase.
+        self.assertTrue(b"".join(response.streaming_content).startswith(b"\x89PNG"))
+        self.assertTrue(response.closed)
 
     def test_missing_file_is_410_with_an_explanation(self):
         UserProfile.objects.filter(pk=self.profile.pk).update(
