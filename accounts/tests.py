@@ -732,10 +732,12 @@ class StorageStatusPageTests(TestCase):
         self.assertEqual(self.client.get(self.url).status_code, 302)
 
     def test_reports_the_backend_and_the_variable_names(self):
+        from django.conf import settings
+
         self.client.force_login(self.staff)
         body = self.client.get(self.url).content.decode()
         self.assertIn("S3_BUCKET", body)
-        self.assertIn("FileSystemStorage", body)
+        self.assertIn(settings.STORAGES["default"]["BACKEND"], body)
 
     def test_a_secret_value_is_never_rendered(self):
         self.client.force_login(self.staff)
