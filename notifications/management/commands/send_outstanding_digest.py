@@ -75,10 +75,12 @@ def outstanding_for_user(user, on_date=None, contact_role=""):
         missing.append(
             f"As {contact_role} you must add a phone number in international format."
         )
-    from services.account_service import has_accepted_current_policy
+    from services.account_service import outstanding_policies
 
-    if not has_accepted_current_policy(user):
-        missing.append("Read and accept the current code of conduct.")
+    # Every current document, not just the conduct: the Participant Terms
+    # are a separate agreement and "no tick, no entry" is their own wording.
+    for version in outstanding_policies(user):
+        missing.append(f"Read and accept the {version.title}.")
     return missing
 
 

@@ -23,6 +23,7 @@ from notifications.management.commands.send_outstanding_digest import outstandin
 from notifications.management.commands.send_registration_reminders import outstanding_for
 
 from .forms import (
+    ParticipantTermsForm,
     TeamEditForm,
     ConductAcceptanceForm,
     InviteForm,
@@ -36,7 +37,9 @@ from .forms import (
     UserRegistrationForm,
     WelcomePackForm,
 )
-from .models import PolicyVersion, Team, TeamInvitation, TeamMember, UserProfile
+from .models import (
+    ParticipantConsent, PolicyVersion, Team, TeamInvitation, TeamMember, UserProfile,
+)
 from .roles import ALL_ROLES, TEAM_ROLES
 from . import storage_diagnostics
 from .security import client_ip
@@ -159,6 +162,77 @@ def conduct(request):
         "accounts/conduct.html",
         {"version": version, "accepted": accepted, "acceptance": acceptance, "form": form},
     )
+
+
+@login_required
+def terms(request):
+    """Read the Participant Terms, agree, and make the optional choices.
+
+    The agreement is one tick recorded as a `PolicyAcceptance`, like any
+    other policy. The optional choices live on `ParticipantConsent` and can
+    be changed afterwards without re-agreeing -- clause 7.1 says a change
+    never reduces a choice already made, so coming back to tick one more
+    box must not look like starting again.
+    """
+    version = PolicyVersion.current(PolicyVersion.Kind.TERMS)
+    accepted = version is not None and account_service.has_accepted_current_policy(
+        request.user, PolicyVersion.Kind.TERMS
+    )
+    consent = ParticipantConsent.objects.filter(user=request.user).first()
+
+    form = ParticipantTermsForm(
+        instance=consent, version=version, already_accepted=accepted
+    )
+    if request.method == "POST" and version is not None:
+        form = ParticipantTermsForm(
+            request.POST, instance=consent, version=version,
+            already_accepted=accepted,
+        )
+        if form.is_valid():
+            record = form.save(commit=False)
+            record.user = request.user
+            record.version = version
+            record.save()
+            if not accepted:
+                account_service.accept_policy(
+                    request.user, version, ip_address=client_ip(request) or None
+                )
+                messages.success(
+                    request,
+                    f"Terms v{version.version} accepted. Your choices are saved — "
+                    f"you can change them here at any time.",
+                )
+            else:
+                messages.success(request, "Your choices have been updated.")
+            next_url = request.POST.get("next") or ""
+            if next_url.startswith("/"):
+                return redirect(next_url)
+            return redirect("accounts:terms")
+
+    acceptance = (
+        request.user.policy_acceptances.filter(version=version).first()
+        if version else None
+    )
+    def group(rows):
+        """Bound fields with their published code and wording.
+
+        Built here because a template cannot look a form field up by a
+        name it has to read out of a list first.
+        """
+        return [
+            {"field": form[name], "code": code, "label": label}
+            for name, code, label in rows
+        ]
+
+    return render(request, "accounts/terms.html", {
+        "version": version,
+        "accepted": accepted,
+        "acceptance": acceptance,
+        "consent": consent,
+        "form": form,
+        "media_fields": group(ParticipantConsent.MEDIA_FIELDS),
+        "recruiter_fields": group(ParticipantConsent.RECRUITER_FIELDS),
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -946,11 +1020,20 @@ def consent_register(request):
     view that is actually actionable before a deadline.
     """
     current = PolicyVersion.current()
+    terms = PolicyVersion.current(PolicyVersion.Kind.TERMS)
     accepted_ids = set()
     if current:
         accepted_ids = set(
             current.acceptances.values_list("user_id", flat=True)
         )
+    terms_ids = set(
+        terms.acceptances.values_list("user_id", flat=True)
+    ) if terms else set()
+    # One query for the lanyards rather than one per person: the check-in
+    # desk opens this with the whole field on it.
+    consents = {
+        c.user_id: c for c in ParticipantConsent.objects.all()
+    }
 
     rows = []
     for profile_obj in (
@@ -959,16 +1042,28 @@ def consent_register(request):
         .order_by("username")
     ):
         profile = getattr(profile_obj, "profile", None)
+        consent = consents.get(profile_obj.pk)
         rows.append({
             "user": profile_obj,
             "privacy_at": getattr(profile, "privacy_accepted_at", None),
             "privacy_ip": getattr(profile, "privacy_accepted_ip", None),
             "conduct": profile_obj.pk in accepted_ids,
+            "terms": profile_obj.pk in terms_ids,
+            # What the desk issues. Shown for everybody, because "no row"
+            # and "standard lanyard" must not look the same.
+            "lanyard": consent.lanyard if consent else "Standard",
+            "black_lanyard": bool(consent and consent.black_lanyard),
+            "recruiters": bool(consent and consent.shares_with_recruiters),
             "team": team_service.team_for(profile_obj),
         })
 
     if request.GET.get("missing"):
-        rows = [r for r in rows if not r["privacy_at"] or not r["conduct"]]
+        rows = [
+            r for r in rows
+            if not r["privacy_at"] or not r["conduct"] or not r["terms"]
+        ]
+    if request.GET.get("black"):
+        rows = [r for r in rows if r["black_lanyard"]]
 
     return render(
         request,
@@ -976,8 +1071,13 @@ def consent_register(request):
         {
             "rows": rows,
             "policy": current,
+            "terms": terms,
             "missing_only": bool(request.GET.get("missing")),
-            "complete": sum(1 for r in rows if r["privacy_at"] and r["conduct"]),
+            "black_only": bool(request.GET.get("black")),
+            "complete": sum(
+                1 for r in rows if r["privacy_at"] and r["conduct"] and r["terms"]
+            ),
+            "black_lanyards": sum(1 for r in rows if r["black_lanyard"]),
         },
     )
 

@@ -43,6 +43,7 @@ Replace "#" with {% url %} tags as each module ships its views.
     <a class="side-link" href="{% url 'accounts:recruit' %}"><span class="glyph">&#9823;</span> Fill Your Seats <span class="badge badge-gold">{{ seats_free }}</span></a>
     {% endif %}
     <a class="side-link" href="{% url 'accounts:conduct' %}"><span class="glyph">&#9998;</span> Code of Conduct</a>
+    <a class="side-link" href="{% url 'accounts:terms' %}"><span class="glyph">&#9878;</span> Terms &amp; Consents</a>
     {% if submits_application %}
     <a class="side-link" href="{% url 'deployments:submit' %}"><span class="glyph">&#9635;</span> Submit Application</a>
     {% endif %}
@@ -71,6 +72,7 @@ Replace "#" with {% url %} tags as each module ships its views.
     <a class="side-link" href="{% url 'accounts:recruit' %}"><span class="glyph">&#9823;</span> Fill Your Seats <span class="badge badge-gold">{{ seats_free }}</span></a>
     {% endif %}
     <a class="side-link" href="{% url 'accounts:conduct' %}"><span class="glyph">&#9998;</span> Code of Conduct</a>
+    <a class="side-link" href="{% url 'accounts:terms' %}"><span class="glyph">&#9878;</span> Terms &amp; Consents</a>
     {% if competition_phase == "live" %}
     <a class="side-link" href="{% url 'dashboard:red_target_access' %}"><span class="glyph">&#9678;</span> Target Access</a>
     {% endif %}

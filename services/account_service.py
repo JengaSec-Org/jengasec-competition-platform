@@ -178,15 +178,34 @@ def mark_institution_verified(profile, by):
 # Code of conduct (Guide section 6, step 4)
 # ---------------------------------------------------------------------------
 
-def has_accepted_current_policy(user):
+def has_accepted_current_policy(user, kind=None):
     """True when there is nothing to accept, or the user accepted the
-    current version."""
+    current version of that kind."""
     from accounts.models import PolicyAcceptance, PolicyVersion
 
-    current = PolicyVersion.current()
+    current = PolicyVersion.current(kind)
     if current is None:
         return True
     return PolicyAcceptance.objects.filter(user=user, version=current).exists()
+
+
+def outstanding_policies(user):
+    """Every current policy this user has not yet accepted.
+
+    One call rather than one per kind, so a checklist cannot forget a
+    document somebody published later.
+    """
+    from accounts.models import PolicyAcceptance, PolicyVersion
+
+    current = list(PolicyVersion.objects.filter(is_current=True))
+    if not current:
+        return []
+    accepted = set(
+        PolicyAcceptance.objects.filter(
+            user=user, version__in=current
+        ).values_list("version_id", flat=True)
+    )
+    return [version for version in current if version.pk not in accepted]
 
 
 def accept_policy(user, version, ip_address=None):
@@ -231,13 +250,22 @@ def publish_policy(version):
 
     from accounts.models import PolicyVersion
 
-    PolicyVersion.objects.filter(is_current=True).exclude(pk=version.pk).update(is_current=False)
+    # Only this kind: publishing the terms must not quietly unpublish the
+    # code of conduct, which the single-current constraint used to force.
+    PolicyVersion.objects.filter(
+        is_current=True, kind=version.kind
+    ).exclude(pk=version.pk).update(is_current=False)
     version.is_current = True
     version.published_at = version.published_at or timezone.now()
     version.save(update_fields=["is_current", "published_at"])
 
     competitors = competitor_accounts()
-    accept_url = settings.SITE_URL.rstrip("/") + reverse("accounts:conduct")
+    route = (
+        "accounts:terms"
+        if version.kind == PolicyVersion.Kind.TERMS
+        else "accounts:conduct"
+    )
+    accept_url = settings.SITE_URL.rstrip("/") + reverse(route)
     transaction.on_commit(
         lambda: cat.policy_updated(
             list(competitors), version.version, version.summary or "See the full text.", accept_url

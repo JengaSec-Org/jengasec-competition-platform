@@ -53,6 +53,7 @@ urlpatterns = [
     path("verify/<token:token>/", views.verify_email, name="verify_email"),
     # Code of conduct (Guide s.6 step 4)
     path("conduct/", views.conduct, name="conduct"),
+    path("terms/", views.terms, name="terms"),
     path("choose-role/", views.choose_role, name="choose_role"),
     path("team-form/", views.team_form, name="team_form"),
     # Members wait for their captain's invitation here (Guide s.6 step 7).

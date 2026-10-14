@@ -278,7 +278,10 @@ textarea.is-invalid {
   font-weight: 400;
   font-size: 0.78rem;
   line-height: 1.55;
-  color: var(--text-inverse-dim);
+  /* Readable on an ordinary light card. The inverse token below is for the
+     dark auth card only -- used as the default it rendered white on white,
+     so every consent label was invisible while its checkbox was not. */
+  color: var(--muted);
 }
 .auth-card .consent-check label { color: var(--text-inverse-dim); }
 .consent-check label span { flex: 1 1 auto; }
