@@ -8,12 +8,14 @@ Produces, in --out:
     scope-assignments.csv   -> input to scripts/make-allowlists.py (SEC-10)
     allocation.csv          -> input to scripts/create-accounts (APP-12)
 
-Commit cells.yaml to the infra repo in a pull request. The CSVs carry team
-names, so share them with APP/SEC directly rather than committing them.
+Commit cells.yaml to the infra repo in a pull request. The legacy allocation
+CSV carries team names, so share it with APP/SEC directly rather than
+committing it. Observability consumes the privacy-safe database views instead.
 """
 import pathlib
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 
 from audit.models import AuditLog
 from competitions.models import Competition
@@ -30,7 +32,12 @@ class Command(BaseCommand):
         parser.add_argument(
             "--fill-namespaces",
             action="store_true",
-            help="Also store the canonical namespace (e.g. jengasec-ent-a-app03) on Blue teams that have none.",
+            help="Store the canonical namespace only on Blue teams whose namespace is empty.",
+        )
+        parser.add_argument(
+            "--enable-optional",
+            action="store_true",
+            help="Enable APP08 and APP09 in both enterprises.",
         )
 
     def handle(self, *args, **opts):
@@ -39,9 +46,19 @@ class Command(BaseCommand):
         except Competition.DoesNotExist as exc:
             raise CommandError(f"No competition with id {opts['competition']}") from exc
 
-        if opts["fill_namespaces"]:
-            n = range_service.fill_namespaces(competition)
-            self.stdout.write(f"stored namespaces on {n} team(s)")
+        try:
+            with transaction.atomic():
+                if opts["fill_namespaces"]:
+                    range_service.fill_namespaces(competition)
+                result = range_service.sync_observability_data(
+                    competition, enable_optional=opts["enable_optional"]
+                )
+        except range_service.ObservabilitySyncError as exc:
+            raise CommandError(str(exc)) from exc
+        self.stdout.write(
+            f"reconciled {result['applications']} applications and "
+            f"{result['scope_assignments']} scope assignments"
+        )
 
         out = pathlib.Path(opts["out"])
         out.mkdir(parents=True, exist_ok=True)

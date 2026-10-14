@@ -506,8 +506,8 @@ def range_exports(request):
 
     try:
         payload = {
-            "cells_yaml": range_service.cells_yaml(competition),
-            "scope_csv": range_service.scope_csv(competition),
+            "cells_yaml": range_service.deployment_cells_yaml(competition),
+            "scope_csv": range_service.deployment_scope_csv(competition),
         }
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=409)

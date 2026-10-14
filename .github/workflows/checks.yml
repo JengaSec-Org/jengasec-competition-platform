@@ -1,0 +1,59 @@
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  django:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16.10-bookworm
+        env:
+          POSTGRES_DB: obs_interface
+          POSTGRES_USER: obs_test
+          POSTGRES_PASSWORD: test-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U obs_test -d obs_interface"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DJANGO_SETTINGS_MODULE: config.observability_test_settings
+      OBS_TEST_PG_HOST: "127.0.0.1"
+      OBS_TEST_PG_PASSWORD: test-only-password
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Install dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Check migrations and configuration
+        run: |
+          .venv/bin/python manage.py makemigrations --check --dry-run
+          .venv/bin/python manage.py check
+          .venv/bin/python manage.py migrate --noinput
+          .venv/bin/python manage.py migrate cyberrange 0003_merge_observability_runtime --noinput
+          .venv/bin/python manage.py migrate --noinput
+          .venv/bin/python manage.py collectstatic --noinput
+
+      - name: Test the full suite with PostgreSQL views
+        run: .venv/bin/python manage.py test --verbosity 2 --noinput
+
+      - name: Test the full suite with SQLite
+        run: >-
+          env
+          -u OBS_TEST_PG_HOST
+          -u OBS_TEST_PG_PASSWORD
+          .venv/bin/python manage.py test --verbosity 2 --noinput

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Finding, WireGuardProfile
+from .models import Finding, IPAllocation, RangeApplication, ScopeAssignment, WireGuardProfile
 
 
 @admin.register(Finding)
@@ -24,3 +24,31 @@ class WireGuardProfileAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False  # profiles come from `manage.py load_wireguard_profiles`
+
+
+@admin.register(RangeApplication)
+class RangeApplicationAdmin(admin.ModelAdmin):
+    list_display = (
+        "application_instance_id", "service_name", "ip_address", "status", "optional", "enabled"
+    )
+    list_filter = ("competition", "enterprise", "status", "optional", "enabled")
+    search_fields = ("application_instance_id", "namespace", "service_name", "ip_address")
+    readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(IPAllocation)
+class IPAllocationAdmin(admin.ModelAdmin):
+    list_display = ("allocation_id", "ip_address", "kind", "team_label", "status", "updated_at")
+    list_filter = ("competition", "kind", "team_label", "status")
+    search_fields = ("allocation_id", "ip_address", "participant__participant_identifier", "team__team_identifier")
+    raw_id_fields = ("participant", "team")
+    readonly_fields = ("allocation_id", "updated_at")
+
+
+@admin.register(ScopeAssignment)
+class ScopeAssignmentAdmin(admin.ModelAdmin):
+    list_display = ("team", "source_cidr", "application", "active", "valid_from", "valid_until")
+    list_filter = ("competition", "active")
+    search_fields = ("team__team_identifier", "source_cidr", "application__application_instance_id")
+    raw_id_fields = ("target_assignment", "team", "application")
+    readonly_fields = ("updated_at",)

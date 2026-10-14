@@ -119,6 +119,9 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+The privacy-safe PostgreSQL interface consumed by the observability stack is
+documented in [docs/observability-interface.md](docs/observability-interface.md).
+
 Then open <http://127.0.0.1:8000/> — the public site is at `/`, login at `/login/`, Django admin at `/admin/`.
 
 To try the role dashboards: create users in `/admin/` and add them to the `blue_team`, `red_team`, `judge`, or `partner` group, then log in as them.
