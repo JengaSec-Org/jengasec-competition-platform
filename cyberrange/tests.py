@@ -1,13 +1,16 @@
 """Range hooks: exports match the infra contracts, findings respect scope,
 WireGuard profiles reach only their owner."""
 import datetime
+import importlib
 import io
 import pathlib
 import shutil
 import tempfile
 
+from django.apps import apps
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.management import call_command
 from django.test import TestCase, override_settings
@@ -51,6 +54,10 @@ class RangeTestBase(TestCase):
         self.blue_a = team("Nyati", "JS26-B-001", "blue", "application", "a", "APP03", self.blue_user)
         self.blue_b = team("Simba", "JS26-B-002", "blue", "application", "b", "APP03")
         self.ai_a = team("Tai", "JS26-B-003", "blue", "ai", "a", "AI01")
+        self.blue_a.service_ip = "10.108.0.11"
+        self.blue_a.save(update_fields=["service_ip"])
+        self.blue_b.service_ip = "10.108.0.12"
+        self.blue_b.save(update_fields=["service_ip"])
 
         self.red_user = User.objects.create_user("otieno", "otieno@strathmore.edu", PASSWORD)
         self.red = team("Kifaru", "JS26-R-001", "red", "application", "a", "APPRED01", self.red_user)
@@ -66,30 +73,71 @@ class RangeTestBase(TestCase):
 
 
 class ExportTests(RangeTestBase):
-    def test_namespace_is_derived_then_organiser_value_wins(self):
-        self.assertEqual(range_service.namespace_for(self.blue_a), "enta-app03")
-        self.assertEqual(range_service.namespace_for(self.blue_b), "entb-app03")
+    def test_namespace_uses_the_shared_infrastructure_contract(self):
+        self.assertEqual(range_service.namespace_for(self.blue_a), "jengasec-ent-a-app03")
+        self.assertEqual(range_service.namespace_for(self.blue_b), "jengasec-ent-b-app03")
         self.blue_a.namespace = "custom-ns"
-        self.assertEqual(range_service.namespace_for(self.blue_a), "custom-ns")
+        with self.assertRaises(ValueError):
+            range_service.namespace_for(self.blue_a)
+
+    def test_migration_upgrades_legacy_derived_namespaces(self):
+        self.blue_a.namespace = "enta-app03"
+        self.blue_a.save(update_fields=["namespace"])
+        migration = importlib.import_module(
+            "accounts.migrations.0016_canonical_team_namespaces"
+        )
+        migration.canonicalize_default_namespaces(apps, None)
+        self.blue_a.refresh_from_db()
+        self.assertEqual(self.blue_a.namespace, "jengasec-ent-a-app03")
 
     def test_cells_yaml_lists_blue_cells_only_with_kinds(self):
         text = range_service.cells_yaml(self.comp)
-        self.assertIn("name: enta-app03, enterprise: enta, code: APP03, kind: app", text)
-        self.assertIn("name: entb-app03, enterprise: entb, code: APP03, kind: app", text)
-        self.assertIn("name: enta-ai01, enterprise: enta, code: AI01, kind: ai", text)
+        self.assertIn(
+            "name: jengasec-ent-a-app03, enterprise: enta, code: APP03, kind: app",
+            text,
+        )
+        self.assertIn(
+            "name: jengasec-ent-b-app03, enterprise: entb, code: APP03, kind: app",
+            text,
+        )
+        self.assertIn('service_ip: "10.108.0.11"', text)
+        self.assertIn(
+            "name: jengasec-ent-a-ai01, enterprise: enta, code: AI01, kind: ai",
+            text,
+        )
         self.assertNotIn("APPRED01", text)
 
     def test_scope_csv_matches_the_infra_contract(self):
         lines = range_service.scope_csv(self.comp).splitlines()
-        infra_header = "red_team,red_cell,enterprise,target_cell,target_namespace,wg_range,round_active,notes"
+        infra_header = (
+            "red_team,red_cell,enterprise,target_cell,target_namespace,"
+            "target_service_ip,wg_range,round_active,notes"
+        )
         self.assertEqual(lines[0], infra_header)
-        self.assertIn("JS26-R-001,APPRED01,enta,APP03,enta-app03,10.60.1.0/24,true,", lines)
-        self.assertIn("JS26-R-001,APPRED01,entb,APP03,entb-app03,10.60.1.0/24,false,", lines)
+        self.assertIn(
+            "JS26-R-001,APPRED01,enta,APP03,jengasec-ent-a-app03,"
+            "10.108.0.11,10.60.1.0/24,true,",
+            lines,
+        )
+        self.assertIn(
+            "JS26-R-001,APPRED01,entb,APP03,jengasec-ent-b-app03,"
+            "10.108.0.12,10.60.1.0/24,false,",
+            lines,
+        )
+
+    def test_duplicate_reserved_service_ip_is_rejected(self):
+        self.blue_b.service_ip = self.blue_a.service_ip
+        with self.assertRaises(ValidationError):
+            self.blue_b.full_clean()
 
     def test_allocation_csv_carries_no_personal_data(self):
         text = range_service.allocation_csv(self.comp)
         self.assertNotIn("@", text)
-        self.assertIn("enta,APP03,enta-app03,app,blue,application,JS26-B-001,Nyati", text)
+        self.assertIn(
+            "enta,APP03,jengasec-ent-a-app03,10.108.0.11,"
+            "app,blue,application,JS26-B-001,Nyati",
+            text,
+        )
 
     def test_export_command_writes_three_files_and_audits(self):
         out = pathlib.Path(tempfile.mkdtemp(prefix="range-export-"))
@@ -100,7 +148,7 @@ class ExportTests(RangeTestBase):
         finally:
             shutil.rmtree(out, ignore_errors=True)
         self.blue_a.refresh_from_db()
-        self.assertEqual(self.blue_a.namespace, "enta-app03")
+        self.assertEqual(self.blue_a.namespace, "jengasec-ent-a-app03")
         self.assertTrue(AuditLog.objects.filter(action=AuditLog.Action.RANGE_EXPORTED).exists())
 
 

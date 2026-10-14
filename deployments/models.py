@@ -87,7 +87,8 @@ class AppSubmission(models.Model):
     logs_excerpt = models.TextField(blank=True)
 
     # Set at the freeze, by the organisers or the range -- never by a team.
-    frozen_digest = models.CharField(max_length=120, blank=True)
+    frozen_digest = models.CharField(max_length=500, blank=True)
+    frozen_extra_images = models.JSONField(default=list, blank=True)
     frozen_at = models.DateTimeField(null=True, blank=True)
     # Only authenticated range receipts set these. A tag is not a content digest.
     resolved_digest = models.CharField(max_length=71, blank=True)
@@ -153,3 +154,27 @@ class AppSubmission(models.Model):
             {"status": check, "label": check.label, "done": check in done}
             for check in self.CHECKS
         ]
+
+
+class AppRuntimeStatus(models.Model):
+    """Latest health and deployed-image observation reported by the range."""
+
+    class Status(models.TextChoices):
+        BUILDING = "building", "Building"
+        FROZEN = "frozen", "Frozen"
+        LIVE = "live", "Live"
+        DOWN = "down", "Down"
+
+    team = models.OneToOneField(
+        "accounts.Team", on_delete=models.CASCADE, related_name="app_runtime_status"
+    )
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.BUILDING
+    )
+    healthy = models.BooleanField(default=False)
+    observed_image_digest = models.CharField(max_length=500, blank=True)
+    detail = models.TextField(blank=True)
+    checked_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.team.cell_label or self.team.team_name}: {self.status}"

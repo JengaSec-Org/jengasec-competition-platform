@@ -33,6 +33,7 @@ thing the whole build phase depends on.
 """
 import argparse
 import base64
+import ipaddress
 import json
 import logging
 import os
@@ -48,11 +49,9 @@ import urllib.request
 log = logging.getLogger("deploy-agent")
 
 DEFAULT_BASE = "https://www.jengasec.com"
-# architecture section 2.3: jengasec-<enterprise>-<cell>, e.g. jengasec-ent-a-app01
+# Infrastructure namespace, e.g. jengasec-ent-a-app01.
 DEFAULT_NAMESPACE = "jengasec-ent-{enterprise}-{cell}"
 # Guide: 2 CPU and 3 GB in total for the cell, database included.
-APP_CPU, APP_MEMORY = "1500m", "2Gi"
-DB_CPU, DB_MEMORY = "500m", "1Gi"
 MAX_IMAGE_BYTES = 2 * 1024 * 1024 * 1024  # "Keep each image under 2 GB"
 
 
@@ -155,7 +154,8 @@ class Api:
     def pending(self):
         return self._call("/deployments/api/pending/").get("pending", [])
 
-    def report(self, submission_id, status, *, detail="", scan_report=None, logs=None, resolved_digest=None):
+    def report(self, submission_id, status, *, detail="", scan_report=None, logs=None,
+               resolved_digest=None, extra_digests=None):
         payload = {"id": submission_id, "status": status, "detail": detail}
         if scan_report is not None:
             payload["scan_report"] = scan_report
@@ -163,13 +163,18 @@ class Api:
             payload["logs_excerpt"] = logs[-4000:]
         if resolved_digest is not None:
             payload["resolved_digest"] = resolved_digest
+        if extra_digests is not None:
+            payload["extra_digests"] = extra_digests
         return self._call("/deployments/api/status/", payload)
 
     def active(self, after=0):
         return self._call(f"/deployments/api/active/?after={after}")
 
-    def artifact(self, identifier, resolved_digest):
-        return self._call("/deployments/api/artifact/", {"id": identifier, "resolved_digest": resolved_digest})
+    def artifact(self, identifier, resolved_digest, extra_digests=None):
+        payload = {"id": identifier, "resolved_digest": resolved_digest}
+        if extra_digests is not None:
+            payload["extra_digests"] = extra_digests
+        return self._call("/deployments/api/artifact/", payload)
 
 
 # ----------------------------------------------------------------- docker
@@ -207,15 +212,19 @@ def docker_config(submission, directory):
     auth = base64.b64encode(
         f"{submission['registry_username']}:{token}".encode()
     ).decode()
-    registry = registry_of(submission["image_reference"])
-    host = "https://index.docker.io/v1/" if registry == "docker.io" else registry
+    images = [submission["image_reference"], *(submission.get("extra_images") or [])]
+    auths = {}
+    for image in images:
+        registry = registry_of(image)
+        host = "https://index.docker.io/v1/" if registry == "docker.io" else registry
+        auths[host] = {"auth": auth}
     with open(path, "w", encoding="utf-8") as handle:
-        json.dump({"auths": {host: {"auth": auth}}}, handle)
+        json.dump({"auths": auths}, handle)
     os.chmod(path, 0o600)
     return path
 
 
-def docker(args, *, config_dir=None, timeout=900):
+def docker(args, *, config_dir=None, stdin=None, timeout=900):
     env_prefix = []
     environment = os.environ.copy()
     if config_dir:
@@ -224,7 +233,7 @@ def docker(args, *, config_dir=None, timeout=900):
     try:
         done = subprocess.run(
             ["docker", *args], capture_output=True, text=True,
-            timeout=timeout, env=environment,
+            input=stdin, timeout=timeout, env=environment,
         )
     except FileNotFoundError:
         raise Infra("Docker is not installed on the deploy host.")
@@ -247,8 +256,8 @@ def is_public(image):
         return code == 0
 
 
-def pull(submission, config_dir):
-    image = submission["image_reference"]
+def pull(submission, config_dir, image=None):
+    image = image or submission["image_reference"]
     code, _, err = docker(["pull", "--platform", "linux/amd64", image], config_dir=config_dir)
     if code != 0:
         text = (err or "").lower()
@@ -318,19 +327,74 @@ def pinned_reference(image):
     return candidates[0]
 
 
-def observed_artifact(namespace):
-    """Read the pinned workload template independently of readiness."""
+def validate_workload_images(containers, *, expected_image=None, extra_images=()):
+    """Verify the complete frozen container set in the deployment template."""
+    try:
+        expected_names = {"app", *(f"extra-{index}" for index in range(1, len(extra_images) + 1))}
+        images = {row["name"]: row["image"] for row in containers}
+        if len(containers) != len(images) or set(images) != expected_names:
+            raise ValueError
+        if not re.fullmatch(r"[^@\s]+@sha256:[a-f0-9]{64}", images["app"]):
+            raise ValueError
+        if expected_image is not None and images["app"] != expected_image:
+            raise ValueError
+        for index, image in enumerate(extra_images, 1):
+            if (not re.fullmatch(r"[^@\s]+@sha256:[a-f0-9]{64}", image)
+                    or images[f"extra-{index}"] != image):
+                raise ValueError
+    except (ValueError, TypeError, KeyError):
+        raise Infra("Deployment image does not match the frozen digest.") from None
+
+
+def observed_artifact(namespace, *, expected_image=None, extra_images=()):
+    """Read actual app pod digests independently of readiness."""
     code, out, _ = kubectl(["get", "deployment", "app", "-n", namespace, "-o", "json"], timeout=15)
     if code:
         raise Infra("Cannot verify the assigned application deployment.")
     try:
         containers = json.loads(out)["spec"]["template"]["spec"]["containers"]
-        matches = [row["image"] for row in containers if row.get("name") == "app"]
-        if len(matches) != 1 or not re.fullmatch(r".+@sha256:[a-f0-9]{64}", matches[0]):
-            raise ValueError
-        return matches[0].rsplit("@", 1)[1]
+        validate_workload_images(containers, expected_image=expected_image, extra_images=extra_images)
     except (ValueError, TypeError, KeyError):
         raise Infra("The deployed application is not pinned to a verified digest.") from None
+    code, out, _ = kubectl(
+        ["get", "pods", "-n", namespace, "-l", "app=app", "-o", "json"], timeout=15
+    )
+    if code:
+        raise Infra("Cannot verify the assigned application pods.")
+    try:
+        pods = json.loads(out)["items"]
+    except (ValueError, TypeError, KeyError):
+        raise Infra("Cannot parse the assigned application pods.") from None
+    return running_artifact(pods, extra_images=extra_images)
+
+
+def running_artifact(pods, *, extra_images=()):
+    """Require every observed app container to identify the same content."""
+    digests = set()
+    try:
+        if not isinstance(pods, list) or not pods:
+            raise ValueError
+        for pod in pods:
+            containers = pod.get("status", {}).get("containerStatuses", [])
+            by_name = {row["name"]: row for row in containers}
+            expected_names = {"app", *(f"extra-{index}" for index in range(1, len(extra_images) + 1))}
+            if len(containers) != len(by_name) or set(by_name) != expected_names:
+                raise ValueError
+            match = re.search(r"(?:^|[@/])(sha256:[0-9a-f]{64})$", by_name["app"].get("imageID", ""))
+            if match is None:
+                raise ValueError
+            digests.add(match.group(1))
+            for index, expected in enumerate(extra_images, 1):
+                observed = re.search(r"(?:^|[@/])(sha256:[0-9a-f]{64})$",
+                                     by_name[f"extra-{index}"].get("imageID", ""))
+                if (not re.fullmatch(r"[^@\s]+@sha256:[a-f0-9]{64}", expected)
+                        or observed is None or observed.group(1) != expected.rsplit("@", 1)[1]):
+                    raise ValueError
+        if len(digests) != 1:
+            raise ValueError
+    except (AttributeError, KeyError, TypeError, ValueError):
+        raise Infra("Running application pod digests are missing or ambiguous.") from None
+    return digests.pop()
 
 
 def verify_artifacts(api, options):
@@ -344,8 +408,9 @@ def verify_artifacts(api, options):
             # A missing deployment stops freshness updates; it does not fabricate
             # an app failure or refresh an earlier digest from local memory.
             try:
-                value = observed_artifact(namespace)
-                api.artifact(row["id"], value)
+                extras = row.get("frozen_extra_images") or []
+                value = observed_artifact(namespace, expected_image=row.get("frozen_digest"), extra_images=extras)
+                api.artifact(row["id"], value, [item.rsplit("@", 1)[1] for item in extras])
             except (Infra, Stop):
                 log.warning("Artifact confirmation unavailable for submission %s", row["id"])
         following = response["next_cursor"]
@@ -400,60 +465,110 @@ def scan(image, *, fail_on_critical=True):
 
 
 def namespace_for(submission, template):
-    return template.format(
-        enterprise=submission["enterprise"], cell=(submission["cell"] or "unassigned").lower()
+    namespace = submission.get("namespace") or template.format(
+        enterprise=submission["enterprise"],
+        cell=(submission["cell"] or "unassigned").lower(),
     )
+    if not re.fullmatch(r"[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?", namespace):
+        raise Stop(f"The platform returned an invalid Kubernetes namespace: {namespace!r}")
+    return namespace
+
+
+def require_service_ip(value):
+    if not isinstance(value, str) or not value:
+        raise Stop("Assign this Application Blue cell its reserved MetalLB IPv4 address first.")
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError as exc:
+        raise Stop(f"The platform returned an invalid cell service IP: {value!r}") from exc
+    if address.version != 4:
+        raise Stop(f"The cell service IP must be IPv4: {value!r}")
+    return str(address)
 
 
 def manifests(submission, namespace, image):
-    """Deployment, Service and -- when asked for -- a PostgreSQL 16.
+    """The app Deployment and Service in an infrastructure-owned cell.
 
     The team's own health path becomes the readiness probe, so "Healthy"
     is decided by the same check they were told about rather than by a
-    separate request from somewhere else.
+    separate request from somewhere else. Namespace, database, quotas,
+    policies, and ingress are owned by the infrastructure chart.
     """
     port = int(submission["port"])
+    service_ip = require_service_ip(submission.get("service_ip"))
     health = submission["health_path"]
-    env = [{"name": key, "value": str(value)} for key, value in (submission.get("env_vars") or {}).items()]
-    docs = []
-
+    app_env = [
+        {"name": key, "value": str(value)}
+        for key, value in (submission.get("env_vars") or {}).items()
+    ]
+    app_env.append({"name": "PORT", "value": str(port)})
+    app_env_from = []
     if submission.get("needs_database"):
-        env += [
-            {"name": "DATABASE_URL", "value": "postgresql://app:app@db:5432/app"},
-            {"name": "PGHOST", "value": "db"}, {"name": "PGPORT", "value": "5432"},
-            {"name": "PGDATABASE", "value": "app"},
-            {"name": "PGUSER", "value": "app"}, {"name": "PGPASSWORD", "value": "app"},
-        ]
-        docs += [
-            {
-                "apiVersion": "apps/v1", "kind": "Deployment",
-                "metadata": {"name": "db", "namespace": namespace},
-                "spec": {
-                    "replicas": 1,
-                    "selector": {"matchLabels": {"app": "db"}},
-                    "template": {
-                        "metadata": {"labels": {"app": "db"}},
-                        "spec": {"containers": [{
-                            "name": "db", "image": "postgres:16",
-                            "env": [
-                                {"name": "POSTGRES_DB", "value": "app"},
-                                {"name": "POSTGRES_USER", "value": "app"},
-                                {"name": "POSTGRES_PASSWORD", "value": "app"},
-                            ],
-                            "ports": [{"containerPort": 5432}],
-                            "resources": {"limits": {"cpu": DB_CPU, "memory": DB_MEMORY}},
-                        }]},
-                    },
+        app_env_from.append({"secretRef": {"name": "db-credentials"}})
+        for name, key in (
+            ("PGHOST", "DB_HOST"),
+            ("PGDATABASE", "DB_NAME"),
+            ("PGUSER", "DB_USER"),
+            ("PGPASSWORD", "DB_PASSWORD"),
+        ):
+            app_env.append({
+                "name": name,
+                "valueFrom": {
+                    "secretKeyRef": {"name": "db-credentials", "key": key}
                 },
-            },
-            {
-                "apiVersion": "v1", "kind": "Service",
-                "metadata": {"name": "db", "namespace": namespace},
-                "spec": {"selector": {"app": "db"}, "ports": [{"port": 5432, "targetPort": 5432}]},
-            },
-        ]
+            })
+        app_env.append({"name": "PGPORT", "value": "5432"})
+    extra_images = submission.get("extra_images") or []
+    if not isinstance(extra_images, list) or len(extra_images) > 2:
+        raise Stop("A submission can include at most two extra images.")
+    if any(not isinstance(item, str) or not item for item in extra_images):
+        raise Stop("An extra image reference is invalid.")
+    app_containers = 1 + len(extra_images)
+    # Reserve the chart's LimitRange defaults for its namespace-local database.
+    app_cpu_milli, app_memory_mi = 900, 1920
+    base_cpu, extra_cpu = divmod(app_cpu_milli, app_containers)
+    base_memory, extra_memory = divmod(app_memory_mi, app_containers)
 
-    docs += [
+    def container_resources(index):
+        cpu = base_cpu + (1 if index < extra_cpu else 0)
+        memory = base_memory + (1 if index < extra_memory else 0)
+        resources = {"cpu": f"{cpu}m", "memory": f"{memory}Mi"}
+        return {"requests": resources, "limits": resources}
+
+    app_container = {
+        "name": "app",
+        "image": image,
+        "ports": [{"containerPort": port}],
+        "env": app_env,
+        "envFrom": app_env_from,
+        "readinessProbe": {
+            "httpGet": {"path": health, "port": port},
+            "initialDelaySeconds": 5, "periodSeconds": 5,
+            "failureThreshold": 30,
+        },
+        "resources": container_resources(0),
+        "securityContext": {
+            "allowPrivilegeEscalation": False,
+            "readOnlyRootFilesystem": False,
+            "capabilities": {"drop": ["ALL"]},
+        },
+    }
+    containers = [app_container]
+    for index, extra_image in enumerate(extra_images, start=1):
+        containers.append({
+            "name": f"extra-{index}",
+            "image": extra_image,
+            "env": app_env,
+            "envFrom": app_env_from,
+            "resources": container_resources(index),
+            "securityContext": {
+                "allowPrivilegeEscalation": False,
+                "readOnlyRootFilesystem": False,
+                "capabilities": {"drop": ["ALL"]},
+            },
+        })
+
+    docs = [
         {
             "apiVersion": "apps/v1", "kind": "Deployment",
             "metadata": {"name": "app", "namespace": namespace},
@@ -463,30 +578,31 @@ def manifests(submission, namespace, image):
                 "template": {
                     "metadata": {"labels": {"app": "app"}},
                     "spec": {
+                        "serviceAccountName": "application",
+                        "automountServiceAccountToken": False,
+                        "securityContext": {
+                            "runAsNonRoot": True,
+                            "seccompProfile": {"type": "RuntimeDefault"},
+                        },
                         "imagePullSecrets": [{"name": "team-registry"}],
-                        "containers": [{
-                            "name": "app", "image": image,
-                            "ports": [{"containerPort": port}],
-                            "env": env + [{"name": "PORT", "value": str(port)}],
-                            "readinessProbe": {
-                                "httpGet": {"path": health, "port": port},
-                                "initialDelaySeconds": 5, "periodSeconds": 5,
-                                "failureThreshold": 30,
-                            },
-                            "resources": {"limits": {"cpu": APP_CPU, "memory": APP_MEMORY}},
-                            "securityContext": {
-                                "allowPrivilegeEscalation": False,
-                                "readOnlyRootFilesystem": False,
-                            },
-                        }],
+                        "containers": containers,
                     },
                 },
             },
         },
         {
             "apiVersion": "v1", "kind": "Service",
-            "metadata": {"name": "app", "namespace": namespace},
-            "spec": {"selector": {"app": "app"}, "ports": [{"port": 80, "targetPort": port}]},
+            "metadata": {
+                "name": "app",
+                "namespace": namespace,
+                "annotations": {"metallb.io/loadBalancerIPs": service_ip},
+            },
+            "spec": {
+                "type": "LoadBalancer",
+                "loadBalancerIP": service_ip,
+                "selector": {"app": "app"},
+                "ports": [{"port": 80, "targetPort": port}],
+            },
         },
     ]
     return docs
@@ -497,9 +613,7 @@ def kubectl(args, *, stdin=None, timeout=600):
 
 
 def deploy(submission, namespace, image, config_path):
-    """Create the namespace, the pull secret and the workloads."""
-    kubectl(["create", "namespace", namespace])  # already there is fine
-
+    """Apply app resources to a pre-provisioned cell namespace."""
     # The pull secret goes in from a file, never argv.
     with open(config_path, encoding="utf-8") as handle:
         dockerconfig = handle.read()
@@ -557,43 +671,68 @@ def process(submission, api, options):
     log.info("[%s] %s", label, submission["image_reference"])
 
     workdir = tempfile.mkdtemp(prefix="jengasec-deploy-")
+    images = [submission["image_reference"], *(submission.get("extra_images") or [])]
     try:
+        require_service_ip(submission.get("service_ip"))
         config_path = docker_config(submission, workdir)
         image = submission["image_reference"]
 
         # ---- Pulled
-        if not options.allow_public and is_public(image):
-            raise Stop(
-                "This image is public, so any Red team could download and study your "
-                "application before the event. Set the package visibility to Private "
-                "in your registry and resubmit.",
-                status="rejected",
+        details = []
+        scan_reports = []
+        pinned_images = []
+        blocking = None
+        for candidate in images:
+            if not options.allow_public and is_public(candidate):
+                raise Stop(
+                    f"The image {candidate} is public, so any Red team could download "
+                    "and study it before the event. Set its package visibility to "
+                    "Private in your registry and resubmit.",
+                    status="rejected",
+                )
+            pull(submission, workdir, candidate)
+            pinned = pinned_reference(candidate)
+            pinned_images.append(pinned)
+            details.append(inspect(pinned))
+            report, image_blocking = scan(
+                pinned, fail_on_critical=not options.allow_critical
             )
-        pull(submission, workdir)
-        details = inspect(image)
-        image = pinned_reference(image)
+            scan_reports.append({"image": pinned, **report})
+            if image_blocking and blocking is None:
+                blocking = image_blocking
+
+        image = pinned_images[0]
         resolved_digest = image.rsplit("@", 1)[1]
+        combined_report = {
+            "critical": sum(item.get("critical", 0) for item in scan_reports),
+            "high": sum(item.get("high", 0) for item in scan_reports),
+            "worst": [
+                item for report in scan_reports for item in report.get("worst", [])
+            ][:10],
+            "images": scan_reports,
+        }
         api.report(identifier, "pulled",
-                   detail=f"{details['size_bytes'] // (1024*1024)} MB, runs as {details['user']}",
+                   detail=f"{len(images)} image(s) pulled; "
+                   f"{sum(item['size_bytes'] for item in details) // (1024*1024)} MB total.",
                    resolved_digest=resolved_digest)
         log.info("[%s] pulled", label)
 
         # ---- Scanned
-        report, blocking = scan(image, fail_on_critical=not options.allow_critical)
         if blocking:
-            api.report(identifier, "rejected", detail=blocking, scan_report=report)
+            api.report(identifier, "rejected", detail=blocking, scan_report=combined_report)
             log.info("[%s] rejected on scan", label)
             return
         # "0 critical, 0 high" must never stand in for a scan that did not
         # run: it would tell a team their image is clean when nothing
         # looked at it.
-        if report.get("skipped") or report.get("error"):
+        if any(item.get("skipped") or item.get("error") for item in scan_reports):
             scanned_detail = "Vulnerability scan not available; recorded as not scanned."
         else:
             scanned_detail = (
-                f"{report.get('critical', 0)} critical, {report.get('high', 0)} high"
+                f"{combined_report['critical']} critical, "
+                f"{combined_report['high']} high across {len(images)} image(s)"
             )
-        api.report(identifier, "scanned", scan_report=report, detail=scanned_detail)
+        api.report(identifier, "scanned", scan_report=combined_report, detail=scanned_detail)
         log.info("[%s] scanned", label)
 
         if options.no_deploy or not have("kubectl"):
@@ -603,16 +742,17 @@ def process(submission, api, options):
 
         # ---- Deployed, then Healthy
         namespace = namespace_for(submission, options.namespace_template)
-        deploy(submission, namespace, image, config_path)
+        deploy({**submission, "extra_images": pinned_images[1:]}, namespace, image, config_path)
         api.report(identifier, "deployed", detail=f"Running in {namespace}.")
         log.info("[%s] deployed to %s", label, namespace)
 
         logs = wait_healthy(namespace, options.health_timeout)
-        if observed_artifact(namespace) != resolved_digest:
+        if observed_artifact(namespace, expected_image=image, extra_images=pinned_images[1:]) != resolved_digest:
             raise Infra("The deployed artifact differs from the verified image.")
         api.report(identifier, "healthy",
                    detail=f"{submission['health_path']} answered on port {submission['port']}.",
-                   logs=logs, resolved_digest=resolved_digest)
+                   logs=logs, resolved_digest=resolved_digest,
+                   extra_digests=[item.rsplit("@", 1)[1] for item in pinned_images[1:]])
         log.info("[%s] healthy", label)
 
     except Infra:
@@ -640,10 +780,11 @@ def process(submission, api, options):
             log.error("[%s] could not even report the failure: %s", label, exc)
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
-        try:
-            docker(["image", "rm", "-f", submission["image_reference"]], timeout=120)
-        except Exception:  # noqa: BLE001 — disk hygiene only
-            pass
+        for image in dict.fromkeys(images):
+            try:
+                docker(["image", "rm", "-f", image], timeout=120)
+            except Exception:  # noqa: BLE001 — disk hygiene only
+                pass
 
 
 def one_pass(api, options):

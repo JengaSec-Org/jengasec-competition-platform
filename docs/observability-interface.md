@@ -68,7 +68,7 @@ The example has no eligible records. Each populated row has `revision`,
 | --- | --- |
 | teams | team, side, track, enterprise, cell_id, namespace |
 | allocations | allocation_id, team, source_ip, kind |
-| targets | target_id, team, enterprise, application, namespace, ip_address, port, protocol, frozen_digest, verified_at |
+| targets | target_id, team, enterprise, application, namespace, ip_address, port, protocol, frozen_digest, frozen_extra_digests, verified_at |
 | scopes | scope_id, team, target_id, source_cidr, allowed_actions, active |
 
 Supply `start` and `end` together to request overlapping historical intervals.
@@ -87,6 +87,13 @@ Application targets require an approved team, its issued canonical namespace,
 and a frozen digest from the authenticated deployment workflow. A fresh
 `deployed_digest_verified_at` confirms which artifact is pinned. Application
 readiness is measured separately: an app outage does not remove eligibility.
+`frozen_extra_digests` preserves the ordered bare SHA-256 digests of at most
+two extra containers. A verified application without extras has `[]`. Identity
+intervals from before this field was recorded have `null`; history is not
+backfilled from mutable submissions. A changed extra-image set requires a
+newer runtime confirmation and starts a new identity interval. Unsupported
+changes to submitted or frozen extra-image definitions hold identity reads
+until the source is reconciled.
 AI targets require an organiser-accepted digest and a fresh receipt from a
 registered deployment verifier. A team cannot attest its own artifact.
 
@@ -138,6 +145,11 @@ The body requires `producer_id`, `receipt_id` (UUIDs), `kind`, `observed_at`,
 `clock_uncertainty_ms`, `measurements` and `evidence_refs`. Add the issued
 `case_id` for case observations or `target_id` for standalone probes and
 artifact attestations. Team producers are restricted to their own defender.
+Case and target-bound receipt exports include `frozen_extra_digests` when the
+original identity interval recorded the set, preserving that set after later
+source edits. They omit the field for unknown historical sets so existing
+immutable export payloads retain their wire shape. A case cannot accept an
+observation whose extra-image set differs from its issued target.
 
 | Kind | Allowed producer | Measurements |
 | --- | --- | --- |

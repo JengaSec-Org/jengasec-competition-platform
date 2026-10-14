@@ -531,6 +531,12 @@ class Team(models.Model):
     namespace = models.CharField(
         max_length=80, blank=True, help_text="Kubernetes namespace / workspace issued to the team."
     )
+    service_ip = models.GenericIPAddressField(
+        protocol="IPv4",
+        blank=True,
+        null=True,
+        help_text="Reserved MetalLB IPv4 address for an Application Blue cell.",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -552,6 +558,11 @@ class Team(models.Model):
                 fields=["team_identifier"],
                 condition=~models.Q(team_identifier=""),
                 name="unique_team_identifier",
+            ),
+            models.UniqueConstraint(
+                fields=["service_ip"],
+                condition=models.Q(service_ip__isnull=False),
+                name="unique_team_service_ip",
             ),
         ]
 

@@ -120,6 +120,7 @@ class TargetIdentityInterval(IdentityInterval):
     port = models.PositiveIntegerField()
     protocol = models.CharField(max_length=3)
     frozen_digest = models.CharField(max_length=71)
+    frozen_extra_digests = models.JSONField(null=True, blank=True, default=None)
     verified_at = models.DateTimeField()
 
     class Meta:

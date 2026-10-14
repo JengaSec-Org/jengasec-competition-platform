@@ -20,6 +20,7 @@ from cyberrange.scoring_models import (
 FRESHNESS = dt.timedelta(seconds=120)
 TEAM_ID = re.compile(r"JS[0-9]{2}-[BR]-[0-9]{3,12}\Z")
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
+PINNED_DIGEST = re.compile(r"[^@\s]+@(sha256:[0-9a-f]{64})\Z")
 ACTIONS = frozenset({"alert", "block-ip", "snapshot-evidence", "revert"})
 
 
@@ -111,6 +112,8 @@ def validate_target_source(target):
         raise ValidationError("Target address is invalid.") from exc
     if address.is_multicast or address.is_unspecified or address.is_loopback:
         raise ValidationError("Target address is not an assigned workload address.")
+    if team.track == "application" and (not team.service_ip or str(address) != team.service_ip):
+        raise ValidationError("Application target address must match the team's reserved service IP.")
     if target.protocol not in {"tcp", "udp"} or type(target.port) is not int or not 1 <= target.port <= 65535:
         raise ValidationError("Target transport is invalid.")
     if target.image_digest and not DIGEST.fullmatch(target.image_digest):
@@ -130,18 +133,19 @@ def _source_hash(competition):
     from cyberrange.models import WireGuardProfile
     rows = {
         "teams": list(Team.objects.filter(competition=competition).order_by("pk").values(
-            "pk", "team_identifier", "team_type", "track", "enterprise", "cell_id", "namespace", "status")),
+            "pk", "team_identifier", "team_type", "track", "enterprise", "cell_id", "namespace", "service_ip", "status")),
         "targets": list(RangeApplication.objects.filter(competition=competition).order_by("pk").values()),
         "assignments": list(TargetAssignment.objects.filter(competition=competition).order_by("pk").values(
             "pk", "red_team_id", "target_team_id", "is_active")),
         "sources": list(WireGuardProfile.objects.filter(team__competition=competition).order_by("pk").values(
-            "pk", "team_id", "address", "revoked", "user__profile__participant_identifier")),
+            "pk", "team_id", "address", "revoked", "active", "last_handshake_at", "user__profile__participant_identifier")),
         "actions": list(ActionScope.objects.filter(competition=competition).order_by("pk").values(
             "pk", "team_id", "target_id", "active", "source_cidrs", "allowed_actions",
             "approved_by__is_staff", "approved_by__is_active")),
     }
     submission_model = apps.get_model("deployments", "AppSubmission")
-    wanted = {"pk", "team_id", "port", "frozen_at", "frozen_verified_digest", "resolved_digest", "deployed_digest_verified_at"}
+    wanted = {"pk", "team_id", "port", "frozen_at", "frozen_verified_digest", "resolved_digest",
+              "deployed_digest_verified_at", "extra_images", "frozen_extra_images"}
     available = {f.name for f in submission_model._meta.fields} | {"pk", "team_id"}
     rows["artifacts"] = list(submission_model.objects.filter(competition=competition).order_by("pk").values(*sorted(wanted & available)))
     return hashlib.sha256(json.dumps(rows, cls=DjangoJSONEncoder, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
@@ -175,9 +179,11 @@ def _replace_open(model, competition, desired, stamp, revision, key):
 
 def _eligible_deployment(target, stamp):
     """Only owner-issued frozen content plus fresh deployed-content proof qualifies."""
+    extra_digests = []
     if target.team.track == "application":
         submission_model = apps.get_model("deployments", "AppSubmission")
-        required = {"resolved_digest", "deployed_digest_verified_at", "frozen_verified_digest"}
+        required = {"resolved_digest", "deployed_digest_verified_at", "frozen_verified_digest",
+                    "extra_images", "frozen_extra_images"}
         if not required.issubset({f.name for f in submission_model._meta.fields}):
             return None
         attempts = list(submission_model.objects.filter(
@@ -195,13 +201,27 @@ def _eligible_deployment(target, stamp):
         if (attempt.resolved_digest != digest or attempt.port != target.port
                 or target.protocol != "tcp"):
             return None
+        if (not isinstance(attempt.extra_images, list) or not isinstance(attempt.frozen_extra_images, list)
+                or len(attempt.extra_images) != len(attempt.frozen_extra_images)
+                or len(attempt.frozen_extra_images) > 2):
+            return None
+        for reference in attempt.frozen_extra_images:
+            match = PINNED_DIGEST.fullmatch(reference) if isinstance(reference, str) and len(reference) <= 500 else None
+            if match is None:
+                return None
+            extra_digests.append(match.group(1))
+        previous = TargetIdentityInterval.objects.filter(range_target=target).order_by("-valid_from", "-pk").first()
+        if (previous is not None and previous.frozen_extra_digests != extra_digests
+                and verified_at <= previous.verified_at):
+            # A changed definition cannot reuse the old set's heartbeat.
+            return None
     else:
         digest, verified_at = target.image_digest, target.verified_at
     if not DIGEST.fullmatch(digest or "") or verified_at is None:
         return None
     if verified_at > stamp or stamp - verified_at >= FRESHNESS:
         return None
-    return digest, verified_at
+    return digest, verified_at, extra_digests
 
 
 @transaction.atomic
@@ -264,12 +284,12 @@ def refresh_identity(competition, *, now=None):
         proof = _eligible_deployment(target, stamp)
         if proof is None:
             continue
-        digest, verified_at = proof
+        digest, verified_at, extra_digests = proof
         fields = dict(team_id=target.team_id, team_identifier=target.team.team_identifier,
                       target_id=target.application_instance_id, enterprise=target.enterprise,
                       application=target.application, namespace=target.namespace,
                       ip_address=str(ipaddress.ip_address(target.ip_address)), port=target.port,
-                      protocol=target.protocol, frozen_digest=digest)
+                      protocol=target.protocol, frozen_digest=digest, frozen_extra_digests=extra_digests)
         existing = list(TargetIdentityInterval.objects.filter(
             competition=competition, range_target=target, valid_until__gte=stamp,
         ).order_by("-valid_from")[:2])
@@ -292,6 +312,8 @@ def refresh_identity(competition, *, now=None):
 
     allocation_rows = {}
     duplicates = set()
+    # Handshake activity is runtime liveness, not allocation authority. An idle
+    # peer keeps its assigned address until revocation or reassignment.
     for profile in WireGuardProfile.objects.filter(team_id__in=teams, revoked=False).select_related("user__profile"):
         team = teams[profile.team_id]
         try:
@@ -471,6 +493,7 @@ def _serialize_interval(row):
         result.update(target_id=row.target_id, team=row.team_identifier, enterprise=row.enterprise,
                       application=row.application, namespace=row.namespace, ip_address=row.ip_address,
                       port=row.port, protocol=row.protocol, frozen_digest=row.frozen_digest,
+                      frozen_extra_digests=row.frozen_extra_digests,
                       verified_at=_iso(row.verified_at))
     elif isinstance(row, IPAllocation):
         result.update(allocation_id=str(row.allocation_id), team=row.team_identifier, source_ip=row.ip_address, kind=row.kind)

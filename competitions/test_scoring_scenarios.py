@@ -311,6 +311,44 @@ class ScenarioTests(IdentityFixture):
         rows = validate_scoring_assignment(self.competition, self.blue, self.now + dt.timedelta(seconds=10), self.clock.return_value, revisions)
         self.assertTrue(any(row.get("target_id") == target.application_instance_id for row in rows))
 
+    def test_case_and_receipt_keep_their_frozen_extra_set_after_source_change(self):
+        from deployments.models import AppSubmission
+        from services import deployment_service
+        original = ["sha256:" + "c" * 64]
+        _, target, submission = self.application_target(extra_digests=original)
+        ActionScope.objects.create(competition=self.competition, team=self.blue, target=target,
+            allowed_actions=["block-ip", "revert"], active=True, approved_by=self.staff)
+        self.case = issue_case(self.competition, objective=self.objective, scenario_version=self.version,
+            target_id=target.application_instance_id, starts_at=self.clock.return_value,
+            deadline_at=self.now + dt.timedelta(seconds=100), opportunity_key="extra-artifact-case",
+            actor_team=self.red, defender_team=self.blue, issued_by=self.staff)
+        receipt, _ = record_receipt(self.verifier, self.payload())
+        self.advance(20)
+        changed = ["sha256:" + "d" * 64]
+        AppSubmission.objects.filter(pk=submission.pk).update(
+            frozen_extra_images=["registry.invalid/worker-0@" + changed[0]])
+        deployment_service.record_artifact(submission, "sha256:" + "b" * 64, extra_digests=changed)
+        with self.assertRaises(ScenarioError):
+            record_receipt(self.verifier, self.payload())
+        exported = receipt_snapshot(self.competition)
+        case = next(row for row in exported["cases"] if row["case_id"] == str(self.case.case_id))
+        recorded = next(row for row in exported["receipts"] if row["sequence"] == receipt.pk)
+        self.assertEqual(case["frozen_extra_digests"], original)
+        self.assertEqual(recorded["frozen_extra_digests"], original)
+
+    def test_unknown_historical_extras_preserve_existing_receipt_wire_shape(self):
+        from django.db import models
+        from services.scoring_identity import identity_snapshot
+        receipt, _ = record_receipt(self.verifier, self.payload())
+        # Existing rows receive NULL when the new provenance column is added.
+        models.QuerySet.update(TargetIdentityInterval.objects.filter(pk=self.case.target_identity_id),
+                               frozen_extra_digests=None)
+        exported = receipt_snapshot(self.competition)
+        self.assertNotIn("frozen_extra_digests", exported["cases"][0])
+        recorded = next(row for row in exported["receipts"] if row["sequence"] == receipt.pk)
+        self.assertNotIn("frozen_extra_digests", recorded)
+        self.assertIsNone(identity_snapshot(self.competition)["targets"][0]["frozen_extra_digests"])
+
     def test_target_specific_health_cannot_mask_other_target(self):
         _, other_target, _ = self.application_target()
         start = self.clock.return_value

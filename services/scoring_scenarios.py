@@ -424,7 +424,8 @@ def record_receipt(producer, payload, *, now=None):
             raise ScenarioError("Receipt target has no unique eligible event-time identity.")
         target = matches[0]
         if case is not None and (target.team_id != case.target_team_id or target.target_id != case.target_identity.target_id
-                                 or target.frozen_digest != case.target_identity.frozen_digest):
+                                 or target.frozen_digest != case.target_identity.frozen_digest
+                                 or target.frozen_extra_digests != case.target_identity.frozen_extra_digests):
             raise ScenarioError("The issued case target or frozen artifact changed.")
         allowed_team_id = case.defender_team_id if case else target.team_id
         if producer.team_id and producer.team_id != allowed_team_id:
@@ -519,7 +520,7 @@ def _case_dict(case):
         competition=case.competition, target_team=case.target_team,
         scoring_objective=case.objective, status="valid",
     ).exists()
-    return dict(sequence=case.pk, case_id=str(case.case_id), opportunity_key=case.opportunity_key, scenario={
+    result = dict(sequence=case.pk, case_id=str(case.case_id), opportunity_key=case.opportunity_key, scenario={
         "code": version.scenario_code, "version": version.version, "label": version.label,
         "family": version.family, "assertions": version.assertions, "sha256": version.definition_sha256,
     }, objective={"id": case.objective_id, "code": case.objective_code, "team": case.objective_team_identifier},
@@ -530,6 +531,9 @@ def _case_dict(case):
         starts_at=_iso(case.starts_at), deadline_at=_iso(case.deadline_at), environment=case.environment,
         required_producers=case.required_producers,
         no_valid_finding=no_valid_finding, paired_build_verified=_paired_build_verified(case))
+    if case.target_identity.frozen_extra_digests is not None:
+        result["frozen_extra_digests"] = case.target_identity.frozen_extra_digests
+    return result
 
 
 def _paired_build_verified(case):
@@ -571,6 +575,8 @@ def _receipt_dict(receipt):
     if receipt.target_identity_id:
         result.update(target_id=receipt.target_identity.target_id, target_team=receipt.target_identity.team_identifier,
                       assignment_revision=receipt.target_identity.revision)
+        if receipt.target_identity.frozen_extra_digests is not None:
+            result["frozen_extra_digests"] = receipt.target_identity.frozen_extra_digests
     return result
 
 

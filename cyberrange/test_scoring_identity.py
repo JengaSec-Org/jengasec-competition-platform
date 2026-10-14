@@ -58,19 +58,24 @@ class IdentityFixture(TestCase):
         self.clock.return_value = self.now + dt.timedelta(seconds=seconds)
         return self.clock.return_value
 
-    def application_target(self):
+    def application_target(self, extra_digests=None):
         from deployments.models import AppSubmission
         from services import deployment_service
+        extra_digests = [] if extra_digests is None else extra_digests
+        images = [f"registry.invalid/worker-{index}" for index in range(len(extra_digests))]
         team = Team.objects.create(competition=self.competition, team_name="Application owner",
             team_identifier="JS26-B-002", team_type="blue", track="application", enterprise="a",
-            cell_id="APP01", namespace="jengasec-ent-a-app01", status="approved")
+            cell_id="APP01", namespace="jengasec-ent-a-app01", service_ip="10.108.0.10", status="approved")
         target = RangeApplication.objects.create(competition=self.competition, team=team,
             application_instance_id="ENT-A/APP01", enterprise="ENT-A", application="APP01", namespace=team.namespace,
             service_name="Application", ip_address="10.108.0.10", port=8080, status="live")
         submission = AppSubmission.objects.create(competition=self.competition, team=team, attempt=1,
-            image_reference="registry.invalid/application:v1", registry_username="builder", port=8080)
+            image_reference="registry.invalid/application:v1", registry_username="builder", port=8080,
+            extra_images=[f"{image}:v1" for image in images])
         deployment_service.record_status(submission, "healthy", resolved_digest="sha256:" + "b" * 64)
-        deployment_service.freeze(self.competition)
+        deployment_service.record_freeze(submission, "registry.invalid/application@sha256:" + "b" * 64,
+            extra_digests=[f"{image}@{digest}" for image, digest in zip(images, extra_digests)])
+        deployment_service.record_artifact(submission, "sha256:" + "b" * 64, extra_digests=extra_digests)
         return team, target, submission
 
 
@@ -154,6 +159,110 @@ class ScoringIdentityTests(IdentityFixture):
         old_scope = ScopeAssignment.objects.get(source_cidr="10.60.1.2/32")
         self.assertEqual(old_scope.valid_until, at)
         self.assertEqual(identity_snapshot(self.competition)["scopes"][0]["source_cidr"], "10.60.1.3/32")
+
+    def test_runtime_handshake_changes_do_not_reassign_address_ownership(self):
+        allocation = IPAllocation.objects.get(kind="participant")
+        self.assertFalse(self.profile.active)
+        self.advance(20)
+        self.profile.active = True
+        self.profile.last_handshake_at = self.now - dt.timedelta(seconds=5)
+        self.profile.save(update_fields=["active", "last_handshake_at"])
+        self.assertEqual(IPAllocation.objects.get(kind="participant").pk, allocation.pk)
+        self.assertEqual(IPAllocation.objects.get(kind="participant").valid_from, self.now)
+        self.assertTrue(identity_snapshot(self.competition)["scopes"])
+        self.advance(30)
+        self.profile.active = False
+        self.profile.save(update_fields=["active"])
+        self.assertEqual(IPAllocation.objects.get(kind="participant").pk, allocation.pk)
+        self.assertTrue(identity_snapshot(self.competition)["scopes"])
+        self.advance(40)
+        self.profile.revoked = True
+        self.profile.save(update_fields=["revoked"])
+        allocation.refresh_from_db()
+        self.assertEqual(allocation.valid_until, self.clock.return_value)
+        self.assertEqual(identity_snapshot(self.competition)["scopes"], [])
+
+    def test_service_ip_change_holds_target_until_registered_address_matches(self):
+        owner, target, _ = self.application_target()
+        first = TargetIdentityInterval.objects.get(range_target=target)
+        changed = self.advance(20)
+        owner.service_ip = "10.108.0.11"
+        owner.save(update_fields=["service_ip"])
+        first.refresh_from_db()
+        self.assertEqual(first.valid_until, changed)
+        self.assertNotIn(target.application_instance_id, {row["target_id"] for row in identity_snapshot(self.competition)["targets"]})
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) FROM obs_applications_v1 WHERE application_instance_id = %s", [target.application_instance_id])
+            self.assertEqual(cursor.fetchone()[0], 0)
+        registered = self.advance(30)
+        target.team.refresh_from_db()
+        target.ip_address = owner.service_ip
+        target.save(update_fields=["ip_address", "updated_at"])
+        current = TargetIdentityInterval.objects.filter(range_target=target).order_by("valid_from").last()
+        self.assertEqual(current.valid_from, registered)
+        self.assertEqual(current.ip_address, owner.service_ip)
+        self.assertEqual(first.ip_address, "10.108.0.10")
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT ip_address FROM obs_applications_v1 WHERE application_instance_id = %s", [target.application_instance_id])
+            self.assertEqual(cursor.fetchone()[0], owner.service_ip)
+        with self.assertRaises(IdentityError):
+            validate_scoring_assignment(self.competition, owner, self.now, registered, [first.revision, current.revision])
+
+    def test_bulk_runtime_and_service_ip_changes_require_observed_refresh(self):
+        WireGuardProfile.objects.filter(pk=self.profile.pk).update(active=True, last_handshake_at=self.now)
+        with self.assertRaises(IdentityError):
+            identity_snapshot(self.competition)
+        refresh_identity(self.competition)
+        owner, target, _ = self.application_target()
+        self.advance(20)
+        Team.objects.filter(pk=owner.pk).update(service_ip="10.108.0.12")
+        with self.assertRaises(IdentityError):
+            identity_snapshot(self.competition)
+        refresh_identity(self.competition)
+        self.assertNotIn(target.application_instance_id, {row["target_id"] for row in identity_snapshot(self.competition)["targets"]})
+
+    def test_extra_artifact_history_preserves_order_and_requires_new_confirmation_after_change(self):
+        from deployments.models import AppSubmission
+        from services import deployment_service
+        original = ["sha256:" + "c" * 64, "sha256:" + "d" * 64]
+        _, target, submission = self.application_target(extra_digests=original)
+        before = TargetIdentityInterval.objects.get(range_target=target)
+        row = next(row for row in identity_snapshot(self.competition)["targets"] if row["target_id"] == target.application_instance_id)
+        self.assertEqual(row["frozen_extra_digests"], original)
+        changed = ["sha256:" + "e" * 64, original[1]]
+        at_change = self.advance(20)
+        AppSubmission.objects.filter(pk=submission.pk).update(frozen_extra_images=[
+            f"registry.invalid/worker-{index}@{digest}" for index, digest in enumerate(changed)])
+        with self.assertRaises(IdentityError):
+            identity_snapshot(self.competition)
+        refresh_identity(self.competition)
+        self.assertNotIn(target.application_instance_id, {row["target_id"] for row in identity_snapshot(self.competition)["targets"]})
+        before.refresh_from_db()
+        self.assertEqual(before.valid_until, at_change)
+        self.assertEqual(before.frozen_extra_digests, original)
+        confirmed = self.advance(30)
+        deployment_service.record_artifact(submission, "sha256:" + "b" * 64, extra_digests=changed)
+        self.advance(40)
+        history = identity_snapshot(self.competition, start=self.now, end=self.clock.return_value)
+        rows = [row for row in history["targets"] if row["target_id"] == target.application_instance_id]
+        self.assertEqual([row["frozen_extra_digests"] for row in rows], [original, changed])
+        self.assertEqual(TargetIdentityInterval.objects.filter(range_target=target).latest("valid_from").valid_from, confirmed)
+
+    def test_submitted_and_frozen_extra_definitions_are_fingerprinted(self):
+        from deployments.models import AppSubmission
+        _, _, submission = self.application_target(extra_digests=["sha256:" + "c" * 64])
+        submission.refresh_from_db()
+        for field, value in (("extra_images", ["registry.invalid/changed:v2"]),
+                             ("frozen_extra_images", ["registry.invalid/worker@sha256:" + "d" * 64])):
+            previous = getattr(submission, field)
+            AppSubmission.objects.filter(pk=submission.pk).update(**{field: value})
+            with self.subTest(field=field), self.assertRaises(IdentityError):
+                identity_snapshot(self.competition)
+            AppSubmission.objects.filter(pk=submission.pk).update(**{field: previous})
+
+    def test_more_than_two_extra_images_cannot_become_eligible(self):
+        _, target, _ = self.application_target(extra_digests=["sha256:" + "c" * 64] * 3)
+        self.assertFalse(TargetIdentityInterval.objects.filter(range_target=target).exists())
 
     def test_non_host_or_scoped_source_addresses_are_not_invented(self):
         for address in ("10.60.1.2/24", "fe80::1%eth0/128", "bad"):
@@ -323,7 +432,7 @@ class ScoringIdentityMigrationTests(TransactionTestCase):
     def test_upgrade_preserves_sources_without_fabricating_history_and_views_reverse(self):
         executor = MigrationExecutor(connection)
         original_targets = executor.loader.graph.leaf_nodes()
-        legacy_targets = [("accounts", "0016_participant_consent"),
+        legacy_targets = [("accounts", "0014_userprofile_privacy_accepted_at_and_more"),
                           ("competitions", "0017_competitionsettings_red_roster_deadline"),
                           ("cyberrange", "0001_initial")]
         try:
@@ -333,11 +442,26 @@ class ScoringIdentityMigrationTests(TransactionTestCase):
             Profile = old.get_model("accounts", "UserProfile")
             user = User.objects.create(username="migration-source")
             profile = Profile.objects.create(user=user)
+            competition = old.get_model("competitions", "Competition").objects.create(
+                name="Legacy runtime source", start_date=timezone.now().date(), end_date=timezone.now().date())
+            team = old.get_model("accounts", "Team").objects.create(
+                competition=competition, team_name="Legacy application", team_identifier="JS26-B-007",
+                team_type="blue", track="application", enterprise="a", cell_id="APP01",
+                namespace="enta-app01", status="approved")
+            peer = old.get_model("cyberrange", "WireGuardProfile").objects.create(
+                user=user, team=team, address="10.60.1.2/32")
             executor = MigrationExecutor(connection)
             executor.migrate(original_targets)
             new = executor.loader.project_state(original_targets).apps
             migrated = new.get_model("accounts", "UserProfile").objects.get(pk=profile.pk)
             self.assertRegex(migrated.participant_identifier, r"JS[0-9]{2}-P-[0-9]{4,}")
+            migrated_team = new.get_model("accounts", "Team").objects.get(pk=team.pk)
+            self.assertEqual(migrated_team.namespace, "jengasec-ent-a-app01")
+            self.assertIsNone(migrated_team.service_ip)
+            migrated_peer = new.get_model("cyberrange", "WireGuardProfile").objects.get(pk=peer.pk)
+            self.assertFalse(migrated_peer.active)
+            self.assertIsNone(migrated_peer.last_handshake_at)
+            self.assertEqual(migrated_peer.address, "10.60.1.2/32")
             for name in ("ScoringIdentityState", "TeamIdentityInterval", "TargetIdentityInterval", "IPAllocation", "ScopeAssignment"):
                 self.assertEqual(new.get_model("cyberrange", name).objects.count(), 0)
             MigrationExecutor(connection).migrate([("cyberrange", "0002_finding_correlation_ids_finding_scoring_objective_and_more")])

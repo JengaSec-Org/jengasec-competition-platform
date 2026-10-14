@@ -414,6 +414,20 @@ class SubmitRegistrationTests(CommitMixin, TestCase):
         self.assertIn("Namespace: js26-simba", approved.body)
         self.assertIn("JS26-R-001", approved.body)
 
+    def test_welcome_pack_accepts_the_reserved_cell_service_ip(self):
+        from accounts.forms import WelcomePackForm
+
+        form = WelcomePackForm(
+            {
+                "repository_url": "",
+                "namespace": "jengasec-ent-a-app01",
+                "service_ip": "10.108.0.11",
+            },
+            instance=self.team,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["service_ip"], "10.108.0.11")
+
     def test_submit_view_end_to_end(self):
         self.client.login(username="wanjiru", password=PASSWORD)
         resp = self.client.get(reverse("accounts:team_requests"))
