@@ -224,7 +224,7 @@ the query are returned whole. All exports are capped at 1 MiB and reject an
 oversized result instead of truncating it. Reduce the interval or limit and
 retain stable receipt IDs while assembling coverage.
 
-## Operator setup and rollback
+## Operator setup and recovery
 
 Use `manage.py scoring_sources --help` for issuance commands. The sequence is:
 enroll the scoring policy; register actual targets; register trusted producers;
@@ -234,10 +234,27 @@ with `--actor`. Producer credentials are written once to an owner-only file
 with `--credential-file`, never to stdout. Teams receive only their own
 competitor credentials. Use `revoke-producer` to end one producer's access.
 
-Run ordinary migrations before enabling the new routes. The v1 view migration
-supports rollback by dropping only its five views. Do not reverse history
-tables after they hold accepted evidence. To stop a rollout, disable publication
-and action execution, revoke affected producer credentials and retain the
-immutable records for review. Existing unenrolled competitions keep their
-current workflow. No migration issues cases, declares a live target or awards
-points.
+Run ordinary forward migrations before enabling the new routes. For code or
+configuration failures, pause the affected publication or action path, retain
+its state, and deploy a compatible versioned correction after the affected
+checks pass. Preserve identity intervals, scenario versions, canonical cases,
+producer receipts and cursors, evidence, score revisions and pending delivery
+acknowledgements. Keep the existing database, private storage and encryption
+keys across redeployment. A source-control change cannot restore those records
+or undo a runtime action.
+
+Do not reverse history migrations, drop the attribution views, reissue cases or
+reset producer sequences as routine release recovery. A software correction
+does not change the enrolled scoring policy or the frozen case assertions.
+Verify the corrected deployment with retained source IDs and exact retries;
+record new observations or score corrections as new revisions. See
+[the feed recovery procedure](CONTRACT-feed.md#compatible-corrections-and-redeployment)
+for acknowledgement and score-history checks.
+
+Use credential revocation for compromised or unauthorized producers, and keep
+the actuator's expiry, reversal and kill switch available for active harmful
+restrictions. These containment actions are distinct from a code rollback.
+Choose a release rollback only for a concrete incident that a forward repair
+cannot address adequately, with its effect on schema and retained state known.
+Existing unenrolled competitions keep their current workflow. No migration
+issues cases, declares a live target or awards points.

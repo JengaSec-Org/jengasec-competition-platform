@@ -85,12 +85,7 @@ def publish(competition, row):
     team = resolve_team(competition, row, canonical=True)
     if team is None:
         raise ProtocolError("no team matched")
-    Team.objects.select_for_update().get(pk=team.pk)
-    if team.status != Team.Status.APPROVED:
-        raise ProtocolError("team is not approved for competition scoring")
-    side = grading.side_key(team)
-    if side == "application_red" or row["stage"] != "main":
-        raise ProtocolError("this role or stage cannot receive automatic marks")
+    team = Team.objects.select_for_update().get(pk=team.pk)
     if not isinstance(row["criterion"], str) or row["key"] != f"main:{row['criterion']}":
         raise ProtocolError("key must be the stable main criterion key")
     revision = row["revision"]
@@ -107,6 +102,11 @@ def publish(competition, row):
             return {"status": "duplicate", "score_revision": matching.pk,
                     "sequence": matching.sequence, "revision": revision, "key": row["key"]}
         raise ProtocolError("producer revision is stale or has different content", code="revision_conflict")
+    if team.status != Team.Status.APPROVED:
+        raise ProtocolError("team is not approved for competition scoring")
+    side = grading.side_key(team)
+    if side == "application_red" or row["stage"] != "main":
+        raise ProtocolError("this role or stage cannot receive automatic marks")
     enrollment = enrollment_for(competition, lock=True)
     if enrollment.finalized_at or competition.settings.results_published_at:
         raise ProtocolError("automatic scoring has been finalized", code="finalized")
@@ -227,7 +227,7 @@ def upload_evidence(request):
         body = read_json(request)
         competition = _competition(body, required=True)
         team = resolve_team(competition, body, canonical=True)
-        if team is None or team.status != Team.Status.APPROVED:
+        if team is None:
             raise ProtocolError("approved team not found")
         evidence = scoring_evidence.archive(competition, team, body)
     except ProtocolError as exc:

@@ -112,6 +112,72 @@ class VersionedFeedTests(TestCase):
         self.assertEqual(scoring_service.recompute(self.team).main, Decimal("10.80"))
         self.assertEqual(self.identity.validate_scoring_assignment.call_count, 2)
 
+    def test_committed_archive_retry_survives_outage_and_finalization_without_new_state(self):
+        body = self.evidence_body()
+        first = self.post(reverse("api_scoring_evidence"), body)
+        self.assertEqual(first.status_code, 201)
+        original = ScoringEvidence.objects.values().get()
+        self.identity.validate_scoring_assignment.side_effect = ValueError("identity unavailable during correction")
+        changed = {**body, "queries": ["corrected_functional_probes"]}
+        repeated = self.post(reverse("api_scoring_evidence"), body)
+        self.assertEqual(repeated.status_code, 201, repeated.content)
+        self.assertEqual(repeated.json(), first.json())
+        self.assertEqual(self.identity.validate_scoring_assignment.call_count, 1)
+        rejected = self.post(reverse("api_scoring_evidence"), changed)
+        self.assertEqual(rejected.json()["code"], "identity_unavailable")
+
+        self.enrollment.finalized_at = timezone.now()
+        self.enrollment.save()
+        repeated = self.post(reverse("api_scoring_evidence"), body)
+        self.assertEqual(repeated.json(), first.json())
+        rejected = self.post(reverse("api_scoring_evidence"), changed)
+        self.assertEqual(rejected.json()["code"], "finalized")
+        self.team.status = Team.Status.WITHDRAWN
+        Team.objects.filter(pk=self.team.pk).update(status=self.team.status)
+        self.assertEqual(self.post(reverse("api_scoring_evidence"), body).json(), first.json())
+        self.assertEqual(self.post(reverse("api_scoring_evidence"), changed).status_code, 400)
+        self.assertEqual(self.post(reverse("api_scoring_evidence"), body, token="wrong").status_code, 403)
+        rival = {**body, "team": self.rival.team_identifier}
+        self.assertEqual(self.post(reverse("api_scoring_evidence"), rival).status_code, 400)
+        self.assertEqual(list(ScoringEvidence.objects.values()), [original])
+        self.assertFalse(ScoreRevision.objects.exists())
+        self.assertFalse(ScoreEvent.objects.exists())
+
+    def test_committed_score_retry_after_withdrawal_preserves_the_original_revision(self):
+        row = self.row()
+        first = self.publish([row]).json()["outcomes"][0]
+        original = ScoreRevision.objects.values().get()
+        event = ScoreEvent.objects.values().get()
+        self.team.status = Team.Status.WITHDRAWN
+        Team.objects.filter(pk=self.team.pk).update(status=self.team.status)
+        self.enrollment.finalized_at = timezone.now()
+        self.enrollment.save()
+        self.identity.validate_scoring_assignment.side_effect = ValueError("identity unavailable during correction")
+        repeated = self.publish([row])
+        self.assertEqual(repeated.status_code, 200, repeated.content)
+        outcome = repeated.json()["outcomes"][0]
+        self.assertEqual(outcome["status"], "duplicate")
+        for field in ("score_revision", "sequence", "revision", "key"):
+            self.assertEqual(outcome[field], first[field])
+        self.assertEqual(self.publish([{**row, "revision": 2}]).status_code, 202)
+        altered = self.publish([{**row, "marks": "1.00"}])
+        self.assertEqual(altered.json()["outcomes"][0]["code"], "revision_conflict")
+        self.assertEqual(list(ScoreRevision.objects.values()), [original])
+        self.assertEqual(list(ScoreEvent.objects.values()), [event])
+
+    def test_committed_archive_retry_still_verifies_retained_bytes(self):
+        body = self.evidence_body()
+        self.assertEqual(self.post(reverse("api_scoring_evidence"), body).status_code, 201)
+        evidence = ScoringEvidence.objects.get()
+        with evidence.archive.open("wb") as stream:
+            stream.write(b"changed")
+        self.identity.validate_scoring_assignment.side_effect = ValueError("identity unavailable during correction")
+        rejected = self.post(reverse("api_scoring_evidence"), body)
+        self.assertEqual(rejected.status_code, 400, rejected.content)
+        self.assertEqual(rejected.json()["code"], "evidence_integrity")
+        self.assertEqual(ScoringEvidence.objects.count(), 1)
+        self.assertFalse(ScoreRevision.objects.exists())
+
     def test_changed_same_revision_old_revision_and_backwards_window_are_rejected(self):
         row = self.row(revision=2)
         self.assertEqual(self.publish([row]).status_code, 200)

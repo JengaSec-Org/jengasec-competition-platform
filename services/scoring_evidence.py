@@ -75,18 +75,28 @@ def validate_archive_payload(payload):
 @transaction.atomic
 def archive(competition, team, payload):
     validate_archive_payload(payload)
-    enrollment = enrollment_for(competition, lock=True)
-    if enrollment.finalized_at:
-        raise ProtocolError("automatic scoring has been finalized", code="finalized")
-    validate_snapshot(competition, team, payload["snapshot"], enrollment=enrollment)
     data = canonical_json(payload)
     if len(data) > MAX_BODY_BYTES:
         raise ProtocolError("archive exceeds one MiB", code="too_large")
     sha256 = hashlib.sha256(data).hexdigest()
-    prior = ScoringEvidence.objects.filter(competition=competition, team=team, sha256=sha256).first()
+    existing = ScoringEvidence.objects.filter(competition=competition, team=team, sha256=sha256)
+    prior = existing.first()
+    if prior:
+        # Recover a lost acknowledgement without reinterpreting committed
+        # evidence under the deployment's current identity or policy state.
+        verified_bytes(prior)
+        return prior
+    enrollment = enrollment_for(competition, lock=True)
+    # Another request may have committed while this one waited for the lock.
+    prior = existing.first()
     if prior:
         verified_bytes(prior)
         return prior
+    if team.status != team.Status.APPROVED:
+        raise ProtocolError("approved team not found")
+    if enrollment.finalized_at:
+        raise ProtocolError("automatic scoring has been finalized", code="finalized")
+    validate_snapshot(competition, team, payload["snapshot"], enrollment=enrollment)
     used = ScoringEvidence.objects.filter(competition=competition).aggregate(n=Sum("byte_size"))["n"] or 0
     if used + len(data) > enrollment.archive_budget_bytes:
         raise ProtocolError("approved evidence capacity exhausted", code="archive_full", retryable=True)
