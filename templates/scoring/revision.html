@@ -29,6 +29,27 @@
     {% endif %}
   {% endif %}
 </div>
+{% if finding_snapshots %}
+<div class="card">
+  <h3>Reviewed findings</h3>
+  {% for finding in finding_snapshots %}
+    <p><strong>Finding {{ finding.id }}</strong> · {{ finding.status }}{% if finding.severity %} · {{ finding.severity }}{% endif %}.</p>
+    <p>Target {{ finding.target_team_identifier|default:finding.target_team }}{% if finding.target_id %} · {{ finding.target_id }}{% endif %}.</p>
+    {% if finding.started_at %}<p>Observation window: {{ finding.started_at }} to {{ finding.ended_at }}.</p>{% endif %}
+    {% if can_mark %}
+      {% if finding.scoring_objective_id %}<p>Scoring objective {{ finding.scoring_objective_id }}.</p>{% endif %}
+      {% if finding.telemetry_event_ids %}<p>Telemetry references: {{ finding.telemetry_event_ids|join:", " }}.</p>{% endif %}
+      {% if finding.correlation_ids %}<p>Correlation references: {{ finding.correlation_ids|join:", " }}.</p>{% endif %}
+      {% if finding.telemetry_event_ids or finding.correlation_ids %}<p>Telemetry references require a retained OBS evidence pack. Raw event links expire after seven days.</p>{% endif %}
+      {% if finding.evidence_file.status == "verified" %}
+        <p><a href="{% url 'scoring:finding_evidence' revision.pk finding.id %}">Download retained finding evidence</a> · {{ finding.evidence_file.size }} bytes · SHA-256 {{ finding.evidence_file.sha256 }}.</p>
+      {% elif finding.evidence_file %}<p>The attachment was unavailable when this revision was recorded. Its contents could not be verified.</p>{% endif %}
+    {% elif finding.evidence_file %}
+      {% if finding.evidence_file.status == "verified" %}<p>The reviewed attachment is retained for authorized appeal review.</p>{% else %}<p>The reviewed attachment is unavailable. This proof gap remains visible to the appeal reviewer.</p>{% endif %}
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
 <div class="card">
   <h3>Procedural appeals</h3>
   {% if appeal_closes_at %}<p>The appeal window closes {{ appeal_closes_at }}.</p>{% else %}<p>Appeals open when competition results are published.</p>{% endif %}

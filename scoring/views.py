@@ -13,7 +13,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.http import Http404, HttpResponse, HttpResponseNotAllowed
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.models import Team
@@ -276,7 +276,9 @@ def _revision_context(revision, user, *, form=None):
         "revision": revision, "team": team, "can_mark": _is_marker(user),
         "formula": FORMULAS.get(grading.side_key(team), {}).get(revision.criterion, ""),
         "history": revision.event.revisions.order_by("-sequence"),
-        "facts": revision.facts.items(), "quality": revision.quality.items(),
+        "facts": [(key, value) for key, value in revision.facts.items() if key != "findings"],
+        "quality": revision.quality.items(),
+        "finding_snapshots": revision.facts.get("findings", []),
         "appeals": appeals, "appeal_form": form or AppealForm(), "appeal_closes_at": closes,
         "can_file_appeal": is_open and user.pk == team.captain_id and not active,
     }
@@ -303,6 +305,35 @@ def file_score_appeal(request, pk):
             messages.success(request, "Appeal filed against this score revision.")
             return redirect("scoring:revision", pk=revision.pk)
     return render(request, "scoring/revision.html", _revision_context(revision, request.user, form=form), status=400)
+
+
+@login_required
+def download_finding_evidence(request, pk, finding_id):
+    if not _is_marker(request.user):
+        raise Http404("Not found")
+    revision = get_object_or_404(ScoreRevision, pk=pk)
+    snapshot = next((row for row in revision.facts.get("findings", [])
+                     if row.get("id") == finding_id), None)
+    if snapshot is None or "evidence_file" not in snapshot:
+        raise Http404("Not found")
+    from pathlib import PurePosixPath
+    import re
+    from services.scoring_evidence import open_verified_finding_file
+
+    descriptor = snapshot["evidence_file"]
+    try:
+        file = open_verified_finding_file(descriptor)
+    except ProtocolError:
+        return HttpResponse("Retained finding evidence is unavailable or changed.",
+                            status=503, content_type="text/plain")
+    suffix = PurePosixPath(descriptor["name"]).suffix
+    if not re.fullmatch(r"\.[A-Za-z0-9]{1,10}", suffix):
+        suffix = ".bin"
+    response = FileResponse(file, as_attachment=True, content_type="application/octet-stream",
+                            filename=f"finding-{finding_id}-revision-{pk}{suffix}")
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @login_required

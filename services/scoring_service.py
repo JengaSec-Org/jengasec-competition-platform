@@ -29,7 +29,7 @@ from django.db.models import OuterRef, Subquery
 from django.utils import timezone
 
 from competitions import grading
-from jengasec_scoring_policy import number
+from jengasec_scoring_policy import digest, number
 
 logger = logging.getLogger(__name__)
 
@@ -178,16 +178,40 @@ def award_for_findings(team, *, recorded_by=None):
     marks away, and an incremental award cannot do that.
     """
     from cyberrange.models import Finding
+    from services.scoring_evidence import finding_file_snapshot
 
     if grading.side_key(team) != "application_red":
         return []
 
     findings = list(
         Finding.objects.filter(red_team=team, competition=team.competition)
+        .select_related("target_team")
         .prefetch_related("duplicates")
     )
     marks = grading.finding_marks(findings)
     labels = {key: label for key, label, _, _ in grading.MAIN_BY_SIDE["application_red"]}
+    snapshots = []
+    for finding in findings:
+        target = finding.target_team
+        enterprise = {"a": "ENT-A", "b": "ENT-B"}.get(target.enterprise, "")
+        snapshot = {
+            "id": finding.pk, "status": finding.status, "severity": finding.severity,
+            "duplicate_of": finding.duplicate_of_id, "target_team": finding.target_team_id,
+            "target_team_identifier": target.team_identifier,
+            "target_id": f"{enterprise}/{target.cell_id}" if enterprise and target.cell_id else "",
+            "target_namespace": target.namespace,
+            "started_at": finding.started_at.isoformat(), "ended_at": finding.ended_at.isoformat(),
+            "updated_at": finding.updated_at.isoformat(),
+            "telemetry_event_ids": list(finding.telemetry_event_ids),
+            "correlation_ids": list(finding.correlation_ids),
+        }
+        if finding.scoring_objective_id is not None:
+            snapshot["scoring_objective_id"] = finding.scoring_objective_id
+        attachment = finding_file_snapshot(finding.evidence_file)
+        if attachment is not None:
+            snapshot["evidence_file"] = attachment
+        snapshots.append(snapshot)
+    facts = {"findings": snapshots}
 
     events = []
     for criterion, value in marks.items():
@@ -198,10 +222,7 @@ def award_for_findings(team, *, recorded_by=None):
             note=f"{labels.get(criterion, criterion)}, from {len(findings)} finding(s).",
             recorded_by=recorded_by,
             dedupe_key=f"findings:{criterion}",
-            metadata={"facts": {"findings": [{"id": f.pk, "status": f.status,
-                "severity": f.severity, "duplicate_of": f.duplicate_of_id,
-                "target_team": f.target_team_id, "updated_at": f.updated_at.isoformat()}
-                for f in findings]}},
+            metadata={"facts": facts, "input_sha256": digest(facts)},
         ))
     recompute(team)
     return events

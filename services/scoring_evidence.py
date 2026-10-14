@@ -2,6 +2,7 @@
 import hashlib
 import json
 import re
+import tempfile
 
 from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
@@ -149,3 +150,64 @@ def resolve_references(competition, team, references, snapshot):
         verified_bytes(evidence)
         resolved.append(evidence)
     return resolved
+
+
+def _scan_finding_file(storage, name, *, copy_to=None):
+    from cyberrange.forms import EVIDENCE_MAX_BYTES
+
+    size, checksum = 0, hashlib.sha256()
+    with storage.open(name, "rb") as source:
+        while chunk := source.read(256 * 1024):
+            size += len(chunk)
+            if size > EVIDENCE_MAX_BYTES:
+                raise ValueError("finding evidence exceeds the upload limit")
+            checksum.update(chunk)
+            if copy_to is not None:
+                copy_to.write(chunk)
+    return size, checksum.hexdigest()
+
+
+def finding_file_snapshot(field):
+    """Freeze a private, non-overwriting upload name and its reviewed bytes.
+
+    Storage retains replaced uploads. A missing legacy file remains an
+    explicit proof gap; a judge's existing review never fabricates a hash.
+    """
+    if not field:
+        return None
+    descriptor = {"name": field.name}
+    try:
+        size, checksum = _scan_finding_file(field.storage, field.name)
+    except Exception:
+        return {**descriptor, "status": "unavailable"}
+    return {**descriptor, "status": "verified", "size": size, "sha256": checksum}
+
+
+def open_verified_finding_file(descriptor):
+    """Verify the revision's retained object before returning any bytes.
+
+    The Finding row and its current FileField are deliberately not read.
+    A spooled copy bounds memory and avoids serving changed object bytes
+    between an integrity check and a second storage read.
+    """
+    from cyberrange.models import Finding
+    from cyberrange.forms import EVIDENCE_MAX_BYTES
+
+    if (not isinstance(descriptor, dict) or descriptor.get("status") != "verified"
+            or not isinstance(descriptor.get("name"), str) or not descriptor["name"]
+            or type(descriptor.get("size")) is not int or not 0 <= descriptor["size"] <= EVIDENCE_MAX_BYTES
+            or not isinstance(descriptor.get("sha256"), str)
+            or not re.fullmatch(r"[a-f0-9]{64}", descriptor["sha256"])):
+        raise ProtocolError("this revision has no verified attachment", code="evidence_integrity")
+    copy = tempfile.SpooledTemporaryFile(max_size=1024 * 1024, mode="w+b")
+    try:
+        size, checksum = _scan_finding_file(
+            Finding._meta.get_field("evidence_file").storage, descriptor["name"], copy_to=copy)
+        if size != descriptor["size"] or checksum != descriptor["sha256"]:
+            raise ValueError("retained attachment changed")
+        copy.seek(0)
+        return copy
+    except Exception as exc:
+        copy.close()
+        raise ProtocolError("retained finding evidence is unavailable or changed",
+                            code="archive_unavailable", retryable=True) from exc
