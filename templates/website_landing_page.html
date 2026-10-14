@@ -1113,6 +1113,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
   <a href="#speakers" onclick="cm()">Speakers</a>
   <a href="#numbers" onclick="cm()">Numbers</a>
   <a href="#faq" onclick="cm()">FAQ</a>
+  <a href="{% url 'programme' %}" onclick="cm()">Programme</a>
   <a href="{% url 'prepare' %}" onclick="cm()">Prepare</a>
   <a href="{% url 'accounts:register' %}" onclick="cm()">Register as a participant →</a>
   <a href="#contact" onclick="cm()">Contact</a>
@@ -1134,6 +1135,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
     <li><a href="#speakers" data-txt="Speakers">Speakers</a></li>
     <li><a href="#numbers" data-txt="Numbers">Numbers</a></li>
     <li><a href="#faq" data-txt="FAQ">FAQ</a></li>
+    <li><a href="{% url 'programme' %}" data-txt="Programme">Programme</a></li>
     <li><a href="{% url 'prepare' %}" data-txt="Prepare">Prepare</a></li>
     <li><a href="#contact" data-txt="Contact">Contact</a></li>
   </ul>
@@ -1235,12 +1237,21 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
       <div class="sp-logo-name">Strathmore University</div>
     </div>
 
+    <!-- CORE 02: NCBA Loop -->
+    <div class="sp-logo-wrap fade-up" style="transition-delay:0.1s">
+      <div class="sp-logo-frame">
+        <img src="{% static 'logo/Loop.png' %}" alt="NCBA Loop">
+      </div>
+      <div class="sp-logo-rank"><i></i>CORE_02</div>
+      <div class="sp-logo-name">NCBA Loop</div>
+    </div>
+
     <!-- CORE 02: ISACA Kenya Chapter -->
     <div class="sp-logo-wrap fade-up" style="transition-delay:0.1s">
       <div class="sp-logo-frame">
         <img src="{% static 'logo/isaca-kenya.png' %}" alt="ISACA Kenya Chapter">
       </div>
-      <div class="sp-logo-rank"><i></i>CORE_02</div>
+      <div class="sp-logo-rank"><i></i>CORE_03</div>
       <div class="sp-logo-name">ISACA Kenya Chapter</div>
     </div>
     <!-- CORE 04: Hack The Box — drop logo/iLab Africa in when ready -->
@@ -1248,7 +1259,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
       <div class="sp-logo-frame sp-pending" id="da-frame">
         <img src="{% static 'logo/HTB-Logo-RGB_BRC-Site-300.png' %}" alt="Hack The Box" id="da-img">
       </div>
-      <div class="sp-logo-rank"><i></i>CORE_03</div>
+      <div class="sp-logo-rank"><i></i>CORE_04</div>
       <div class="sp-logo-name">Hack The Box</div>
     </div>
     <!-- CORE 03: Digital Africa — drop logo/DigitalAfrica.png in when ready -->
@@ -1256,7 +1267,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
       <div class="sp-logo-frame sp-pending" id="da-frame">
         <img src="{% static 'logo/DigitalAfrica.png' %}" alt="Digital Africa" id="da-img">
       </div>
-      <div class="sp-logo-rank"><i></i>CORE_04</div>
+      <div class="sp-logo-rank"><i></i>CORE_05</div>
       <div class="sp-logo-name">Digital Africa</div>
     </div>
 
@@ -1265,7 +1276,7 @@ footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.04);
       <div class="sp-logo-frame sp-pending" id="da-frame">
         <img src="{% static 'logo/iLab.png' %}" alt="iLab Africa" id="da-img">
       </div>
-      <div class="sp-logo-rank"><i></i>CORE_05</div>
+      <div class="sp-logo-rank"><i></i>CORE_06</div>
       <div class="sp-logo-name">iLab Africa</div>
     </div>
 

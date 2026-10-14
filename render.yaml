@@ -86,6 +86,10 @@ services:
       # Unset, both answer 404.
       - key: DJANGO_DEPLOY_TOKEN
         sync: false
+      # Guards POST /api/feed, where observability pushes published marks
+      # (docs/CONTRACT-feed.md). Unset, the endpoint answers 404.
+      - key: DJANGO_FEED_TOKEN
+        sync: false
       - key: DJANGO_EMAIL_HOST_USER
         value: sucybersec@strathmore.edu   # the verified sender; also the From address
       - key: DJANGO_SITE_URL

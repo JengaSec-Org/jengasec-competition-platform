@@ -382,6 +382,10 @@ def info(request):
         "delay_minutes": comp.LEADERBOARD_DELAY_MINUTES,
     }
 
+    from competitions import grading
+
+    context["grade_stages"] = grading.stages(team)
+
     if is_red:
         context["red_actions"] = comp.RED_POINT_ACTIONS
         return render(request, "dashboard/info_red.html", context)
@@ -389,7 +393,6 @@ def info(request):
     context.update(
         {
             "blue_actions": comp.BLUE_POINT_ACTIONS,
-            "score_weights": comp.SCORE_WEIGHTS,
             "objectives": team.objectives.all() if team else [],
             "availability_bands": [
                 ("99–100%", "Excellent"),

@@ -1,0 +1,64 @@
+{% comment %}
+How the final mark is built. Shared by the blue and red Info pages so the
+two sides read the same scheme and cannot drift apart.
+
+Context: `grade_stages` from competitions.grading.stages(team).
+{% endcomment %}
+{% if grade_stages %}
+<div class="card card-flat" id="composition" style="margin-bottom:1.25rem;">
+  <span class="tlabel">// SCORE_COMPOSITION</span>
+  <h3 class="card-title">How Your Final Mark Is Built</h3>
+  <p class="text-muted" style="margin-bottom:0.9rem;">
+    Three stages, 100 marks.
+  </p>
+
+  {% for stage in grade_stages %}
+    <div class="weight-row">
+      <span style="min-width:11rem;">{{ stage.name }}</span>
+      <span class="bar"><i style="width: {{ stage.weight }}%;"></i></span>
+      <span class="pct">{{ stage.weight }}%</span>
+    </div>
+  {% endfor %}
+
+  {% for stage in grade_stages %}
+    <div style="margin-top:1.5rem;">
+      <span class="tlabel">// {{ stage.name|upper }} :: {{ stage.weight }}</span>
+      <p class="text-muted" style="margin:0.35rem 0 0.6rem;">{{ stage.summary }}</p>
+
+      {% if stage.routes %}
+        <div class="table-wrap">
+          <table class="table">
+            <tbody>
+              {% for who, how in stage.routes %}
+                <tr><th style="width:18rem;">{{ who }}</th><td>{{ how }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+
+      {% if stage.rows %}
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Criterion</th><th style="width:5rem;">Marks</th><th>What it means</th></tr></thead>
+            <tbody>
+              {% for row in stage.rows %}
+                <tr>
+                  <td><strong>{{ row.label }}</strong></td>
+                  <td>{{ row.marks }}</td>
+                  <td class="text-muted">{{ row.note }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+
+  <div class="delay-note">
+    // Participant scores update every {{ delay_minutes }} minutes. Live attack
+    outcomes are not shown during the competition.
+  </div>
+</div>
+{% endif %}

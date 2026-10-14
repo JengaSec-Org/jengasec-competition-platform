@@ -23,6 +23,8 @@
 <link rel="stylesheet" href="{% static 'css/components.css' %}">
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 {% block extra_css %}{% endblock %}
+{# Anything else a page needs in <head> — a meta refresh on the scoreboard. #}
+{% block extra_head %}{% endblock %}
 </head>
 {% comment %}
 `data-side` lets the shared components (step lists, key dates) take the

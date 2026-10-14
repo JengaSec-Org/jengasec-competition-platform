@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Mark {{ team.team_name }}{% endblock %}
+
+{% comment %}
+The judge's screen. Every field carries its own maximum so a mark cannot
+be entered out of range by accident, and the reason box sits next to the
+mark because the team is shown both.
+{% endcomment %}
+
+{% block content %}
+{% include "components/page_header.html" with tag="RECORD_MARKS" title=team.team_name %}
+
+<div class="card">
+  <span class="tlabel">// RUNNING_TOTAL</span>
+  <h3 class="card-title">{{ score.total }} / 100</h3>
+  <p class="text-muted">
+    Leave a field blank to leave that mark as it is. A mark you change replaces
+    the previous one and the team sees the reason you give.
+  </p>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  {% for stage in stages %}
+    <div class="card" style="margin-top:1.5rem;">
+      <span class="tlabel">// {{ stage.name|upper }} :: OUT_OF {{ stage.weight }}</span>
+      <h3 class="card-title">{{ stage.summary }}</h3>
+
+      {% if stage.key == "main" and computed_main %}
+        <p class="text-muted">
+          These marks are computed from this team's findings and are refreshed
+          every time a finding is reviewed, so they cannot be typed here.
+          Change a finding's status or severity instead.
+        </p>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Criterion</th><th style="width:5rem;">Out of</th><th>What it means</th></tr></thead>
+            <tbody>
+              {% for row in stage.rows %}
+                <tr>
+                  <td><strong>{{ row.label }}</strong></td>
+                  <td>{{ row.marks }}</td>
+                  <td class="text-muted">{{ row.note }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {% if stage.routes %}
+          <p class="text-muted">
+            {% for who, how in stage.routes %}{{ who }}: {{ how }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+          </p>
+        {% endif %}
+
+        {% for row in stage.rows %}
+          <div class="form-group">
+            <label class="form-label" for="f-{{ stage.key }}-{{ row.key }}">
+              {{ row.label }} <span class="person-sub">out of {{ row.marks }}</span>
+            </label>
+            <input class="input" type="number" step="0.5" min="0" max="{{ row.marks }}"
+                   id="f-{{ stage.key }}-{{ row.key }}"
+                   name="{{ stage.key }}:{{ row.key }}"
+                   value="{{ row.current }}" placeholder="—">
+            <div class="form-help">{{ row.note }}</div>
+            <input class="input" type="text" name="note:{{ stage.key }}:{{ row.key }}"
+                   value="{{ row.current_note }}" placeholder="Why — the team sees this">
+          </div>
+        {% empty %}
+          <div class="form-group">
+            <label class="form-label" for="f-{{ stage.key }}">
+              {{ stage.name }} <span class="person-sub">out of {{ stage.weight }}</span>
+            </label>
+            <input class="input" type="number" step="0.5" min="0" max="{{ stage.weight }}"
+                   id="f-{{ stage.key }}" name="{{ stage.key }}:"
+                   value="{{ stage.current }}" placeholder="—">
+            <div class="form-help">{{ stage.summary }}</div>
+            <input class="input" type="text" name="note:{{ stage.key }}:"
+                   value="{{ stage.current_note }}" placeholder="Why — the team sees this">
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% endfor %}
+
+  <div class="form-actions" style="margin-top:1.5rem;">
+    {% include "components/button.html" with label="Record marks" type="submit" variant="primary" size="sm" %}
+    {% url 'scoring:breakdown' team.pk as back_url %}
+    {% include "components/button.html" with label="Cancel" href=back_url variant="ghost" size="sm" %}
+  </div>
+</form>
+{% endblock %}

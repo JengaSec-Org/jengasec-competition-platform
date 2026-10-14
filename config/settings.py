@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "audit",
     "cyberrange",
     "deployments",
+    "scoring",
 ]
 
 MIDDLEWARE = [
@@ -276,6 +277,10 @@ TOKEN_KEY = os.environ.get("DJANGO_TOKEN_KEY", "")
 # (/deployments/api/pending/ and /api/status/). Unset, they answer 404.
 DEPLOY_TOKEN = os.environ.get("DJANGO_DEPLOY_TOKEN", "")
 
+# Shared secret for POST /api/feed, where the observability side pushes
+# published marks. Unset, the endpoint answers 404.
+FEED_TOKEN = os.environ.get("DJANGO_FEED_TOKEN", "")
+
 EMAIL_BACKEND = os.environ.get("DJANGO_EMAIL_BACKEND") or (
     "config.email_backends.BrevoAPIBackend"
     if BREVO_API_KEY
@@ -342,11 +347,24 @@ CSRF_TRUSTED_ORIGINS = [
     if origin.strip()
 ]
 
+# The venue instance may be served over plain HTTP on the isolated range
+# network before its internal-CA certificate is in place. Secure cookies are
+# never sent over HTTP, so with them on nobody can sign in there and the only
+# symptom is a login form that quietly bounces back -- which is a miserable
+# thing to diagnose in a full auditorium.
+#
+# This is an escape hatch, not a default. Set it ONLY on an instance reachable
+# solely from the venue VLANs, never on anything facing the internet: a session
+# cookie on plain HTTP can be read by anyone able to see the traffic.
+INSECURE_COOKIES = os.environ.get("DJANGO_INSECURE_COOKIES", "False").lower() in (
+    "true", "1", "yes",
+)
+
 if not DEBUG:
     # Cookies only over HTTPS. Requires SECURE_PROXY_SSL_HEADER above to be
     # correct, or Django decides the connection is insecure and never sets them.
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = not INSECURE_COOKIES
+    CSRF_COOKIE_SECURE = not INSECURE_COOKIES
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     CSRF_COOKIE_SAMESITE = "Lax"
