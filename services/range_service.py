@@ -370,7 +370,20 @@ def _allocation(competition, address, values):
 @transaction.atomic
 def sync_observability_data(competition, *, enable_optional=False):
     """Reconcile one competition atomically; invalid or missing bindings never grant access."""
-    competition = Competition.objects.select_for_update().get(pk=competition.pk)
+    competition_id = competition.pk
+    # Use a consistent lock order across competitions before checking the one
+    # current catalogue, so simultaneous reconcilers cannot both publish one.
+    competitions = list(Competition.objects.select_for_update().order_by("pk"))
+    competition = next((row for row in competitions if row.pk == competition_id), None)
+    if competition is None:
+        raise ObservabilitySyncError("The competition no longer exists.")
+    historical = [Competition.Status.COMPLETED, Competition.Status.ARCHIVED]
+    if competition.status in historical:
+        raise ObservabilitySyncError("Completed or archived competitions cannot publish a live catalogue.")
+    if RangeApplication.objects.exclude(competition=competition).exclude(
+        competition__status__in=historical
+    ).exists():
+        raise ObservabilitySyncError("Observability supports only one current competition catalogue.")
     briefs = _application_catalogue(competition)
     records, invalid_profiles = _participant_sources(competition)
     networks = _source_networks(records)
@@ -420,10 +433,6 @@ def sync_observability_data(competition, *, enable_optional=False):
             }
 
     applications, current_allocations = {}, []
-    if RangeApplication.objects.filter(ip_address__in=addresses).exclude(
-        competition=competition
-    ).exclude(competition__status__in=[Competition.Status.COMPLETED, Competition.Status.ARCHIVED]).exists():
-        raise ObservabilitySyncError("Application addresses are already reserved by another current competition.")
     for key, values in application_values.items():
         application = existing.get(key)
         if application is None:

@@ -15,9 +15,11 @@ STATEMENTS = (
            NULLIF(ia.team_label, '') AS team_label, NULLIF(ia.namespace, '') AS namespace,
            ia.status, ia.valid_from, ia.valid_until
     FROM ip_allocations ia
+    JOIN competitions_competition competition ON competition.id = ia.competition_id
     LEFT JOIN accounts_userprofile up ON up.id = ia.participant_id
     LEFT JOIN accounts_team team ON team.id = ia.team_id
-    WHERE (up.id IS NULL OR up.participant_identifier ~ '^JS26-P-[0-9]{4,}$')
+    WHERE competition.status NOT IN ('completed', 'archived')
+      AND (up.id IS NULL OR up.participant_identifier ~ '^JS26-P-[0-9]{4,}$')
       AND (team.id IS NULL OR team.team_identifier ~ '^JS[0-9]{2}-[BR]-[0-9]{3,}$')
       AND (ia.kind <> 'participant' OR ia.status = 'revoked' OR (
         ia.valid_from <= statement_timestamp()
@@ -44,7 +46,9 @@ STATEMENTS = (
            app.service_name, host(app.ip_address) AS ip_address, app.status,
            app.optional, app.enabled, NULLIF(app.image_digest, '') AS image_digest
     FROM applications app
-    WHERE app.enterprise IN ('ENT-A', 'ENT-B') AND app.application ~ '^APP0[1-9]$'
+    JOIN competitions_competition competition ON competition.id = app.competition_id
+    WHERE competition.status NOT IN ('completed', 'archived')
+      AND app.enterprise IN ('ENT-A', 'ENT-B') AND app.application ~ '^APP0[1-9]$'
       AND app.application_instance_id = app.enterprise || '/' || app.application
       AND app.namespace = 'jengasec-' || lower(app.enterprise) || '-' || lower(app.application)
     """,
@@ -54,6 +58,7 @@ STATEMENTS = (
            team.team_identifier AS team_id, scope.source_cidr,
            app.enterprise, app.application, app.namespace, host(app.ip_address) AS target_ip,
            COALESCE((scope.active AND assignment.is_active AND app.enabled
+            AND competition.status NOT IN ('completed', 'archived')
             AND team.status = 'approved' AND target.status = 'approved'
             AND team.team_type = 'red' AND target.team_type = 'blue'
             AND target.track = 'application'
@@ -76,6 +81,7 @@ STATEMENTS = (
             )), false) AS active,
            scope.valid_from, scope.valid_until
     FROM scope_assignments scope
+    JOIN competitions_competition competition ON competition.id = scope.competition_id
     JOIN accounts_team team ON team.id = scope.team_id
     JOIN applications app ON app.id = scope.application_id
     JOIN competitions_targetassignment assignment ON assignment.id = scope.target_assignment_id
@@ -100,15 +106,20 @@ STATEMENTS = (
     JOIN accounts_userprofile up ON up.user_id = principal.user_id
     JOIN auth_user account ON account.id = up.user_id AND account.is_active
     JOIN accounts_team team ON team.id = principal.team_id AND team.status = 'approved'
-    JOIN obs_applications_v1 app ON app.namespace = team.namespace AND app.enabled
-    JOIN applications source ON source.namespace = app.namespace AND source.competition_id = team.competition_id
+    JOIN competitions_competition competition ON competition.id = team.competition_id
+    JOIN applications app ON app.competition_id = team.competition_id
+      AND app.namespace = team.namespace AND app.enabled
     WHERE team.team_type = 'blue' AND team.track = 'application'
+      AND competition.status NOT IN ('completed', 'archived')
       AND up.role NOT IN ('admin', 'judge')
       AND team.team_identifier ~ '^JS[0-9]{2}-B-[0-9]{3,}$'
       AND up.participant_identifier ~ '^JS26-P-[0-9]{4,}$'
+      AND app.enterprise IN ('ENT-A', 'ENT-B') AND app.application ~ '^APP0[1-9]$'
+      AND app.application_instance_id = app.enterprise || '/' || app.application
+      AND app.namespace = 'jengasec-' || lower(app.enterprise) || '-' || lower(app.application)
       AND app.application = team.cell_id
       AND app.enterprise = CASE team.enterprise WHEN 'a' THEN 'ENT-A' WHEN 'b' THEN 'ENT-B' END
-      AND (team.service_ip IS NULL OR team.service_ip = source.ip_address)
+      AND (team.service_ip IS NULL OR team.service_ip = app.ip_address)
     UNION
     SELECT DISTINCT 1::integer AS contract_version,
         GREATEST(up.created_at, principal.linked_at, scope.updated_at) AS updated_at,

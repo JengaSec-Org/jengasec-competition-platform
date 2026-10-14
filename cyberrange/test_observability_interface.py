@@ -10,7 +10,7 @@ from django.db import DatabaseError, connection, transaction
 from django.utils import timezone
 
 from accounts.models import Team, TeamMember, UserProfile
-from competitions.models import TargetAssignment
+from competitions.models import Competition, TargetAssignment
 from services import range_service
 
 from .models import Finding, IPAllocation, RangeApplication, ScopeAssignment, WireGuardProfile
@@ -237,6 +237,105 @@ class PostgreSQLViewTests(RangeTestBase):
                 self.assertEqual(rows[0]["role"], exported_role)
                 self.assertIsNone(rows[0]["team_id"])
                 self.assertIsNone(rows[0]["namespace"])
+
+    def test_historical_catalogue_cannot_publish_live_data_or_grant_blue_access(self):
+        current = RangeApplication.objects.get(
+            competition=self.comp, enterprise="ENT-A", application="APP03",
+        )
+        previous = Competition.objects.create(
+            name="Previous competition", start_date=datetime.date(2025, 10, 14),
+            end_date=datetime.date(2025, 10, 17), status=Competition.Status.COMPLETED,
+        )
+        previous_app = RangeApplication.objects.create(
+            competition=previous, application_instance_id=current.application_instance_id,
+            enterprise=current.enterprise, application=current.application,
+            namespace=current.namespace, service_name=current.service_name,
+            ip_address=current.ip_address, status="live", enabled=True,
+        )
+        previous_teams = {}
+        for side, code in (("blue", "APP03"), ("red", "APPRED01")):
+            user = User.objects.create_user(f"previous-{side}")
+            UserProfile.objects.filter(user=user).update(participant_identifier=f"JS26-P-{user.pk:04d}")
+            previous_teams[side] = Team.objects.create(
+                competition=previous, team_name=f"Previous {side}", captain=user,
+                team_identifier=f"JS25-{side[0].upper()}-001", team_type=side,
+                track="application", enterprise="a", cell_id=code, status="approved",
+                namespace=current.namespace if side == "blue" else "",
+            )
+        previous_red, previous_blue = previous_teams["red"], previous_teams["blue"]
+        WireGuardProfile.objects.create(
+            user=previous_red.captain, team=previous_red,
+            address=self.wireguard.address, downloaded_at=timezone.now(),
+        )
+        previous_allocations = [
+            IPAllocation.objects.create(
+                competition=previous, kind="participant", ip_address="10.60.7.10",
+                participant=previous_red.captain.profile, team=previous_red,
+                team_label="red-app", status="active",
+            ),
+            IPAllocation.objects.create(
+                competition=previous, kind="application", ip_address=current.ip_address,
+                namespace=current.namespace, status="active",
+            ),
+        ]
+        previous_assignment = TargetAssignment.objects.create(
+            competition=previous, red_team=previous_red, target_team=previous_blue, is_active=True,
+        )
+        ScopeAssignment.objects.create(
+            competition=previous, target_assignment=previous_assignment, team=previous_red,
+            source_cidr="10.60.7.0/24", application=previous_app, active=True,
+        )
+        evidence = self.finding(competition=previous, red_team=previous_red, target_team=previous_blue)
+
+        def blue_rows():
+            return [row for row in self.rows("obs_access_principals_v1")
+                    if row["team_id"] == self.blue_a.team_identifier]
+
+        RangeApplication.objects.filter(pk=current.pk).update(enabled=False)
+        self.assertEqual(blue_rows(), [])
+        RangeApplication.objects.filter(pk=current.pk).update(enabled=True)
+        self.assertEqual(len(blue_rows()), 1)
+
+        for status in (Competition.Status.COMPLETED, Competition.Status.ARCHIVED):
+            with self.subTest(status=status):
+                Competition.objects.filter(pk=previous.pk).update(status=status)
+                applications = self.rows("obs_applications_v1")
+                self.assertEqual(len(applications), 18)
+                self.assertEqual(len({row["application_instance_id"] for row in applications}), 18)
+                allocation_ids = {row["allocation_id"] for row in self.rows("obs_ip_allocations_v1")}
+                self.assertFalse(allocation_ids & {str(row.allocation_id) for row in previous_allocations})
+                roles = self.rows("obs_access_principals_v1")
+                self.assertFalse(any(row["team_id"] in {
+                    previous_red.team_identifier, previous_blue.team_identifier,
+                } for row in roles))
+                old_scopes = [row for row in self.rows("obs_scope_assignments_v1")
+                              if row["team_id"] == previous_red.team_identifier]
+                self.assertEqual(len(old_scopes), 1)
+                self.assertIs(old_scopes[0]["active"], False)
+                self.assertIn(str(evidence.pk), {row["finding_id"] for row in self.rows("obs_findings_v1")})
+                with self.assertRaisesRegex(range_service.ObservabilitySyncError, "Completed or archived"):
+                    range_service.sync_observability_data(previous)
+
+        for field in ("application_instance_id", "namespace"):
+            with self.subTest(field=field), transaction.atomic():
+                RangeApplication.objects.filter(pk=current.pk).update(**{field: "invalid"})
+                if field == "namespace":
+                    Team.objects.filter(pk=self.blue_a.pk).update(namespace="invalid")
+                self.assertEqual(blue_rows(), [])
+                transaction.set_rollback(True)
+
+        with transaction.atomic():
+            Competition.objects.filter(pk=previous.pk).update(status=Competition.Status.OPEN)
+            # A different address still cannot make two current catalogues valid.
+            RangeApplication.objects.filter(pk=previous_app.pk).update(ip_address="10.108.0.99")
+            models = (RangeApplication, IPAllocation, ScopeAssignment, UserProfile)
+            before = [list(model.objects.order_by("pk").values()) for model in models]
+            with self.assertRaisesRegex(range_service.ObservabilitySyncError, "one current competition catalogue"):
+                range_service.sync_observability_data(self.comp)
+            self.assertEqual([list(model.objects.order_by("pk").values()) for model in models], before)
+            transaction.set_rollback(True)
+        range_service.sync_observability_data(self.comp)
+        self.assertEqual(len(self.rows("obs_applications_v1")), 18)
 
     def test_revoked_profile_expired_scope_and_changed_target_fail_closed(self):
         for change in ("revoked", "expired", "namespace", "address", "enterprise"):

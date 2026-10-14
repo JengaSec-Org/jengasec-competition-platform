@@ -52,6 +52,12 @@ formats and performs no reconciliation writes on GET. Its networks also come
 from assigned profiles; a missing source network is explicitly inactive. The
 versioned observability interface remains the five views below.
 
+The live interface supports one current competition's 18-instance catalogue.
+Reconciliation refuses another current catalogue rather than selecting one.
+Completed and archived competitions leave live application, allocation and team
+access publication; their scopes become inactive. Historical finding evidence
+remains available through the findings view.
+
 ## Read-only views
 
 - `obs_ip_allocations_v1`
