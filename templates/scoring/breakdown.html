@@ -27,6 +27,16 @@ read this about itself: a mark it cannot see is a mark it cannot appeal.
   {% endif %}
 </div>
 
+{% if readiness %}
+  <div class="card" style="margin-top:1.5rem;">
+    <h3 class="card-title">Observation and publication status</h3>
+    <p>The marks above are the last verified results. Pending observations do not count as a measured zero.</p>
+    <ul>{% for state in readiness %}
+      <li>{{ state.criterion }}: {{ state.get_status_display }}. Updated {{ state.updated_at }}.</li>
+    {% endfor %}</ul>
+  </div>
+{% endif %}
+
 {% for stage in stages %}
   <div class="card" style="margin-top:1.5rem;">
     <span class="tlabel">// {{ stage.name|upper }} :: {{ stage.awarded }}/{{ stage.weight }}</span>
@@ -43,6 +53,8 @@ read this about itself: a mark it cannot see is a mark it cannot appeal.
                 <td><strong>{{ event.marks }}</strong></td>
                 <td class="text-muted">
                   {{ event.note|default:"—" }}
+                  <a href="{% url 'scoring:revision' event.pk %}">Calculation and history</a>
+                  {% if event.override_active %}<span class="person-sub">Judge override active</span>{% endif %}
                   {% if event.finding %}
                     <span class="person-sub">finding #{{ event.finding.pk }}</span>
                   {% endif %}

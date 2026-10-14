@@ -11,12 +11,9 @@ Data rather than prose, for the same reason the programme is: judges ask
 to come from one place that the dashboards, the info pages and the
 scoring engine all read.
 
-**The stage weights are decided. The rows inside each stage are derived**
-from `contracts/findings.md` (valid, reproducible, in scope; severity;
-first valid report wins), architecture section 11 (what each team type is
-scored on) and the Guide's submission requirements. They are a defensible
-starting point, not a published rule — change them here and every surface
-follows.
+The Main criteria are published by the versioned shared scoring policy.
+An enrolled competition freezes that version. Formula changes need a new
+policy version; they cannot silently change a competition already running.
 
 One stage is deliberately not split by side: Entry is marked out of 100
 against whichever route the team took, then scaled to 30. A proposal
@@ -24,6 +21,8 @@ answers to the published section weights in the Participant FAQ; a
 qualifier answers to the Hack The Box score. Flattening those two into
 one list of criteria would pretend they are the same exercise.
 """
+
+from jengasec_scoring_policy import MAIN_CAPS, POLICY_VERSION
 
 # (key, label, marks) within a stage. Marks are out of the stage weight.
 MAIN_BY_SIDE = {
@@ -247,6 +246,8 @@ def check():
         total = sum(marks for _, _, marks, _ in rows)
         if total != main["weight"]:
             problems.append(f"{key} sums to {total}, not {main['weight']}")
+        if {criterion: marks for criterion, _, marks, _ in rows} != MAIN_CAPS[key]:
+            problems.append(f"{key} disagrees with {POLICY_VERSION}")
     doc = next(s for s in STAGES if s["key"] == "documentation")
     doc_total = sum(marks for _, _, marks, _ in DOCUMENTATION)
     if doc_total != doc["weight"]:

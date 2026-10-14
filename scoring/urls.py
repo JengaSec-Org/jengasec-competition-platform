@@ -10,4 +10,7 @@ urlpatterns = [
     path("scheme/", views.scheme, name="scheme"),
     path("team/<int:pk>/", views.team_breakdown, name="breakdown"),
     path("team/<int:pk>/mark/", views.mark, name="mark"),
+    path("revisions/<int:pk>/", views.revision_detail, name="revision"),
+    path("evidence/<uuid:pk>/", views.download_evidence, name="evidence"),
+    path("overrides/<int:pk>/release/", views.release_override, name="release_override"),
 ]

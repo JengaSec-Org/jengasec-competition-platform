@@ -12,6 +12,7 @@ The rules worth pinning are the ones a team would appeal over:
 """
 import json
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
@@ -216,10 +217,8 @@ class LeaderboardTests(TestCase):
                          Decimal("0"))
 
     def test_an_older_mark_does_reach_the_delayed_board(self):
-        scoring_service.award(self.a, "documentation", 20, source="judge")
-        ScoreEvent.objects.filter(team=self.a).update(
-            recorded_at=timezone.now() - timezone.timedelta(hours=2)
-        )
+        with patch("django.utils.timezone.now", return_value=timezone.now() - timezone.timedelta(hours=2)):
+            scoring_service.award(self.a, "documentation", 20, source="judge")
         rows = scoring_service.leaderboard(self.comp, for_staff=False)
         self.assertEqual(next(r for r in rows if r["team"] == self.a)["score"].total,
                          Decimal("20"))
@@ -332,12 +331,9 @@ class FeedViewTests(TestCase):
                                               is_superuser=True)
 
     def mark(self, note, *, minutes_ago=0, key=""):
-        event = scoring_service.award(self.team, "documentation", 5, source="judge",
-                                      criterion="complete", note=note, dedupe_key=key)
-        if minutes_ago:
-            ScoreEvent.objects.filter(pk=event.pk).update(
-                recorded_at=timezone.now() - timezone.timedelta(minutes=minutes_ago)
-            )
+        with patch("django.utils.timezone.now", return_value=timezone.now() - timezone.timedelta(minutes=minutes_ago)):
+            event = scoring_service.award(self.team, "documentation", 5, source="judge",
+                                          criterion="complete", note=note, dedupe_key=key)
         return event
 
     def test_the_delay_is_five_minutes(self):

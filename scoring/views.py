@@ -13,7 +13,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.http import Http404
+from django.http import Http404, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.models import Team
@@ -24,6 +24,9 @@ from competitions.models import Competition
 from services import scoring_service
 from services.audit_service import record as audit
 from services.submission_service import teams_for
+from jengasec_scoring_policy import FORMULAS
+from scoring.models import ScoreEvent, ScoreRevision, ScoringEvidence, ScoringReadiness
+from scoring.protocol import ProtocolError
 
 
 def _is_marker(user):
@@ -157,6 +160,7 @@ def team_breakdown(request, pk):
         "stages": scoring_service.breakdown(team),
         "score": scoring_service.recompute(team, save=False),
         "can_mark": _is_marker(request.user),
+        "readiness": ScoringReadiness.objects.filter(team=team).order_by("criterion"),
     })
 
 
@@ -189,7 +193,7 @@ def mark(request, pk):
                 except (InvalidOperation, ValueError):
                     errors.append(f"{row['label']}: '{raw}' is not a number.")
                     continue
-                if value < 0 or value > Decimal(str(row["marks"])):
+                if not value.is_finite() or value < 0 or value > Decimal(str(row["marks"])):
                     errors.append(
                         f"{row['label']}: {value} is outside 0–{row['marks']}."
                     )
@@ -245,3 +249,56 @@ def mark(request, pk):
         "computed_main": computed,
         "score": scoring_service.recompute(team, save=False),
     })
+
+
+@login_required
+def revision_detail(request, pk):
+    revision = get_object_or_404(ScoreRevision.objects.select_related("event__team"), pk=pk)
+    team = revision.team
+    staff = _is_marker(request.user)
+    if not (staff or teams_for(request.user).filter(pk=team.pk).exists()):
+        raise Http404("Not found")
+    return render(request, "scoring/revision.html", {
+        "revision": revision, "team": team, "can_mark": staff,
+        "formula": FORMULAS.get(grading.side_key(team), {}).get(revision.criterion, ""),
+        "history": revision.event.revisions.order_by("-sequence"),
+        "facts": revision.facts.items(), "quality": revision.quality.items(),
+    })
+
+
+@login_required
+def download_evidence(request, pk):
+    # Archives can contain staff-only traffic, query results and ground truth.
+    # Teams receive the facts and explanation through their score revision.
+    if not _is_marker(request.user):
+        raise Http404("Not found")
+    evidence = get_object_or_404(ScoringEvidence, pk=pk)
+    from services.scoring_evidence import verified_bytes
+
+    try:
+        data = verified_bytes(evidence)
+    except ProtocolError:
+        return HttpResponse("Evidence is temporarily unavailable.", status=503, content_type="text/plain")
+    response = HttpResponse(data, content_type="application/json")
+    response["Content-Disposition"] = f'attachment; filename="evidence-{evidence.pk}.json"'
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@login_required
+@marker_required
+def release_override(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    event = get_object_or_404(ScoreEvent, pk=pk)
+    note = request.POST.get("note", "")
+    try:
+        scoring_service.release_override(event, recorded_by=request.user, note=note)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+    else:
+        audit(AuditLog.Action.SCORE_OVERRIDDEN, request=request, target=event.team,
+              description=f"Released {event.stage}/{event.criterion} override: {note[:200]}")
+        messages.success(request, "Automatic updates are enabled for this criterion.")
+    return redirect("scoring:breakdown", pk=event.team_id)

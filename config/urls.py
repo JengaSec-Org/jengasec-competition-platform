@@ -11,7 +11,7 @@ from django.views.generic import TemplateView
 
 from accounts.security import ThrottledLoginView
 from config import tasks
-from scoring.ingest import feed as feed_ingest
+from scoring.ingest import feed as feed_ingest, upload_evidence, update_readiness
 
 
 @never_cache
@@ -148,6 +148,8 @@ urlpatterns = [
     # Observability pushes published marks here (architecture 14.1).
     # Token-guarded; see scoring/ingest.py and docs/CONTRACT-feed.md.
     path("api/feed/", feed_ingest, name="api_feed"),
+    path("api/scoring/evidence/", upload_evidence, name="api_scoring_evidence"),
+    path("api/scoring/readiness/", update_readiness, name="api_scoring_readiness"),
     # Built-in auth until the accounts module ships its own views.
     # Throttled: repeated failures lock the username+IP pair for a window.
     path(

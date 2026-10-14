@@ -47,16 +47,18 @@ this with their own team page must be able to work out why the two differ.
       <tbody>
         {% for row in rows %}
           <tr{% if row.team.pk in my_team_ids %} class="is-next"{% endif %}>
-            <td><strong>{{ row.rank }}</strong></td>
+            <td><strong>{{ row.rank|default:"—" }}</strong></td>
             <td>
               <a href="{% url 'scoring:breakdown' row.team.pk %}">{{ row.team.team_name }}</a>
               {% if row.team.cell_label %}<span class="person-sub">{{ row.team.cell_label }}</span>{% endif %}
             </td>
+            {% if row.history_available %}
             <td>{{ row.score.entry }}</td>
             <td>{{ row.score.main }}</td>
             <td>{{ row.score.documentation }}</td>
             <td>{% if row.score.bonus %}+{{ row.score.bonus }}{% else %}—{% endif %}</td>
             <td><strong>{{ row.score.total }}</strong></td>
+            {% else %}<td colspan="5">Earlier correction history is unavailable.</td>{% endif %}
           </tr>
         {% empty %}
           <tr><td colspan="7" class="text-muted">Nothing scored yet.</td></tr>

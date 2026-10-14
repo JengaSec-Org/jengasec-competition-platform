@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ team.team_name }} — score explanation{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with tag="MARKS" title=team.team_name %}
+<div class="card">
+  <h2>{{ revision.criterion|default:revision.stage }}: {{ revision.marks }}</h2>
+  <p>{{ revision.note }}</p>
+  <p>Recorded {{ revision.accepted_at }}. Source: {{ revision.get_source_display }}.</p>
+  {% if revision.baseline %}<p>Imported baseline. Earlier correction history is unavailable.</p>{% endif %}
+  {% if revision.policy_version %}
+    <p>Policy {{ revision.policy_version }}. Measurement window: {{ revision.window_start }} to {{ revision.window_end }}.</p>
+    <p>{{ formula }}</p>
+    <h3>Measured facts</h3>
+    <dl>{% for key, value in facts %}<dt>{{ key }}</dt><dd>{{ value }}</dd>{% endfor %}</dl>
+    <h3>Observation quality</h3>
+    <dl>{% for key, value in quality %}<dt>{{ key }}</dt><dd>{{ value }}</dd>{% endfor %}</dl>
+  {% endif %}
+  {% if can_mark %}
+    {% for reference in revision.evidence %}
+      <p><a href="{% url 'scoring:evidence' reference.id %}">Download retained evidence {{ forloop.counter }}</a></p>
+    {% endfor %}
+    {% if revision.event.override_active %}
+      <form method="post" action="{% url 'scoring:release_override' revision.event_id %}">
+        {% csrf_token %}
+        <label for="release-reason">Reason for restoring automatic updates</label>
+        <input id="release-reason" class="input" name="note" required maxlength="1900">
+        <button class="btn" type="submit">Release override</button>
+      </form>
+    {% endif %}
+  {% endif %}
+</div>
+<div class="card">
+  <h3>Correction history</h3>
+  <ul>{% for item in history %}
+    <li><a href="{% url 'scoring:revision' item.pk %}">{{ item.accepted_at }}: {{ item.marks }}</a> — {{ item.get_source_display }}</li>
+  {% endfor %}</ul>
+  <a href="{% url 'scoring:breakdown' team.pk %}">Back to marks</a>
+</div>
+{% endblock %}
