@@ -313,3 +313,149 @@ class WireGuardTests(RangeTestBase):
             shutil.rmtree(src, ignore_errors=True)
         profile = WireGuardProfile.objects.get()
         self.assertEqual((profile.user, profile.address, profile.team), (self.red_user, "10.60.1.7/32", self.red))
+
+
+KEY = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="    # a well-formed WireGuard public key
+PROFILE = {
+    "participant_id": 41, "address": "10.60.1.10/32", "endpoint": "vpn.jengasec.test:51820",
+    "server_public_key": "c2VydmVyLXB1YmxpYy1rZXktMzItYnl0ZXMtbG9uZyE=",
+    "allowed_ips": ["10.108.0.11/32"],
+    "targets": [{"code": "ENT-A/APP03", "ip": "10.108.0.11", "protocol": "tcp", "ports": [80, 443], "namespace": ""}],
+}
+
+
+class FakePortal:
+    """Stands in for NET's control plane; records every call."""
+
+    def __init__(self, register=None, profile=None):
+        self.calls = []
+        self.register_reply = register or {"participant_id": 41, "status": "pending", "eligible": False, "job_id": None}
+        self.profile_reply = profile if profile is not None else PROFILE
+
+    def __call__(self, path, method="GET", payload=None):
+        from services.vpn_portal import PortalError
+
+        self.calls.append((method, path, payload))
+        if isinstance(self.register_reply, PortalError) and path == "/v1/participants":
+            raise self.register_reply
+        if path == "/v1/participants":
+            return self.register_reply
+        if path.endswith("/approve"):
+            return {"participant_id": 41, "eligible": True, "job_id": 7, "job_status": "queued"}
+        if path.endswith("/revoke"):
+            return {"participant_id": 41, "status": "revoked", "job_id": 8}
+        if path.endswith("/vpn-profile"):
+            if isinstance(self.profile_reply, PortalError):
+                raise self.profile_reply
+            return self.profile_reply
+        raise AssertionError(path)
+
+
+@override_settings(PORTAL_API_URL="http://127.0.0.1:8080", PORTAL_ADMIN_TOKEN="test-token")
+class VpnPortalTests(RangeTestBase):
+    def portal(self, **kw):
+        from unittest import mock
+
+        fake = FakePortal(**kw)
+        patcher = mock.patch("services.vpn_portal._request", side_effect=fake)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return fake
+
+    def register(self, key=KEY):
+        self.client.login(username="otieno", password=PASSWORD)
+        return self.client.post(reverse("cyberrange:wireguard_register"), {"public_key": key}, follow=True)
+
+    def test_a_red_member_is_offered_registration(self):
+        self.portal()
+        self.client.login(username="otieno", password=PASSWORD)
+        self.assertContains(self.client.get(reverse("cyberrange:wireguard")), "Register my laptop")
+
+    def test_registration_sends_the_team_code_and_public_key_then_approves(self):
+        from .models import VpnRegistration
+
+        fake = self.portal()
+        self.register()
+        method, path, body = fake.calls[0]
+        self.assertEqual((method, path), ("POST", "/v1/participants"))
+        self.assertEqual(body["team_code"], "RED-APP-01")
+        self.assertEqual(body["role"], "red_participant")
+        self.assertEqual(body["public_key"], KEY)
+        self.assertIsNone(body["email"])                       # no personal data beyond the username
+        self.assertEqual(body["external_identity"], f"jengasec-web-{self.red_user.pk}-1")
+        self.assertEqual(fake.calls[1][:2], ("POST", "/v1/admin/participants/41/approve"))
+        reg = VpnRegistration.objects.get(user=self.red_user)
+        self.assertEqual((reg.status, reg.participant_id), (VpnRegistration.Status.APPROVED, 41))
+        self.assertTrue(AuditLog.objects.filter(action=AuditLog.Action.VPN_REGISTERED).exists())
+
+    def test_auto_approved_registrations_are_not_approved_twice(self):
+        fake = self.portal(register={"participant_id": 41, "status": "active", "eligible": True, "job_id": 3})
+        self.register()
+        self.assertFalse(any(path.endswith("/approve") for _, path, _ in fake.calls))
+
+    def test_a_private_key_or_garbage_is_refused_before_any_call(self):
+        fake = self.portal()
+        response = self.register(key="not-a-key")
+        self.assertContains(response, "not a WireGuard public key")
+        self.assertEqual([c for c in fake.calls if c[1] == "/v1/participants"], [])
+
+    def test_the_tunnel_settings_are_shown_without_any_private_key(self):
+        self.portal()
+        response = self.register()
+        self.assertContains(response, "Address = 10.60.1.10/32")
+        self.assertContains(response, "AllowedIPs = 10.108.0.11/32")
+        self.assertContains(response, "Endpoint = vpn.jengasec.test:51820")
+        self.assertNotContains(response, "PrivateKey = " + KEY)
+
+    def test_waiting_for_the_worker_says_so(self):
+        from services.vpn_portal import PortalError
+
+        self.portal(profile=PortalError(409, "VPN provisioning is not complete"))
+        self.assertContains(self.register(), "setting you up")
+
+    def test_no_target_yet_says_so(self):
+        from services.vpn_portal import PortalError
+
+        self.portal(profile=PortalError(403, "No authorized target services are assigned"))
+        self.assertContains(self.register(), "no target assigned yet")
+
+    def test_a_refusal_is_recorded_for_organisers(self):
+        from services.vpn_portal import PortalError
+        from .models import VpnRegistration
+
+        self.portal(register=PortalError(503, "Event topology has not been bootstrapped"))
+        self.assertContains(self.register(), "did not accept the registration")
+        reg = VpnRegistration.objects.get(user=self.red_user)
+        self.assertEqual(reg.status, VpnRegistration.Status.FAILED)
+        self.assertIn("bootstrapped", reg.last_error)
+
+    def test_someone_without_an_approved_team_cannot_register(self):
+        fake = self.portal()
+        nobody = User.objects.create_user("wanjiru", "wanjiru@strathmore.edu", PASSWORD)
+        self.client.force_login(nobody)
+        self.assertContains(self.client.get(reverse("cyberrange:wireguard")), "VPN access opens once")
+        response = self.client.post(reverse("cyberrange:wireguard_register"), {"public_key": KEY})
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(fake.calls, [])
+
+    def test_revoke_then_register_again_uses_a_new_identity(self):
+        from django.contrib.admin.sites import site
+        from .models import VpnRegistration
+
+        fake = self.portal()
+        self.register()
+        staff = User.objects.create_user("ops", "ops@strathmore.edu", PASSWORD, is_staff=True, is_superuser=True)
+        self.client.force_login(staff)
+        self.client.post(reverse("admin:cyberrange_vpnregistration_changelist"),
+                         {"action": "revoke_vpn", "_selected_action": [VpnRegistration.objects.get().pk]})
+        self.assertIn(("POST", "/v1/admin/participants/41/revoke", {}), fake.calls)
+        self.assertEqual(VpnRegistration.objects.get().status, VpnRegistration.Status.REVOKED)
+        self.register()
+        last_register = [c for c in fake.calls if c[1] == "/v1/participants"][-1]
+        self.assertEqual(last_register[2]["external_identity"], f"jengasec-web-{self.red_user.pk}-2")
+
+    @override_settings(PORTAL_API_URL="", PORTAL_ADMIN_TOKEN="")
+    def test_without_the_api_configured_nothing_changes(self):
+        self.client.login(username="otieno", password=PASSWORD)
+        self.assertContains(self.client.get(reverse("cyberrange:wireguard")), "Configurations are issued")
+        self.assertEqual(self.client.post(reverse("cyberrange:wireguard_register"), {"public_key": KEY}).status_code, 404)

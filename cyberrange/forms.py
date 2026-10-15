@@ -7,6 +7,23 @@ from .models import Finding
 EVIDENCE_MAX_BYTES = 20 * 1024 * 1024
 
 
+class VpnKeyForm(forms.Form):
+    """The public key the person's WireGuard app shows for a new empty tunnel."""
+
+    public_key = forms.CharField(
+        max_length=60, strip=True, label="Your WireGuard public key",
+        help_text="44 characters, ending in =. Never paste the private key.",
+    )
+
+    def clean_public_key(self):
+        from services.vpn_portal import valid_public_key
+
+        key = self.cleaned_data["public_key"]
+        if not valid_public_key(key):
+            raise forms.ValidationError("That is not a WireGuard public key. Copy the line labelled Public key.")
+        return key
+
+
 class FindingForm(forms.ModelForm):
     """A Red team's finding. Only cells in the team's active scope can be chosen."""
 

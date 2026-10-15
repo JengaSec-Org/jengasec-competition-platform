@@ -79,6 +79,48 @@ class Finding(models.Model):
             raise ValidationError({"ended_at": "The end time is before the start time."})
 
 
+class VpnRegistration(models.Model):
+    """One person's registration with NET's WireGuard control plane.
+
+    Holds only the public key: the private key is made and kept by the
+    WireGuard app on the person's own device. `services/vpn_portal.py`
+    talks to the control plane.
+    """
+
+    class Status(models.TextChoices):
+        APPROVED = "approved", "Registered"
+        FAILED = "failed", "Failed"
+        REVOKED = "revoked", "Revoked"
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="vpn_registration"
+    )
+    team = models.ForeignKey(
+        "accounts.Team", null=True, blank=True, on_delete=models.SET_NULL, related_name="vpn_registrations"
+    )
+    role = models.CharField(max_length=32)
+    team_code = models.CharField(max_length=20, blank=True, help_text="NET's team code, e.g. RED-APP-07.")
+    public_key = models.CharField(max_length=44)
+    # Sent to NET as external_identity. Bumped after a revocation, because NET
+    # never reuses an identity.
+    attempt = models.PositiveSmallIntegerField(default=1)
+    participant_id = models.PositiveIntegerField(null=True, blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.FAILED)
+    last_error = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["user__username"]
+
+    def __str__(self):
+        return f"VPN registration for {self.user}"
+
+    @property
+    def external_identity(self):
+        return f"jengasec-web-{self.user_id}-{self.attempt}"
+
+
 class WireGuardProfile(models.Model):
     """One person's WireGuard configuration.
 

@@ -3,8 +3,60 @@
 {% block content %}
 {% include "components/page_header.html" with tag="RANGE_ACCESS" title="Your WireGuard Configuration" %}
 
+{% if vpn_enabled %}
 <div class="card">
-  {% if profile and not profile.revoked %}
+  {% if registration and registration.status == "approved" %}
+    {% if tunnel %}
+      <p>You are set up. Your tunnel address is <span class="cell-mono">{{ vpn.address }}</span>{% if registration.team_code %}, for team <span class="cell-mono">{{ registration.team_code }}</span>{% endif %}.</p>
+      <ol style="margin:1rem 0 1rem 1.25rem;">
+        <li>In the WireGuard app, open the tunnel you created when you copied your public key, and choose <strong>Edit</strong>.</li>
+        <li>Keep the <span class="cell-mono">[Interface]</span> and <span class="cell-mono">PrivateKey = …</span> lines the app wrote. <strong>Never change or share the private key.</strong></li>
+        <li>Paste these lines underneath them, then save and activate:</li>
+      </ol>
+      <pre class="cell-mono" style="white-space:pre-wrap;user-select:all;padding:1rem;border:1px solid #ccc;border-radius:6px;">{{ tunnel }}</pre>
+      <p class="form-help" style="margin-top:1rem;">You can reach:</p>
+      <table class="table" style="margin:.5rem 0;">
+        <thead><tr><th>Target</th><th>Address</th><th>Ports</th></tr></thead>
+        <tbody>
+          {% for t in vpn.targets %}
+            <tr><td class="cell-mono">{{ t.code }}</td><td class="cell-mono">{{ t.ip }}</td><td class="cell-mono">{{ t.protocol }} {{ t.ports|join:", " }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="form-help">Turn it on only at the venue, during the engagement days. Lost your device or key? Ask an organiser to revoke this registration, then register again here.</p>
+    {% elif vpn_wait == "setting_up" %}
+      {% include "components/alert.html" with level="info" text="Registered. The VPN is setting you up; refresh this page in a minute." %}
+    {% elif vpn_wait == "no_target" %}
+      {% include "components/alert.html" with level="warning" text="Registered, but your team has no target assigned yet. Your settings appear here once the organisers open your engagement." %}
+    {% else %}
+      {% include "components/alert.html" with level="warning" text="Registered, but the VPN system is not answering right now. Try again shortly." %}
+    {% endif %}
+  {% elif form %}
+    {% if registration and registration.status == "revoked" %}
+      {% include "components/alert.html" with level="warning" text="Your previous VPN access was revoked. Register a new key to get access again." %}
+    {% elif registration and registration.status == "failed" %}
+      {% include "components/alert.html" with level="warning" text="Your last registration did not go through. Try again; if it fails again, tell an organiser." %}
+    {% endif %}
+    <p>Connect <strong>your own laptop</strong> to the range. It takes two minutes, and your private key never leaves your device.</p>
+    <ol style="margin:1rem 0 1rem 1.25rem;">
+      <li>Install the official <strong>WireGuard</strong> app (wireguard.com/install).</li>
+      <li>Choose <strong>Add empty tunnel</strong> (on Windows: the arrow next to <em>Add Tunnel</em>). Name it <span class="cell-mono">jengasec</span>.</li>
+      <li>Copy the <strong>Public key</strong> it shows, paste it below, and save the tunnel. Do not activate it yet.</li>
+    </ol>
+    <form method="post" action="{% url 'cyberrange:wireguard_register' %}">
+      {% csrf_token %}
+      {% include "components/form_field.html" with field=form.public_key %}
+      <button type="submit" class="btn btn-primary">Register my laptop</button>
+    </form>
+  {% else %}
+    <p class="text-muted">VPN access opens once your team is approved and has its place in the range. Check back after the organisers confirm your team.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if profile %}
+<div class="card"{% if vpn_enabled %} style="margin-top:1rem;"{% endif %}>
+  {% if not profile.revoked %}
     <p>This file connects <strong>your laptop</strong> to the range on the venue network. It is personal: it identifies you and your team, so never share it or copy it to a teammate.</p>
     <table class="table" style="margin:1rem 0;">
       <tbody>
@@ -15,10 +67,13 @@
     </table>
     <a href="{% url 'cyberrange:wireguard_download' %}" class="btn btn-primary">Download my configuration</a>
     <p class="form-help" style="margin-top:1rem;">Import it into the WireGuard app. Turn it on only at the venue, during the engagement days. Steps are in the info pack.</p>
-  {% elif profile and profile.revoked %}
-    {% include "components/alert.html" with level="warning" text="Your configuration has been revoked." %}
   {% else %}
-    <p class="text-muted">Configurations are issued before the first engagement day. You will get an email when yours is ready.</p>
+    {% include "components/alert.html" with level="warning" text="Your configuration has been revoked." %}
   {% endif %}
 </div>
+{% elif not vpn_enabled %}
+<div class="card">
+  <p class="text-muted">Configurations are issued before the first engagement day. You will get an email when yours is ready.</p>
+</div>
+{% endif %}
 {% endblock %}

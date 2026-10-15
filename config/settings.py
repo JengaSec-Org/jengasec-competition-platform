@@ -281,6 +281,12 @@ DEPLOY_TOKEN = os.environ.get("DJANGO_DEPLOY_TOKEN", "")
 # published marks. Unset, the endpoint answers 404.
 FEED_TOKEN = os.environ.get("DJANGO_FEED_TOKEN", "")
 
+# NET's WireGuard control plane on the platform VM (services/vpn_portal.py).
+# The token can revoke anyone's VPN access: server-side only. Unset, the
+# WireGuard page offers no self-service registration.
+PORTAL_API_URL = os.environ.get("PORTAL_API_URL", "")
+PORTAL_ADMIN_TOKEN = os.environ.get("PORTAL_ADMIN_TOKEN", "")
+
 EMAIL_BACKEND = os.environ.get("DJANGO_EMAIL_BACKEND") or (
     "config.email_backends.BrevoAPIBackend"
     if BREVO_API_KEY

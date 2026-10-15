@@ -16,12 +16,12 @@ from accounts.models import Team
 from accounts.roles import JUDGE, user_in_role
 from audit.models import AuditLog
 from competitions.models import TargetAssignment
-from services import scoring_service, stored_files
+from services import scoring_service, stored_files, vpn_portal
 from services.audit_service import record as audit
 from services.submission_service import teams_for
 
-from .forms import FindingForm
-from .models import ROUND_CHOICES, Finding, WireGuardProfile
+from .forms import FindingForm, VpnKeyForm
+from .models import ROUND_CHOICES, Finding, VpnRegistration, WireGuardProfile
 
 
 def _is_reviewer(user):
@@ -188,7 +188,62 @@ def finding_evidence(request, pk):
 @login_required
 def wireguard(request):
     profile = WireGuardProfile.objects.filter(user=request.user).first()
-    return render(request, "cyberrange/wireguard.html", {"profile": profile})
+    context = {"profile": profile, "vpn_enabled": vpn_portal.configured()}
+    if context["vpn_enabled"]:
+        registration = VpnRegistration.objects.filter(user=request.user).first()
+        context.update(registration=registration, identity=vpn_portal.vpn_identity(request.user))
+        if registration and registration.status == VpnRegistration.Status.APPROVED:
+            try:
+                data = vpn_portal.profile(registration)
+                context.update(vpn=data, tunnel=vpn_portal.tunnel_settings(data))
+            except vpn_portal.PortalError as exc:
+                # 409: the worker has not made the peer yet. 403: no target assigned yet.
+                context["vpn_wait"] = {409: "setting_up", 403: "no_target"}.get(exc.status, "unavailable")
+        elif context["identity"]:
+            context["form"] = VpnKeyForm()
+    return render(request, "cyberrange/wireguard.html", context)
+
+
+@login_required
+def wireguard_register(request):
+    """Register this person's public key with NET's control plane, and approve it.
+
+    The site has already done what the kit asks of a trusted portal: the
+    person is signed in and on an approved team that has a NET team code.
+    """
+    if request.method != "POST" or not vpn_portal.configured():
+        raise Http404("Not found")
+    identity = vpn_portal.vpn_identity(request.user)
+    if identity is None:
+        raise Http404("Not found")
+    form = VpnKeyForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, form.errors["public_key"][0])
+        return redirect("cyberrange:wireguard")
+    role, team, code = identity
+    with transaction.atomic():
+        registration = VpnRegistration.objects.select_for_update().filter(user=request.user).first()
+        if registration and registration.status == VpnRegistration.Status.APPROVED:
+            messages.info(request, "You are already registered. To use a new key, ask an organiser to revoke the old one.")
+            return redirect("cyberrange:wireguard")
+        if registration is None:
+            registration = VpnRegistration(user=request.user)
+        elif registration.status == VpnRegistration.Status.REVOKED or registration.participant_id:
+            registration.attempt += 1        # NET never reuses an identity
+            registration.participant_id = None
+        registration.role, registration.team, registration.team_code = role, team, code or ""
+        registration.public_key = form.cleaned_data["public_key"]
+        try:
+            vpn_portal.register(registration)
+        except vpn_portal.PortalError as exc:
+            registration.status = VpnRegistration.Status.FAILED
+            registration.last_error = f"{exc.status}: {exc.detail}"[:300]
+            registration.save()
+            messages.error(request, "The VPN system did not accept the registration. Organisers can see why; try again later.")
+            return redirect("cyberrange:wireguard")
+    audit(AuditLog.Action.VPN_REGISTERED, request=request, target=registration, team_code=code or "")
+    messages.success(request, "Registered. Your tunnel settings appear here as soon as the VPN has set you up.")
+    return redirect("cyberrange:wireguard")
 
 
 @login_required

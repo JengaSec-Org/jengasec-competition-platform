@@ -11,4 +11,5 @@ urlpatterns = [
     path("findings/<int:pk>/evidence/", views.finding_evidence, name="finding_evidence"),
     path("wireguard/", views.wireguard, name="wireguard"),
     path("wireguard/download/", views.wireguard_download, name="wireguard_download"),
+    path("wireguard/register/", views.wireguard_register, name="wireguard_register"),
 ]

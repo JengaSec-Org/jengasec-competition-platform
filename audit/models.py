@@ -43,6 +43,8 @@ class AuditLog(models.Model):
         FINDING_SUBMITTED = "finding_submitted", "Finding submitted"
         FINDING_REVIEWED = "finding_reviewed", "Finding reviewed"
         WIREGUARD_DOWNLOADED = "wireguard_downloaded", "WireGuard profile downloaded"
+        VPN_REGISTERED = "vpn_registered", "VPN access registered"
+        VPN_REVOKED = "vpn_revoked", "VPN access revoked"
         RANGE_EXPORTED = "range_exported", "Range files exported"
         # application deployments
         APP_SUBMITTED = "app_submitted", "Application image submitted"
