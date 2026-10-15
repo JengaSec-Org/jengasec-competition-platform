@@ -4,6 +4,7 @@ Keeps together the things that must always happen together: seating a
 person on a team and giving them the platform role that team implies;
 issuing a team identifier; assigning a cell within an enterprise.
 """
+import re
 import secrets
 from datetime import timedelta
 
@@ -459,8 +460,11 @@ def assign_cell(team, cell_id="", enterprise=""):
     family = team.cell_family
     if cell_id:
         cell_id = cell_id.strip().upper()
-        if not cell_id.startswith(family):
-            raise TeamRuleError(f"Cell {cell_id} is not a {family} cell.")
+        # Exactly the family and two digits (APP06, AIRED02): the range builds the
+        # namespace from it (jengasec-ent-a-app06), so APPBLUE06 or, for a Blue
+        # team, APPRED01 would name a cell that does not exist.
+        if not re.fullmatch(rf"{family}\d{{2}}", cell_id):
+            raise TeamRuleError(f"Cell {cell_id} is not a {family} cell: use {family}01, {family}02 ...")
         ent = enterprise or team.enterprise or choose_enterprise(team)
         if cell_taken(team.competition, ent, cell_id, exclude_pk=team.pk):
             raise TeamRuleError(f"{cell_id} is already allocated in {ent.upper()}.")

@@ -522,6 +522,31 @@ class BriefPlacementTests(TestCase):
         with self.assertRaisesMessage(team_service.TeamRuleError, "both enterprises"):
             team_service.assign_cell(third)
 
+    def test_a_hand_typed_cell_must_be_exactly_family_and_two_digits(self):
+        team = self.blue_team("First", make_user("one"))
+        for wrong in ("APPBLUE06", "APPRED01", "APP6", "AI01"):
+            with self.assertRaises(team_service.TeamRuleError, msg=wrong):
+                team_service.assign_cell(team, cell_id=wrong, enterprise="a")
+        self.assertEqual(team_service.assign_cell(team, cell_id="app06", enterprise="a"), "APP06")
+
+    def test_hand_typed_blue_cells_are_renamed_once_unless_taken(self):
+        import importlib
+
+        from django.apps import apps as django_apps
+
+        migration = importlib.import_module("accounts.migrations.0018_canonical_cell_ids")
+        typed = Team.objects.create(competition=self.comp, team_name="Typed", team_type=Team.TeamType.BLUE,
+                                    track=Team.Track.APPLICATION, enterprise="a", cell_id="APPBLUE06",
+                                    namespace="jengasec-ent-a-appblue06")
+        taken = Team.objects.create(competition=self.comp, team_name="Taken", team_type=Team.TeamType.BLUE,
+                                    track=Team.Track.APPLICATION, enterprise="a", cell_id="APPBLUE07")
+        Team.objects.create(competition=self.comp, team_name="Owner", team_type=Team.TeamType.BLUE,
+                            track=Team.Track.APPLICATION, enterprise="a", cell_id="APP07")
+        migration.canonical_cells(django_apps, None)
+        typed.refresh_from_db(); taken.refresh_from_db()
+        self.assertEqual((typed.cell_id, typed.namespace), ("APP06", "jengasec-ent-a-app06"))
+        self.assertEqual(taken.cell_id, "APPBLUE07")      # APP07 belongs to someone else: left for an organiser
+
     def test_pinned_brief_is_honoured_while_that_side_is_free(self):
         self.brief.enterprise = "b"
         self.brief.save()
