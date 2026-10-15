@@ -76,12 +76,17 @@ def pending(request):
         .order_by("created_at")[:100]
     )
     payload = []
+    # A team that is not ready (no cell, no reserved IP) is reported, not fatal:
+    # one unready team must not stop every other team's deployment.
+    blocked = []
     for row in rows:
         try:
             namespace = deploy.namespace_for(row.team)
             service_ip = deploy.service_ip_for(row.team)
         except ValueError as exc:
-            return JsonResponse({"error": str(exc)}, status=409)
+            blocked.append({"id": row.pk, "team": row.team.team_identifier or row.team.team_name,
+                            "error": str(exc)})
+            continue
         payload.append({
             "id": row.pk,
             "competition": row.competition_id,
@@ -108,7 +113,7 @@ def pending(request):
             description=f"Range collected {len(payload)} pending submission(s)",
             submissions=[row["id"] for row in payload],
         )
-    response = JsonResponse({"pending": payload}, json_dumps_params={"indent": None})
+    response = JsonResponse({"pending": payload, "blocked": blocked}, json_dumps_params={"indent": None})
     response["Cache-Control"] = "no-store"
     return response
 

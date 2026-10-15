@@ -423,6 +423,23 @@ class IngestTests(TestCase):
         self.assertEqual(self.submission.status, AppSubmission.Status.SUBMITTED)
 
     @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")
+    def test_an_unready_team_is_reported_without_blocking_the_rest(self):
+        ready = blue_app_team(self.comp, name="Twiga", cell="APP02")
+        ready.status = Team.Status.APPROVED
+        ready.save(update_fields=["status"])
+        ready_submission = deploy.submit(ready, ready.captain, pull_token=TOKEN, **FIELDS)
+        self.team.service_ip = None
+        self.team.save(update_fields=["service_ip"])
+        response = self.client.get(
+            self.pending_url, headers={"x-deploy-token": "a-long-enough-deploy-token"}
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual([b["id"] for b in body["blocked"]], [self.submission.pk])
+        self.assertIn("reserved service IP", body["blocked"][0]["error"])
+        self.assertEqual([p["id"] for p in body["pending"]], [ready_submission.pk])
+
+    @override_settings(DEPLOY_TOKEN="a-long-enough-deploy-token")
     def test_a_pending_collection_is_only_what_is_waiting(self):
         deploy.record_status(self.submission, AppSubmission.Status.HEALTHY)
         response = self.client.get(

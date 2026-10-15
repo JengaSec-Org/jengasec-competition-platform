@@ -70,9 +70,17 @@ Everything waiting on its first check, oldest first, up to 100.
       "env_vars": {"APP_MODE": "production"},
       "extra_images": ["ghcr.io/amina-dev/internet-banking-worker:v3"]
     }
+  ],
+  "blocked": [
+    {"id": 44, "team": "JS26-B-015", "error": "Application cell ENTA · APP02 needs a reserved service IP."}
   ]
 }
 ```
+
+`blocked` lists submissions whose team cannot be deployed yet: no enterprise, cell or reserved
+service IP. They stay at **Submitted** and appear in `pending` once an organiser fixes the team.
+Before this field existed, one such team made the whole call answer `409`, which stopped every
+other team's deployment.
 
 Notes:
 
