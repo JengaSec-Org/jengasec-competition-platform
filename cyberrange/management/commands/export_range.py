@@ -7,9 +7,12 @@ Produces, in --out:
     cells.yaml              -> jengasec-cyberrange-infrastructure/scripts/cells.yaml
     scope-assignments.csv   -> input to scripts/make-allowlists.py (SEC-10)
     allocation.csv          -> input to scripts/create-accounts (APP-12)
+    net-*.csv               -> NET's WireGuard pipeline: copy to config/csv-templates/
+                               (without the net- prefix), then `jengasecctl.sh bootstrap`
 
-Commit cells.yaml to the infra repo in a pull request. The CSVs carry team
-names, so share them with APP/SEC directly rather than committing them.
+Commit cells.yaml to the infra repo in a pull request. scope-assignments.csv and
+allocation.csv carry team names, so share them with APP/SEC directly rather than
+committing them. The net-*.csv files carry team codes, cells and IPs only.
 """
 import pathlib
 
@@ -50,6 +53,10 @@ class Command(BaseCommand):
             "scope-assignments.csv": range_service.scope_csv(competition),
             "allocation.csv": range_service.allocation_csv(competition),
         }
+        try:
+            files.update(range_service.net_bootstrap_files(competition))
+        except ValueError as exc:
+            raise CommandError(f"NET bootstrap files: {exc}") from exc
         for name, content in files.items():
             (out / name).write_text(content, encoding="utf-8", newline="\n")
             self.stdout.write(f"wrote {out / name} ({content.count(chr(10))} lines)")

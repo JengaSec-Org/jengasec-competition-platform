@@ -143,13 +143,70 @@ class ExportTests(RangeTestBase):
         out = pathlib.Path(tempfile.mkdtemp(prefix="range-export-"))
         try:
             call_command("export_range", competition=self.comp.pk, out=str(out), fill_namespaces=True, stdout=io.StringIO())
-            for name in ("cells.yaml", "scope-assignments.csv", "allocation.csv"):
+            for name in ("cells.yaml", "scope-assignments.csv", "allocation.csv", "net-targets.csv",
+                         "net-assignments.csv", "net-infrastructure-targets.csv", "net-access-policies.csv"):
                 self.assertTrue((out / name).exists(), name)
         finally:
             shutil.rmtree(out, ignore_errors=True)
         self.blue_a.refresh_from_db()
         self.assertEqual(self.blue_a.namespace, "jengasec-ent-a-app03")
         self.assertTrue(AuditLog.objects.filter(action=AuditLog.Action.RANGE_EXPORTED).exists())
+
+
+
+class NetBootstrapExportTests(RangeTestBase):
+    """The CSVs NET's WireGuard bootstrap loads (scripts/bootstrap_event.py)."""
+
+    def rows(self, name):
+        import csv
+        return list(csv.DictReader(io.StringIO(range_service.net_bootstrap_files(self.comp)[name])))
+
+    def test_team_codes_are_nets_and_stable(self):
+        codes = range_service.kit_team_codes(self.comp)
+        self.assertEqual(codes[self.blue_a.pk], "BLUE-APP-01")    # ENT-A before ENT-B
+        self.assertEqual(codes[self.blue_b.pk], "BLUE-APP-02")
+        self.assertEqual(codes[self.ai_a.pk], "BLUE-AI-01")
+        self.assertEqual(codes[self.red.pk], "RED-APP-01")
+        self.assertEqual(range_service.kit_team_codes(self.comp), codes)
+
+    def test_targets_are_the_apps_and_the_ai_api(self):
+        rows = {r["target_code"]: r for r in self.rows("net-targets.csv")}
+        self.assertEqual(set(rows), {"ENT-A/APP03", "ENT-B/APP03", "AI-API/BLUE-AI-01"})
+        self.assertEqual(rows["ENT-A/APP03"]["ip"], "10.108.0.11")
+        self.assertEqual(rows["ENT-A/APP03"]["owner_team"], "BLUE-APP-01")
+        self.assertEqual(rows["ENT-A/APP03"]["namespace"], "jengasec-ent-a-app03")
+        self.assertEqual((rows["AI-API/BLUE-AI-01"]["ip"], rows["AI-API/BLUE-AI-01"]["ports"]), ("10.109.0.10", "8443"))
+
+    def test_only_active_assignments_open(self):
+        rows = self.rows("net-assignments.csv")
+        self.assertEqual([(r["red_team_code"], r["target_code"]) for r in rows], [("RED-APP-01", "ENT-A/APP03")])
+
+    def test_ai_red_pairs_with_two_ai_blue_at_most(self):
+        for n in range(2, 7):
+            Team.objects.create(competition=self.comp, team_name=f"AIB{n}", team_identifier=f"JS26-B-1{n:02d}",
+                                team_type="blue", track="ai", enterprise="b", cell_id=f"AI{n:02d}",
+                                status=Team.Status.APPROVED)
+        for n in range(1, 4):
+            Team.objects.create(competition=self.comp, team_name=f"AIR{n}", team_identifier=f"JS26-R-2{n:02d}",
+                                team_type="red", track="ai", status=Team.Status.APPROVED)
+        ai = [r for r in self.rows("net-assignments.csv") if r["red_team_code"].startswith("RED-AI-")]
+        per_red, per_blue = {}, {}
+        for r in ai:
+            per_red[r["red_team_code"]] = per_red.get(r["red_team_code"], 0) + 1
+            per_blue[r["target_code"]] = per_blue.get(r["target_code"], 0) + 1
+        self.assertEqual(per_red, {"RED-AI-01": 2, "RED-AI-02": 2, "RED-AI-03": 2})
+        self.assertEqual(len(per_blue), 6)
+        self.assertTrue(all(n == 1 for n in per_blue.values()))
+
+    def test_no_names_or_identifiers_leave(self):
+        files = "".join(range_service.net_bootstrap_files(self.comp).values())
+        for leak in ("Nyati", "Kifaru", "JS26-", "otieno", "amina"):
+            self.assertNotIn(leak, files)
+
+    def test_a_blue_app_without_ip_stops_the_export(self):
+        Team.objects.filter(pk=self.blue_b.pk).update(service_ip=None)
+        with self.assertRaises(ValueError):
+            range_service.net_bootstrap_files(self.comp)
 
 
 class FindingTests(RangeTestBase):
