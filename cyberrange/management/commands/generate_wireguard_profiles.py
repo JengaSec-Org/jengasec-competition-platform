@@ -33,6 +33,7 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
+from django.db.models import Q
 
 from accounts.models import Team, TeamMember
 
@@ -172,7 +173,11 @@ class Command(BaseCommand):
 
         # ── Staff and judges ─────────────────────────────────────────────────
         if "staff" in wanted:
-            staff = get_user_model().objects.filter(is_staff=True, is_active=True).order_by("id")
+            # Staff accounts AND judges/admins by profile role: judges are not
+            # necessarily is_staff, and they need to see the real applications.
+            staff = (get_user_model().objects.filter(is_active=True)
+                     .filter(Q(is_staff=True) | Q(profile__role__in=["admin", "judge"]))
+                     .distinct().order_by("id"))
             for i, user in enumerate(staff):
                 if i > 244:
                     raise CommandError("more than 245 staff accounts")

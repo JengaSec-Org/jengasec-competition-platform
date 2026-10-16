@@ -609,3 +609,7 @@ class GenerateWireGuardProfilesTests(RangeTestBase):
         self.assertIn("tcp dport 8088 accept", acl)          # check page, always open
         challenges = acl[acl.index("chain challenges"):]
         self.assertIn("tcp dport { 30000-30099 } accept", challenges)
+
+    def test_judges_get_a_staff_profile(self):
+        self.generate()
+        self.assertTrue(self.profile("judy").count("Address = 10.63.0."))
