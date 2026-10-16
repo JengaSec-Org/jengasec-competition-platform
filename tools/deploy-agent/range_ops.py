@@ -594,12 +594,14 @@ def pod_observation(cell):
         raise agent.Infra(f"kubectl returned invalid deployment JSON for {namespace}.")
     spec = deployment.get("spec", {})
     status = deployment.get("status", {})
-    desired_images = [
-        item.get("image", "")
-        for item in spec.get("template", {}).get("spec", {}).get("containers", [])
-    ]
     expected_image = cell["image_digest"]
-    if expected_image not in desired_images:
+    extra_images = cell.get("extra_digests") or []
+    try:
+        agent.validate_workload_images(
+            spec.get("template", {}).get("spec", {}).get("containers", []),
+            expected_image=expected_image, extra_images=extra_images,
+        )
+    except agent.Infra:
         return {
             "team_id": cell["team_id"],
             "status": "down",
@@ -632,13 +634,12 @@ def pod_observation(cell):
         ready = ready and bool(containers) and all(
             container.get("ready") for container in containers
         )
-        for container in containers:
-            image_id = container.get("imageID", "")
-            match = re.search(r"(sha256:[0-9a-f]{64})", image_id)
-            if match:
-                observed_digest = match.group(1)
-                break
         detail = "Application pods are ready." if ready else "Application pods are not ready."
+        try:
+            observed_digest = agent.running_artifact(pods, extra_images=extra_images)
+        except agent.Infra as exc:
+            ready = False
+            detail = str(exc)
     code, output, error = agent.kubectl(
         ["get", "service", "app", "-n", namespace, "-o", "json"], timeout=60
     )
@@ -668,6 +669,7 @@ def pod_observation(cell):
         "status": "live" if ready else "down",
         "healthy": bool(ready),
         "image_digest": observed_digest,
+        "extra_digests": [image.rsplit("@", 1)[1] for image in extra_images] if observed_digest else [],
         "detail": detail,
     }
 

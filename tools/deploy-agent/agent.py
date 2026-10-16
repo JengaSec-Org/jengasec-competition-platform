@@ -48,7 +48,7 @@ import urllib.request
 
 log = logging.getLogger("deploy-agent")
 
-DEFAULT_BASE = "https://jengasec.com"
+DEFAULT_BASE = "https://www.jengasec.com"
 # Infrastructure namespace, e.g. jengasec-ent-a-app01.
 DEFAULT_NAMESPACE = "jengasec-ent-{enterprise}-{cell}"
 # Guide: 2 CPU and 3 GB in total for the cell, database included.
@@ -154,13 +154,27 @@ class Api:
     def pending(self):
         return self._call("/deployments/api/pending/").get("pending", [])
 
-    def report(self, submission_id, status, *, detail="", scan_report=None, logs=None):
+    def report(self, submission_id, status, *, detail="", scan_report=None, logs=None,
+               resolved_digest=None, extra_digests=None):
         payload = {"id": submission_id, "status": status, "detail": detail}
         if scan_report is not None:
             payload["scan_report"] = scan_report
         if logs:
             payload["logs_excerpt"] = logs[-4000:]
+        if resolved_digest is not None:
+            payload["resolved_digest"] = resolved_digest
+        if extra_digests is not None:
+            payload["extra_digests"] = extra_digests
         return self._call("/deployments/api/status/", payload)
+
+    def active(self, after=0):
+        return self._call(f"/deployments/api/active/?after={after}")
+
+    def artifact(self, identifier, resolved_digest, extra_digests=None):
+        payload = {"id": identifier, "resolved_digest": resolved_digest}
+        if extra_digests is not None:
+            payload["extra_digests"] = extra_digests
+        return self._call("/deployments/api/artifact/", payload)
 
 
 # ----------------------------------------------------------------- docker
@@ -291,6 +305,118 @@ def inspect(image):
             status="rejected",
         )
     return {"architecture": architecture, "user": user, "size_bytes": int(size)}
+
+
+def pinned_reference(image):
+    """Resolve the pulled registry manifest, not Docker's image-config ID."""
+    code, out, _ = docker(["image", "inspect", image, "--format", "{{json .RepoDigests}}"])
+    if code:
+        raise Infra("Cannot read the pulled image's registry digest.")
+    repository = image.split("@", 1)[0]
+    tail = repository.rsplit("/", 1)[-1]
+    if ":" in tail:
+        repository = repository.rsplit(":", 1)[0]
+    try:
+        candidates = [value for value in json.loads(out) if isinstance(value, str)
+                      and value.startswith(repository + "@sha256:")
+                      and re.fullmatch(r".+@sha256:[a-f0-9]{64}", value)]
+    except (TypeError, ValueError):
+        raise Infra("Cannot parse the pulled registry digest.") from None
+    if len(set(candidates)) != 1:
+        raise Infra("The pulled registry digest is missing or ambiguous.")
+    return candidates[0]
+
+
+def validate_workload_images(containers, *, expected_image=None, extra_images=()):
+    """Verify the complete frozen container set in the deployment template."""
+    try:
+        expected_names = {"app", *(f"extra-{index}" for index in range(1, len(extra_images) + 1))}
+        images = {row["name"]: row["image"] for row in containers}
+        if len(containers) != len(images) or set(images) != expected_names:
+            raise ValueError
+        if not re.fullmatch(r"[^@\s]+@sha256:[a-f0-9]{64}", images["app"]):
+            raise ValueError
+        if expected_image is not None and images["app"] != expected_image:
+            raise ValueError
+        for index, image in enumerate(extra_images, 1):
+            if (not re.fullmatch(r"[^@\s]+@sha256:[a-f0-9]{64}", image)
+                    or images[f"extra-{index}"] != image):
+                raise ValueError
+    except (ValueError, TypeError, KeyError):
+        raise Infra("Deployment image does not match the frozen digest.") from None
+
+
+def observed_artifact(namespace, *, expected_image=None, extra_images=()):
+    """Read actual app pod digests independently of readiness."""
+    code, out, _ = kubectl(["get", "deployment", "app", "-n", namespace, "-o", "json"], timeout=15)
+    if code:
+        raise Infra("Cannot verify the assigned application deployment.")
+    try:
+        containers = json.loads(out)["spec"]["template"]["spec"]["containers"]
+        validate_workload_images(containers, expected_image=expected_image, extra_images=extra_images)
+    except (ValueError, TypeError, KeyError):
+        raise Infra("The deployed application is not pinned to a verified digest.") from None
+    code, out, _ = kubectl(
+        ["get", "pods", "-n", namespace, "-l", "app=app", "-o", "json"], timeout=15
+    )
+    if code:
+        raise Infra("Cannot verify the assigned application pods.")
+    try:
+        pods = json.loads(out)["items"]
+    except (ValueError, TypeError, KeyError):
+        raise Infra("Cannot parse the assigned application pods.") from None
+    return running_artifact(pods, extra_images=extra_images)
+
+
+def running_artifact(pods, *, extra_images=()):
+    """Require every observed app container to identify the same content."""
+    digests = set()
+    try:
+        if not isinstance(pods, list) or not pods:
+            raise ValueError
+        for pod in pods:
+            containers = pod.get("status", {}).get("containerStatuses", [])
+            by_name = {row["name"]: row for row in containers}
+            expected_names = {"app", *(f"extra-{index}" for index in range(1, len(extra_images) + 1))}
+            if len(containers) != len(by_name) or set(by_name) != expected_names:
+                raise ValueError
+            match = re.search(r"(?:^|[@/])(sha256:[0-9a-f]{64})$", by_name["app"].get("imageID", ""))
+            if match is None:
+                raise ValueError
+            digests.add(match.group(1))
+            for index, expected in enumerate(extra_images, 1):
+                observed = re.search(r"(?:^|[@/])(sha256:[0-9a-f]{64})$",
+                                     by_name[f"extra-{index}"].get("imageID", ""))
+                if (not re.fullmatch(r"[^@\s]+@sha256:[a-f0-9]{64}", expected)
+                        or observed is None or observed.group(1) != expected.rsplit("@", 1)[1]):
+                    raise ValueError
+        if len(digests) != 1:
+            raise ValueError
+    except (AttributeError, KeyError, TypeError, ValueError):
+        raise Infra("Running application pod digests are missing or ambiguous.") from None
+    return digests.pop()
+
+
+def verify_artifacts(api, options):
+    after = 0
+    while True:
+        response = api.active(after)
+        for row in response["active"]:
+            if options.only and row["id"] != options.only:
+                continue
+            namespace = namespace_for(row, options.namespace_template)
+            # A missing deployment stops freshness updates; it does not fabricate
+            # an app failure or refresh an earlier digest from local memory.
+            try:
+                extras = row.get("frozen_extra_images") or []
+                value = observed_artifact(namespace, expected_image=row.get("frozen_digest"), extra_images=extras)
+                api.artifact(row["id"], value, [item.rsplit("@", 1)[1] for item in extras])
+            except (Infra, Stop):
+                log.warning("Artifact confirmation unavailable for submission %s", row["id"])
+        following = response["next_cursor"]
+        if following <= after or len(response["active"]) < 100:
+            break
+        after = following
 
 
 def scan(image, *, fail_on_critical=True):
@@ -554,6 +680,7 @@ def process(submission, api, options):
         # ---- Pulled
         details = []
         scan_reports = []
+        pinned_images = []
         blocking = None
         for candidate in images:
             if not options.allow_public and is_public(candidate):
@@ -564,14 +691,18 @@ def process(submission, api, options):
                     status="rejected",
                 )
             pull(submission, workdir, candidate)
-            details.append(inspect(candidate))
+            pinned = pinned_reference(candidate)
+            pinned_images.append(pinned)
+            details.append(inspect(pinned))
             report, image_blocking = scan(
-                candidate, fail_on_critical=not options.allow_critical
+                pinned, fail_on_critical=not options.allow_critical
             )
-            scan_reports.append({"image": candidate, **report})
+            scan_reports.append({"image": pinned, **report})
             if image_blocking and blocking is None:
                 blocking = image_blocking
 
+        image = pinned_images[0]
+        resolved_digest = image.rsplit("@", 1)[1]
         combined_report = {
             "critical": sum(item.get("critical", 0) for item in scan_reports),
             "high": sum(item.get("high", 0) for item in scan_reports),
@@ -582,7 +713,8 @@ def process(submission, api, options):
         }
         api.report(identifier, "pulled",
                    detail=f"{len(images)} image(s) pulled; "
-                   f"{sum(item['size_bytes'] for item in details) // (1024*1024)} MB total.")
+                   f"{sum(item['size_bytes'] for item in details) // (1024*1024)} MB total.",
+                   resolved_digest=resolved_digest)
         log.info("[%s] pulled", label)
 
         # ---- Scanned
@@ -610,14 +742,17 @@ def process(submission, api, options):
 
         # ---- Deployed, then Healthy
         namespace = namespace_for(submission, options.namespace_template)
-        deploy(submission, namespace, image, config_path)
+        deploy({**submission, "extra_images": pinned_images[1:]}, namespace, image, config_path)
         api.report(identifier, "deployed", detail=f"Running in {namespace}.")
         log.info("[%s] deployed to %s", label, namespace)
 
         logs = wait_healthy(namespace, options.health_timeout)
+        if observed_artifact(namespace, expected_image=image, extra_images=pinned_images[1:]) != resolved_digest:
+            raise Infra("The deployed artifact differs from the verified image.")
         api.report(identifier, "healthy",
                    detail=f"{submission['health_path']} answered on port {submission['port']}.",
-                   logs=logs)
+                   logs=logs, resolved_digest=resolved_digest,
+                   extra_digests=[item.rsplit("@", 1)[1] for item in pinned_images[1:]])
         log.info("[%s] healthy", label)
 
     except Infra:
@@ -653,6 +788,8 @@ def process(submission, api, options):
 
 
 def one_pass(api, options):
+    if getattr(options, "verify_artifacts", False):
+        verify_artifacts(api, options)
     try:
         waiting = api.pending()
     except Stop as stop:
@@ -682,6 +819,8 @@ def one_pass(api, options):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--verify-artifacts", action="store_true",
+                        help="Refresh frozen workload identity each pass for scoring.")
     parser.add_argument("--base", default=os.environ.get("JENGASEC_BASE", DEFAULT_BASE),
                         help="Website base URL (env JENGASEC_BASE).")
     parser.add_argument("--token", default=os.environ.get("JENGASEC_DEPLOY_TOKEN", ""),

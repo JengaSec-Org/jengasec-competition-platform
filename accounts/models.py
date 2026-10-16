@@ -47,6 +47,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
     )
+    participant_identifier = models.CharField(max_length=20, blank=True, editable=False)
     role = models.CharField(max_length=20, choices=Role.choices, blank=True)
     institution = models.CharField(max_length=160, blank=True)
 
@@ -116,6 +117,10 @@ class UserProfile(models.Model):
 
     class Meta:
         ordering = ["user__username"]
+        constraints = [models.UniqueConstraint(
+            fields=["participant_identifier"], condition=~models.Q(participant_identifier=""),
+            name="unique_participant_identifier",
+        )]
 
     def __str__(self):
         return f"{self.user.username} ({self.get_role_display() or 'no role'})"
@@ -157,6 +162,11 @@ class UserProfile(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
+        if not self.participant_identifier:
+            self.participant_identifier = f"{EDITION}-P-{self.pk:04d}"
+            type(self).objects.filter(pk=self.pk, participant_identifier="").update(
+                participant_identifier=self.participant_identifier,
+            )
         self.sync_role_group()
 
     def sync_role_group(self):
@@ -559,6 +569,10 @@ class Team(models.Model):
     def __str__(self):
         label = self.team_identifier or self.team_name
         return f"{label} [{self.get_team_type_display()}]"
+
+    def save(self, *args, **kwargs):
+        from services.scoring_identity import write_identity_source
+        return write_identity_source(self, lambda: super(Team, self).save(*args, **kwargs))
 
     @property
     def enterprise_code(self):

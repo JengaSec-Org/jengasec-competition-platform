@@ -65,6 +65,10 @@ class NotEligible(ValueError):
     """This team does not submit an application image."""
 
 
+class FreezeConflict(ValueError):
+    """A freeze cannot replace the selected or already pinned application."""
+
+
 def submits_application(team):
     """Whether this team hands an image to the range at all."""
     return bool(
@@ -159,7 +163,9 @@ def submit(team, user, **fields):
     return submission
 
 
-def record_status(submission, status, *, detail="", scan_report=None, logs_excerpt=None):
+@transaction.atomic
+def record_status(submission, status, *, detail="", scan_report=None, logs_excerpt=None,
+                  resolved_digest=None, extra_digests=None):
     """The single write path for the four checks.
 
     Used by the organiser screen and by the range's ingest endpoint, so
@@ -169,6 +175,12 @@ def record_status(submission, status, *, detail="", scan_report=None, logs_excer
 
     if status not in AppSubmission.Status.values:
         raise ValueError(f"Unknown status {status!r}.")
+    if resolved_digest is not None and not valid_digest(resolved_digest):
+        raise ValueError("A verified digest must be sha256 followed by 64 lowercase hex digits.")
+    if resolved_digest is not None and status == AppSubmission.Status.HEALTHY:
+        current = AppSubmission.objects.select_for_update().get(pk=submission.pk)
+        if current.frozen_at:
+            verify_extra_digests(current, extra_digests)
 
     submission.status = status
     submission.status_detail = detail or ""
@@ -177,10 +189,107 @@ def record_status(submission, status, *, detail="", scan_report=None, logs_excer
         submission.scan_report = scan_report
     if logs_excerpt is not None:
         submission.logs_excerpt = logs_excerpt
-    submission.save(update_fields=[
-        "status", "status_detail", "status_changed_at", "scan_report", "logs_excerpt",
-    ])
+    fields = ["status", "status_detail", "status_changed_at", "scan_report", "logs_excerpt"]
+    if resolved_digest is not None:
+        submission.resolved_digest = resolved_digest
+        fields.append("resolved_digest")
+        if status == AppSubmission.Status.HEALTHY:
+            submission.digest_verified_at = timezone.now()
+            submission.deployed_digest_verified_at = submission.digest_verified_at
+            fields.extend(["digest_verified_at", "deployed_digest_verified_at"])
+    submission.save(update_fields=fields)
     return submission
+
+
+def valid_digest(value):
+    return isinstance(value, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", value) is not None
+
+
+def valid_pinned_reference(value):
+    return (isinstance(value, str) and len(value) <= 500
+            and re.fullmatch(r"[^@\s]+@sha256:[0-9a-f]{64}", value) is not None)
+
+
+def verify_extra_digests(submission, observed):
+    """Extra containers must identify all frozen content before a heartbeat."""
+    expected = submission.frozen_extra_images or []
+    observed = [] if observed is None else observed
+    if (not isinstance(expected, list) or len(expected) != len(submission.extra_images or [])
+            or any(not valid_pinned_reference(value) for value in expected)
+            or not isinstance(observed, list)
+            or observed != [value.rsplit("@", 1)[1] for value in expected]):
+        raise ValueError("Every frozen extra image requires a matching observed digest.")
+
+
+@transaction.atomic
+def record_freeze(submission, digest, extra_digests=None, *, now=None):
+    """Record the registry copy without inventing a current workload observation.
+
+    A repeated receipt is idempotent. A tag recorded by the old selection
+    command can be replaced by an actual pinned copy, but verified content
+    and an existing pinned registry reference cannot change.
+    """
+    from deployments.models import AppSubmission
+
+    if not valid_pinned_reference(digest):
+        raise ValueError("digest must be a registry image reference ending in @sha256:<64 hex>")
+    extras = [] if extra_digests is None else extra_digests
+    Team.objects.select_for_update().get(pk=submission.team_id)
+    current = AppSubmission.objects.select_for_update().get(pk=submission.pk)
+    if (not isinstance(extras, list)
+            or len(extras) != len(current.extra_images or [])
+            or any(not valid_pinned_reference(item) for item in extras)):
+        raise ValueError("extra_digests must contain one pinned digest per submitted extra image")
+    raw_digest = digest.rsplit("@", 1)[1]
+    already_pinned = valid_pinned_reference(current.frozen_digest)
+    if ((already_pinned and (current.frozen_digest != digest
+                            or current.frozen_extra_images != extras))
+            or (current.frozen_verified_digest and current.frozen_verified_digest != raw_digest)):
+        raise FreezeConflict("submission is already frozen to another digest")
+    if already_pinned and current.frozen_verified_digest == raw_digest and current.frozen_at:
+        return current
+    passing = last_passing(current.team)
+    if not current.is_passing or passing is None or passing.pk != current.pk:
+        raise FreezeConflict("submission is not the team's last passing attempt")
+    others = AppSubmission.objects.filter(team_id=current.team_id, frozen_at__isnull=False).exclude(pk=current.pk)
+    if any(valid_pinned_reference(value) for value in others.values_list("frozen_digest", flat=True)):
+        raise FreezeConflict("team already has a frozen application")
+    current.frozen_digest = digest
+    current.frozen_extra_images = extras
+    current.frozen_verified_digest = raw_digest
+    # Old selection-only timestamps cannot backdate a newly copied artifact.
+    current.frozen_at = (current.frozen_at if already_pinned else None) or now or timezone.now()
+    fields = ["frozen_digest", "frozen_extra_images", "frozen_verified_digest", "frozen_at"]
+    if extras and not already_pinned:
+        # A pre-freeze primary-image check did not attest this frozen set.
+        current.deployed_digest_verified_at = None
+        fields.append("deployed_digest_verified_at")
+    current.save(update_fields=fields)
+    return current
+
+
+@transaction.atomic
+def record_artifact(submission, resolved_digest, extra_digests=None):
+    """Refresh workload identity independently of application availability."""
+    from deployments.models import AppSubmission
+
+    if not valid_digest(resolved_digest):
+        raise ValueError("Invalid verified digest.")
+    current = AppSubmission.objects.select_for_update().get(pk=submission.pk)
+    verify_extra_digests(current, extra_digests)
+    fields = ["resolved_digest", "deployed_digest_verified_at"]
+    if (not current.frozen_verified_digest and current.frozen_at
+            and valid_pinned_reference(current.frozen_digest)):
+        # Existing range freezes predate the scoring fields. The current
+        # heartbeat verifies the existing pinned copy without backdating it.
+        current.frozen_verified_digest = current.frozen_digest.rsplit("@", 1)[1]
+        fields.append("frozen_verified_digest")
+    if not current.frozen_verified_digest:
+        raise ValueError("The application has no verified frozen artifact.")
+    current.resolved_digest = resolved_digest
+    current.deployed_digest_verified_at = timezone.now()
+    current.save(update_fields=fields)
+    return current
 
 
 @transaction.atomic

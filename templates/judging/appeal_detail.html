@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Appeal {{ appeal.pk }}{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with tag="APPEAL" title=appeal.team.team_name %}
+<div class="card">
+  <h2>{{ appeal.get_grounds_display }}</h2>
+  <p>{{ appeal.get_status_display }} · Filed {{ appeal.created_at }}.</p>
+  <p style="white-space:pre-wrap">{{ appeal.reason }}</p>
+  {% if appeal.score_revision_id %}
+    <p><a href="{% url 'scoring:revision' appeal.score_revision_id %}">Review the appealed score, calculation and history</a></p>
+    {% if appeal.evidence_gaps %}<p>Some referenced evidence is unavailable. Restore and verify it before deciding whether the scoring process was followed.</p>{% endif %}
+    {% for archive in archives %}<p><a href="{% url 'scoring:evidence' archive.pk %}">Retained evidence {{ forloop.counter }}</a></p>{% endfor %}
+  {% else %}
+    <p><a href="{% url 'submissions:detail' appeal.submission_id %}">Review the appealed submission</a></p>
+  {% endif %}
+  {% if appeal.second_judge %}<p>Assigned reviewer: {{ appeal.second_judge.get_full_name|default:appeal.second_judge.username }}.</p>{% endif %}
+  {% if appeal.resolution %}<h3>Decision</h3><p style="white-space:pre-wrap">{{ appeal.resolution }}</p><p>Recorded {{ appeal.resolved_at }}.</p>{% endif %}
+</div>
+{% if can_assign %}
+<div class="card">
+  <h3>Assign an independent reviewer</h3>
+  <form method="post">
+    {% csrf_token %}<input type="hidden" name="action" value="assign">
+    <label for="appeal-judge">Reviewer</label>
+    <select id="appeal-judge" class="select" name="judge" required>
+      <option value="">Choose a judge</option>
+      {% for judge in second_judges %}<option value="{{ judge.pk }}">{{ judge.get_full_name|default:judge.username }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-primary" type="submit">Assign reviewer</button>
+  </form>
+</div>
+{% endif %}
+{% if can_resolve or resolution_form.errors %}
+<div class="card">
+  <h3>Record the appeal decision</h3>
+  <p>An upheld appeal records the procedural finding. Any mark change requires a separate reviewed correction.</p>
+  <form method="post">
+    {% csrf_token %}<input type="hidden" name="action" value="resolve">
+    {{ resolution_form.as_p }}
+    {% if can_resolve %}<button class="btn btn-primary" type="submit">Record decision</button>{% endif %}
+  </form>
+</div>
+{% endif %}
+<p><a href="{% url 'judging:appeal_list' %}">Back to appeals</a></p>
+{% endblock %}

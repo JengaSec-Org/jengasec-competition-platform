@@ -32,6 +32,7 @@ class FindingForm(forms.ModelForm):
         fields = [
             "target_team", "round", "started_at", "ended_at", "title", "technique", "attack_id",
             "steps", "evidence", "evidence_file", "impact", "suggested_fix",
+            "telemetry_event_ids", "correlation_ids",
         ]
         labels = {"target_team": "Target cell"}
         widgets = {

@@ -90,6 +90,11 @@ class AppSubmission(models.Model):
     frozen_digest = models.CharField(max_length=500, blank=True)
     frozen_extra_images = models.JSONField(default=list, blank=True)
     frozen_at = models.DateTimeField(null=True, blank=True)
+    # Only authenticated range receipts set these. A tag is not a content digest.
+    resolved_digest = models.CharField(max_length=71, blank=True)
+    digest_verified_at = models.DateTimeField(null=True, blank=True)
+    frozen_verified_digest = models.CharField(max_length=71, blank=True)
+    deployed_digest_verified_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(

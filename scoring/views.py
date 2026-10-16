@@ -13,7 +13,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.http import Http404
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.models import Team
@@ -24,6 +24,12 @@ from competitions.models import Competition
 from services import scoring_service
 from services.audit_service import record as audit
 from services.submission_service import teams_for
+from jengasec_scoring_policy import FORMULAS
+from scoring.models import ScoreEvent, ScoreRevision, ScoringEvidence, ScoringReadiness
+from scoring.protocol import ProtocolError
+from services import appeal_service
+from judging.forms import AppealForm
+from judging.models import Appeal
 
 
 def _is_marker(user):
@@ -157,6 +163,7 @@ def team_breakdown(request, pk):
         "stages": scoring_service.breakdown(team),
         "score": scoring_service.recompute(team, save=False),
         "can_mark": _is_marker(request.user),
+        "readiness": ScoringReadiness.objects.filter(team=team).order_by("criterion"),
     })
 
 
@@ -189,7 +196,7 @@ def mark(request, pk):
                 except (InvalidOperation, ValueError):
                     errors.append(f"{row['label']}: '{raw}' is not a number.")
                     continue
-                if value < 0 or value > Decimal(str(row["marks"])):
+                if not value.is_finite() or value < 0 or value > Decimal(str(row["marks"])):
                     errors.append(
                         f"{row['label']}: {value} is outside 0–{row['marks']}."
                     )
@@ -245,3 +252,123 @@ def mark(request, pk):
         "computed_main": computed,
         "score": scoring_service.recompute(team, save=False),
     })
+
+
+@login_required
+def revision_detail(request, pk):
+    revision = get_object_or_404(ScoreRevision.objects.select_related("event__team"), pk=pk)
+    team = revision.team
+    staff = _is_marker(request.user)
+    if not (staff or teams_for(request.user).filter(pk=team.pk).exists()):
+        raise Http404("Not found")
+    return render(request, "scoring/revision.html", _revision_context(revision, request.user))
+
+
+def _revision_context(revision, user, *, form=None):
+    team = revision.team
+    appeals = Appeal.objects.filter(score_event=revision.event).select_related("score_revision", "second_judge", "resolved_by")
+    active = appeals.filter(status__in=appeal_service.ACTIVE_STATUSES).exists()
+    appeals = list(appeals)
+    for appeal in appeals:
+        appeal.can_review = _is_marker(user) and (user.is_staff or user.is_superuser or appeal.second_judge_id == user.pk)
+    is_open, closes = appeal_service.appeal_window(revision)
+    return {
+        "revision": revision, "team": team, "can_mark": _is_marker(user),
+        "formula": FORMULAS.get(grading.side_key(team), {}).get(revision.criterion, ""),
+        "history": revision.event.revisions.order_by("-sequence"),
+        "facts": [(key, value) for key, value in revision.facts.items() if key != "findings"],
+        "quality": revision.quality.items(),
+        "finding_snapshots": revision.facts.get("findings", []),
+        "appeals": appeals, "appeal_form": form or AppealForm(), "appeal_closes_at": closes,
+        "can_file_appeal": is_open and user.pk == team.captain_id and not active,
+    }
+
+
+@login_required
+def file_score_appeal(request, pk):
+    revision = get_object_or_404(ScoreRevision.objects.select_related("event__team"), pk=pk)
+    if not teams_for(request.user).filter(pk=revision.team_id).exists():
+        raise Http404("Not found")
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    from judging.appeal_views import _bounded
+    if not _bounded(request):
+        return HttpResponse("Appeal request is too large.", status=413)
+    form = AppealForm(request.POST)
+    if form.is_valid():
+        try:
+            appeal_service.file_score_appeal(revision, request.user,
+                                             form.cleaned_data["grounds"], form.cleaned_data["reason"])
+        except appeal_service.AppealError as exc:
+            form.add_error(None, str(exc))
+        else:
+            messages.success(request, "Appeal filed against this score revision.")
+            return redirect("scoring:revision", pk=revision.pk)
+    return render(request, "scoring/revision.html", _revision_context(revision, request.user, form=form), status=400)
+
+
+@login_required
+def download_finding_evidence(request, pk, finding_id):
+    if not _is_marker(request.user):
+        raise Http404("Not found")
+    revision = get_object_or_404(ScoreRevision, pk=pk)
+    snapshot = next((row for row in revision.facts.get("findings", [])
+                     if row.get("id") == finding_id), None)
+    if snapshot is None or "evidence_file" not in snapshot:
+        raise Http404("Not found")
+    from pathlib import PurePosixPath
+    import re
+    from services.scoring_evidence import open_verified_finding_file
+
+    descriptor = snapshot["evidence_file"]
+    try:
+        file = open_verified_finding_file(descriptor)
+    except ProtocolError:
+        return HttpResponse("Retained finding evidence is unavailable or changed.",
+                            status=503, content_type="text/plain")
+    suffix = PurePosixPath(descriptor["name"]).suffix
+    if not re.fullmatch(r"\.[A-Za-z0-9]{1,10}", suffix):
+        suffix = ".bin"
+    response = FileResponse(file, as_attachment=True, content_type="application/octet-stream",
+                            filename=f"finding-{finding_id}-revision-{pk}{suffix}")
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@login_required
+def download_evidence(request, pk):
+    # Archives can contain staff-only traffic, query results and ground truth.
+    # Teams receive the facts and explanation through their score revision.
+    if not _is_marker(request.user):
+        raise Http404("Not found")
+    evidence = get_object_or_404(ScoringEvidence, pk=pk)
+    from services.scoring_evidence import verified_bytes
+
+    try:
+        data = verified_bytes(evidence)
+    except ProtocolError:
+        return HttpResponse("Evidence is temporarily unavailable.", status=503, content_type="text/plain")
+    response = HttpResponse(data, content_type="application/json")
+    response["Content-Disposition"] = f'attachment; filename="evidence-{evidence.pk}.json"'
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@login_required
+@marker_required
+def release_override(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    event = get_object_or_404(ScoreEvent, pk=pk)
+    note = request.POST.get("note", "")
+    try:
+        scoring_service.release_override(event, recorded_by=request.user, note=note)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+    else:
+        audit(AuditLog.Action.SCORE_OVERRIDDEN, request=request, target=event.team,
+              description=f"Released {event.stage}/{event.criterion} override: {note[:200]}")
+        messages.success(request, "Automatic updates are enabled for this criterion.")
+    return redirect("scoring:breakdown", pk=event.team_id)

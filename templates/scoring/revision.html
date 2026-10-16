@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ team.team_name }} — score explanation{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with tag="MARKS" title=team.team_name %}
+<div class="card">
+  <h2>{{ revision.criterion|default:revision.stage }}: {{ revision.marks }}</h2>
+  <p>{{ revision.note }}</p>
+  <p>Recorded {{ revision.accepted_at }}. Source: {{ revision.get_source_display }}.</p>
+  {% if revision.baseline %}<p>Imported baseline. Earlier correction history is unavailable.</p>{% endif %}
+  {% if revision.policy_version %}
+    <p>Policy {{ revision.policy_version }}. Measurement window: {{ revision.window_start }} to {{ revision.window_end }}.</p>
+    <p>{{ formula }}</p>
+    <h3>Measured facts</h3>
+    <dl>{% for key, value in facts %}<dt>{{ key }}</dt><dd>{{ value }}</dd>{% endfor %}</dl>
+    <h3>Observation quality</h3>
+    <dl>{% for key, value in quality %}<dt>{{ key }}</dt><dd>{{ value }}</dd>{% endfor %}</dl>
+  {% endif %}
+  {% if can_mark %}
+    {% for reference in revision.evidence %}
+      <p><a href="{% url 'scoring:evidence' reference.id %}">Download retained evidence {{ forloop.counter }}</a></p>
+    {% endfor %}
+    {% if revision.event.override_active %}
+      <form method="post" action="{% url 'scoring:release_override' revision.event_id %}">
+        {% csrf_token %}
+        <label for="release-reason">Reason for restoring automatic updates</label>
+        <input id="release-reason" class="input" name="note" required maxlength="1900">
+        <button class="btn" type="submit">Release override</button>
+      </form>
+    {% endif %}
+  {% endif %}
+</div>
+{% if finding_snapshots %}
+<div class="card">
+  <h3>Reviewed findings</h3>
+  {% for finding in finding_snapshots %}
+    <p><strong>Finding {{ finding.id }}</strong> · {{ finding.status }}{% if finding.severity %} · {{ finding.severity }}{% endif %}.</p>
+    <p>Target {{ finding.target_team_identifier|default:finding.target_team }}{% if finding.target_id %} · {{ finding.target_id }}{% endif %}.</p>
+    {% if finding.started_at %}<p>Observation window: {{ finding.started_at }} to {{ finding.ended_at }}.</p>{% endif %}
+    {% if can_mark %}
+      {% if finding.scoring_objective_id %}<p>Scoring objective {{ finding.scoring_objective_id }}.</p>{% endif %}
+      {% if finding.telemetry_event_ids %}<p>Telemetry references: {{ finding.telemetry_event_ids|join:", " }}.</p>{% endif %}
+      {% if finding.correlation_ids %}<p>Correlation references: {{ finding.correlation_ids|join:", " }}.</p>{% endif %}
+      {% if finding.telemetry_event_ids or finding.correlation_ids %}<p>Telemetry references require a retained OBS evidence pack. Raw event links expire after seven days.</p>{% endif %}
+      {% if finding.evidence_file.status == "verified" %}
+        <p><a href="{% url 'scoring:finding_evidence' revision.pk finding.id %}">Download retained finding evidence</a> · {{ finding.evidence_file.size }} bytes · SHA-256 {{ finding.evidence_file.sha256 }}.</p>
+      {% elif finding.evidence_file %}<p>The attachment was unavailable when this revision was recorded. Its contents could not be verified.</p>{% endif %}
+    {% elif finding.evidence_file %}
+      {% if finding.evidence_file.status == "verified" %}<p>The reviewed attachment is retained for authorized appeal review.</p>{% else %}<p>The reviewed attachment is unavailable. This proof gap remains visible to the appeal reviewer.</p>{% endif %}
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+<div class="card">
+  <h3>Procedural appeals</h3>
+  {% if appeal_closes_at %}<p>The appeal window closes {{ appeal_closes_at }}.</p>{% else %}<p>Appeals open when competition results are published.</p>{% endif %}
+  {% for appeal in appeals %}
+    <p><strong>{{ appeal.get_grounds_display }}</strong> · {{ appeal.get_status_display }} · <a href="{% url 'scoring:revision' appeal.score_revision_id %}">Revision {{ appeal.score_revision_id }}</a>.</p>
+    <p style="white-space:pre-wrap">{{ appeal.reason }}</p>
+    {% if appeal.evidence_gaps %}<p>Some archived proof is unavailable. The reviewer will check this gap.</p>{% endif %}
+    {% if appeal.resolution %}<p style="white-space:pre-wrap"><strong>Decision:</strong> {{ appeal.resolution }}</p>{% endif %}
+    {% if appeal.can_review %}<p><a href="{% url 'judging:appeal_detail' appeal.pk %}">Appeal review</a></p>{% endif %}
+    {% if user.pk == team.captain_id %}
+      {% if appeal.status == "open" or appeal.status == "under_review" %}
+        <form method="post" action="{% url 'judging:appeal_withdraw' appeal.pk %}">
+          {% csrf_token %}
+          <label for="withdraw-{{ appeal.pk }}">Reason for withdrawing</label>
+          <textarea id="withdraw-{{ appeal.pk }}" class="textarea" name="reason" minlength="20" maxlength="5000" required></textarea>
+          <button type="submit" class="btn btn-ghost">Withdraw appeal</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+  {% if appeal_form.errors and not can_file_appeal %}{{ appeal_form.errors }}{% endif %}
+  {% if can_file_appeal %}
+    <form method="post" action="{% url 'scoring:file_appeal' revision.pk %}">
+      {% csrf_token %}
+      <p>Describe how the published process or calculation was applied incorrectly to this result.</p>
+      {{ appeal_form.as_p }}
+      <button type="submit" class="btn btn-primary">File appeal for revision {{ revision.pk }}</button>
+    </form>
+  {% endif %}
+</div>
+<div class="card">
+  <h3>Correction history</h3>
+  <ul>{% for item in history %}
+    <li><a href="{% url 'scoring:revision' item.pk %}">{{ item.accepted_at }}: {{ item.marks }}</a> — {{ item.get_source_display }}</li>
+  {% endfor %}</ul>
+  <a href="{% url 'scoring:breakdown' team.pk %}">Back to marks</a>
+</div>
+{% endblock %}

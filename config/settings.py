@@ -280,6 +280,7 @@ DEPLOY_TOKEN = os.environ.get("DJANGO_DEPLOY_TOKEN", "")
 # Shared secret for POST /api/feed, where the observability side pushes
 # published marks. Unset, the endpoint answers 404.
 FEED_TOKEN = os.environ.get("DJANGO_FEED_TOKEN", "")
+SCORING_IDENTITY_TOKEN = os.environ.get("DJANGO_SCORING_IDENTITY_TOKEN", "")
 
 # NET's WireGuard control plane on the platform VM (services/vpn_portal.py).
 # The token can revoke anyone's VPN access: server-side only. Unset, the

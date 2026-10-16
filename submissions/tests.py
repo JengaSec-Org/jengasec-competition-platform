@@ -326,7 +326,7 @@ class ScoringRulesTests(Base):
         row.save()
         appeal.status = Appeal.Status.REJECTED
         appeal.save()
-        with self.assertRaisesMessage(appeal_service.AppealError, "appeals close 72 hours"):
+        with self.assertRaisesMessage(appeal_service.AppealError, "Appeals close 72 hours"):
             appeal_service.file_appeal(self.submission, self.captain, "arithmetic", "x" * 60)
 
 

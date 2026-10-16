@@ -261,6 +261,17 @@
       {% if a.second_judge %}&middot; reviewer {{ a.second_judge.get_full_name|default:a.second_judge.username }}{% endif %}
       <div class="text-muted" style="white-space:pre-wrap; margin-top:0.25rem;">{{ a.reason }}</div>
       {% if a.resolution %}<div style="margin-top:0.35rem;"><em>Resolution:</em> {{ a.resolution }}</div>{% endif %}
+      {% if is_staff %}<p><a href="{% url 'judging:appeal_detail' a.pk %}">Open appeal review</a></p>{% endif %}
+      {% if user.pk == submission.team.captain_id %}
+        {% if a.status == "open" or a.status == "under_review" %}
+          <form method="post" action="{% url 'judging:appeal_withdraw' a.pk %}">
+            {% csrf_token %}
+            <label for="withdraw-{{ a.pk }}">Reason for withdrawing</label>
+            <textarea id="withdraw-{{ a.pk }}" class="textarea" name="reason" minlength="20" maxlength="5000" required></textarea>
+            <button class="btn btn-ghost btn-sm" type="submit">Withdraw appeal</button>
+          </form>
+        {% endif %}
+      {% endif %}
       {% if is_staff and a.status == "open" or is_staff and a.status == "under_review" %}
         <form method="post" action="{% url 'submissions:assign_second_judge' submission.pk a.pk %}" class="lifecycle-form" style="margin-top:0.5rem;">
           {% csrf_token %}

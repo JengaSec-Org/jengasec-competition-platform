@@ -241,3 +241,50 @@ tokenized and executed without a shell.
 - Red-team toolbox images are **not** offered. `k8s-red` is held in reserve and
   was deliberately not promised to teams before the event, so the platform does
   not invite a submission it may not be able to honour.
+
+## Verified artifacts for scoring
+
+The authenticated status receiver accepts an optional `resolved_digest` in
+`sha256:<64 lowercase hexadecimal digits>` form. The range resolves the pulled
+registry manifest and deploys that reference. A healthy receipt records when the
+range verified the deployed artifact. An image tag alone is insufficient.
+
+`freeze_applications` reports candidates; it does not freeze their content.
+After the range copies the primary and extra images into its registry,
+`POST /deployments/api/freeze/` records their full `repository@sha256` references.
+The primary hash also becomes `frozen_verified_digest`. Repeating the same
+receipt preserves the freeze. A different pinned primary or extra image is
+rejected. A legacy tag from the old selection command needs a real registry
+copy before it can supply this proof; the new proof is not backdated.
+
+A registry copy does not confirm a running workload and does not refresh
+`deployed_digest_verified_at`. The range must separately observe the deployed
+pods. Scoring requires that observation to be at most 120 seconds old.
+
+`GET /deployments/api/active/` returns frozen submission IDs, enterprise, cell,
+assigned namespace, `frozen_verified_digest`, `frozen_digest`, and
+`frozen_extra_images`. It returns no registry credentials.
+Use `after` and `next_cursor` to page through up to 100 entries per response.
+
+`POST /deployments/api/artifact/` accepts `{id, resolved_digest, extra_digests}` with the same
+`X-Deploy-Token`. The range must inspect the assigned deployment before sending
+this receipt. It refreshes artifact identity without changing application health.
+A different digest is recorded as a mismatch and cannot replace the frozen
+digest. A missing confirmation expires scoring eligibility after 120 seconds.
+`extra_digests` contains observed bare hashes in frozen extra-image order. It
+can be omitted for an application with no extra images. Every frozen extra
+image must match before this endpoint or a healthy status receipt can renew
+the artifact confirmation. Freezing an extra-image set clears any earlier
+primary-only runtime confirmation.
+
+The normal range reconciler also refreshes this observation through
+`POST /deployments/api/range-state/`. It reports the actual app-container image
+digest only when every observed app pod identifies the same content and all
+extra-container references and actual hashes match the frozen set. Missing,
+mixed, or mismatching extra-image proof supplies no attestation. Its POST rows
+include `extra_digests` as bare hashes in the same order. A complete artifact
+observation is still reported when readiness or the service health check fails.
+
+Run the deployment agent with `--verify-artifacts` and a polling interval of
+30 seconds after these endpoints are deployed. App health failures remain
+measurable availability failures while the frozen workload identity is known.

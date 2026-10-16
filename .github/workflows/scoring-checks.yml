@@ -1,0 +1,45 @@
+name: Scoring integration checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  scoring:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        settings: [config.test_settings, config.postgres_test_settings]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: jengasec_test
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      JENGASEC_TEST_PG_PASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install application dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Check the schema and affected workflows
+        run: |
+          python manage.py check --settings=${{ matrix.settings }}
+          python manage.py makemigrations --check --dry-run --settings=${{ matrix.settings }}
+          python manage.py test accounts competitions cyberrange deployments scoring judging notifications submissions --settings=${{ matrix.settings }} --noinput
+          python -m unittest discover -s tools/deploy-agent -p 'test*.py'

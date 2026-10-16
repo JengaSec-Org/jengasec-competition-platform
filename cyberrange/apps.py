@@ -10,3 +10,6 @@ class CyberrangeConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "cyberrange"
     verbose_name = "Cyber range"
+
+    def ready(self):
+        from . import scoring_signals  # noqa: F401

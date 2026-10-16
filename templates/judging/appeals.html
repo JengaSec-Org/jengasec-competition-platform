@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Appeals{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with tag="APPEALS" title="Independent appeal review" %}
+<div class="card">
+  <p><a href="{% url 'judging:appeal_list' %}">Open appeals</a> · <a href="?status=all">All appeals</a></p>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Team</th><th>Result</th><th>Grounds</th><th>Status</th><th>Reviewer</th></tr></thead>
+    <tbody>{% for appeal in page_obj %}
+      <tr>
+        <td><a href="{% url 'judging:appeal_detail' appeal.pk %}">{{ appeal.team.team_name }}</a></td>
+        <td>{% if appeal.score_revision_id %}{{ appeal.score_revision.criterion|default:appeal.score_revision.stage }} · revision {{ appeal.score_revision_id }}{% else %}{{ appeal.submission.submission_type.name }}{% endif %}</td>
+        <td>{{ appeal.get_grounds_display }}</td>
+        <td>{{ appeal.get_status_display }}</td>
+        <td>{% if appeal.second_judge %}{{ appeal.second_judge.get_full_name|default:appeal.second_judge.username }}{% else %}Unassigned{% endif %}</td>
+      </tr>
+    {% empty %}<tr><td colspan="5">No appeals to review.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if show_all %}&amp;status=all{% endif %}">Previous</a>{% endif %}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if show_all %}&amp;status=all{% endif %}">Next</a>{% endif %}
+</div>
+{% endblock %}

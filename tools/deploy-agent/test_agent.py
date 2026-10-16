@@ -12,9 +12,71 @@ import json
 import os
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest import mock
 from unittest.mock import patch
 
 import agent
+
+
+class ArtifactReceiptTests(unittest.TestCase):
+    def test_manifest_digest_is_resolved_and_ambiguous_values_fail(self):
+        value = "ghcr.io/team/app@sha256:" + "a" * 64
+        with mock.patch.object(agent, "docker", return_value=(0, json.dumps([value]), "")):
+            self.assertEqual(agent.pinned_reference("ghcr.io/team/app:v1"), value)
+        with mock.patch.object(agent, "docker", return_value=(0, "[]", "")):
+            with self.assertRaises(agent.Infra):
+                agent.pinned_reference("ghcr.io/team/app:v1")
+
+    def test_readiness_does_not_change_artifact_identity(self):
+        digest = "sha256:" + "a" * 64
+        workload = {"spec": {"template": {"spec": {"containers": [{"name": "app", "image": "example/app@" + digest}]}}},
+                    "status": {"readyReplicas": 0}}
+        pods = {"items": [{"status": {"containerStatuses": [
+            {"name": "app", "ready": False, "imageID": "containerd://" + digest},
+        ]}}]}
+        with mock.patch.object(agent, "kubectl", side_effect=[
+            (0, json.dumps(workload), ""), (0, json.dumps(pods), ""),
+        ]):
+            self.assertEqual(agent.observed_artifact("assigned-cell"), digest)
+        workload["spec"]["template"]["spec"]["containers"][0]["image"] = "example/app:changed"
+        with mock.patch.object(agent, "kubectl", return_value=(0, json.dumps(workload), "")):
+            with self.assertRaises(agent.Infra):
+                agent.observed_artifact("assigned-cell")
+
+    def test_missing_or_mixed_pod_digests_do_not_verify_a_rollout(self):
+        def pod(digest):
+            return {"status": {"containerStatuses": [{"name": "app", "imageID": digest}]}}
+        for pods in ([], [pod("")], [pod("sha256:" + "a" * 64), pod("sha256:" + "b" * 64)],
+                     [pod("sha256:" + "a" * 64), {"status": {}}]):
+            with self.subTest(pods=pods), self.assertRaises(agent.Infra):
+                agent.running_artifact(pods)
+
+    def test_a_matching_primary_cannot_hide_extra_container_drift(self):
+        primary = "sha256:" + "a" * 64
+        extra = "sha256:" + "b" * 64
+        expected = "registry.internal/worker@" + extra
+        workload = {"spec": {"template": {"spec": {"containers": [
+            {"name": "app", "image": "registry.internal/app@" + primary},
+            {"name": "extra-1", "image": expected},
+        ]}}}}
+        for observed in (None, "sha256:" + "c" * 64, extra):
+            statuses = [{"name": "app", "ready": False, "imageID": "containerd://" + primary}]
+            if observed:
+                statuses.append({"name": "extra-1", "ready": False, "imageID": "containerd://" + observed})
+            pods = {"items": [{"status": {"containerStatuses": statuses}}]}
+            with self.subTest(observed=observed), patch.object(agent, "kubectl", side_effect=[
+                (0, json.dumps(workload), ""), (0, json.dumps(pods), ""),
+            ]):
+                if observed == extra:
+                    self.assertEqual(agent.observed_artifact("assigned-cell", extra_images=[expected]), primary)
+                else:
+                    with self.assertRaises(agent.Infra):
+                        agent.observed_artifact("assigned-cell", extra_images=[expected])
+        workload["spec"]["template"]["spec"]["containers"][1]["image"] = "registry.internal/worker:changed"
+        with patch.object(agent, "kubectl", return_value=(0, json.dumps(workload), "")):
+            with self.assertRaises(agent.Infra):
+                agent.observed_artifact("assigned-cell", extra_images=[expected])
 
 
 SUBMISSION = {
@@ -250,6 +312,35 @@ class StopTests(unittest.TestCase):
 
     def test_the_default_is_failed(self):
         self.assertEqual(agent.Stop("something broke").status, "failed")
+
+
+class PinnedProcessTests(unittest.TestCase):
+    def test_primary_and_extra_images_are_scanned_and_deployed_by_verified_digest(self):
+        submission = {**SUBMISSION, "extra_images": ["ghcr.io/amina/worker:v1"]}
+        pinned = ["ghcr.io/amina-dev/internet-banking-portal@sha256:" + "a" * 64,
+                  "ghcr.io/amina/worker@sha256:" + "b" * 64]
+        options = SimpleNamespace(allow_public=True, allow_critical=False, no_deploy=False,
+                                  namespace_template=agent.DEFAULT_NAMESPACE, health_timeout=3)
+        api = mock.Mock()
+        with patch.object(agent, "docker", return_value=(0, "", "")), \
+             patch.object(agent, "have", return_value=True), \
+             patch.object(agent, "pull") as pull, \
+             patch.object(agent, "pinned_reference", side_effect=pinned) as resolve, \
+             patch.object(agent, "inspect", return_value={"size_bytes": 1024, "user": "app"}), \
+             patch.object(agent, "scan", return_value=({"critical": 0, "high": 0}, None)) as scan, \
+             patch.object(agent, "deploy") as deploy, \
+             patch.object(agent, "wait_healthy", return_value=""), \
+             patch.object(agent, "observed_artifact", return_value="sha256:" + "a" * 64):
+            agent.process(submission, api, options)
+        self.assertEqual(pull.call_count, 2)
+        self.assertEqual([call.args[0] for call in resolve.call_args_list],
+                         [submission["image_reference"], submission["extra_images"][0]])
+        self.assertEqual([call.args[0] for call in scan.call_args_list], pinned)
+        self.assertEqual(deploy.call_args.args[0]["extra_images"], pinned[1:])
+        self.assertEqual(deploy.call_args.args[2], pinned[0])
+        self.assertEqual(api.report.call_args.args, (submission["id"], "healthy"))
+        self.assertEqual(api.report.call_args.kwargs["resolved_digest"], "sha256:" + "a" * 64)
+        self.assertEqual(api.report.call_args.kwargs["extra_digests"], ["sha256:" + "b" * 64])
 
 
 if __name__ == "__main__":

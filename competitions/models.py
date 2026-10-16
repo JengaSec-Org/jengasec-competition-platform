@@ -471,6 +471,14 @@ class TargetAssignment(models.Model):
     def __str__(self):
         return f"{self.red_team.cell_id or self.red_team.team_name} → {self.target_team.cell_id or self.target_team.team_name}"
 
+    def save(self, *args, **kwargs):
+        from services.scoring_identity import write_identity_source
+        return write_identity_source(self, lambda: super(TargetAssignment, self).save(*args, **kwargs))
+
+    def delete(self, *args, **kwargs):
+        from services.scoring_identity import write_identity_source
+        return write_identity_source(self, lambda: super(TargetAssignment, self).delete(*args, **kwargs))
+
 
 class CompetitionObjective(models.Model):
     """A scored objective issued to one team (§17)."""
@@ -518,3 +526,8 @@ class CompetitionPhase(models.Model):
 
     def __str__(self):
         return f"{self.competition.name} :: {self.name}"
+
+
+from .scenario_models import (  # noqa: E402,F401
+    ScenarioVersion, ScoringProducer, ScenarioExecution, ScenarioReceipt, ScoringExclusion,
+)

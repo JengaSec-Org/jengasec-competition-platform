@@ -109,7 +109,13 @@ class Command(BaseCommand):
             )
             made += 1 if created else 0
         if options["activate"]:
-            TargetAssignment.objects.filter(competition=competition).update(is_active=True)
+            for assignment in TargetAssignment.objects.filter(competition=competition, is_active=False):
+                assignment.is_active = True
+                assignment.save(update_fields=["is_active"])
+        from cyberrange.models import ScoringIdentityState
+        if ScoringIdentityState.objects.filter(competition=competition).exists():
+            from services.scoring_identity import refresh_identity
+            refresh_identity(competition)
 
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS(

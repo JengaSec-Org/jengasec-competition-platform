@@ -10,6 +10,7 @@ change to a score is logged in ScoreOverride with a mandatory reason.
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -214,8 +215,22 @@ class Appeal(models.Model):
         PROCESS = "process", "Another departure from the published process"
 
     submission = models.ForeignKey(
-        "submissions.Submission", on_delete=models.CASCADE, related_name="appeals"
+        "submissions.Submission", null=True, blank=True, on_delete=models.CASCADE, related_name="appeals"
     )
+    score_revision = models.ForeignKey(
+        "scoring.ScoreRevision", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="appeals",
+    )
+    # Derived from score_revision. A direct key permits a database constraint
+    # across appeals filed against different revisions of the same component.
+    score_event = models.ForeignKey(
+        "scoring.ScoreEvent", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="appeals", editable=False,
+    )
+    retained_evidence = models.ManyToManyField(
+        "scoring.ScoringEvidence", related_name="score_appeals", blank=True,
+    )
+    evidence_gaps = models.JSONField(default=list, blank=True, editable=False)
     team = models.ForeignKey(
         "accounts.Team", on_delete=models.CASCADE, related_name="appeals"
     )
@@ -252,6 +267,47 @@ class Appeal(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(models.Q(submission__isnull=False, score_revision__isnull=True,
+                                    score_event__isnull=True) |
+                           models.Q(submission__isnull=True, score_revision__isnull=False,
+                                    score_event__isnull=False)),
+                name="appeal_exactly_one_result",
+            ),
+            models.UniqueConstraint(
+                fields=["score_event"],
+                condition=models.Q(status__in=["open", "under_review"], score_event__isnull=False),
+                name="one_active_score_component_appeal",
+            ),
+        ]
+
+    def clean(self):
+        if bool(self.submission_id) == bool(self.score_revision_id):
+            raise ValidationError("An appeal must name exactly one submission or score revision.")
+        if self.score_revision_id:
+            if self.score_event_id != self.score_revision.event_id:
+                raise ValidationError("The appealed revision must belong to its score component.")
+            if self.team_id != self.score_revision.team_id:
+                raise ValidationError("The appealed revision must belong to the appealing team.")
+        elif self.submission.team_id != self.team_id:
+            raise ValidationError("The appealed submission must belong to the appealing team.")
+
+    def save(self, *args, **kwargs):
+        if self.score_revision_id:
+            self.score_event_id = self.score_revision.event_id
+        self.clean()
+        if not self._state.adding:
+            previous = type(self).objects.get(pk=self.pk)
+            if any(getattr(previous, key) != getattr(self, key) for key in (
+                "submission_id", "score_revision_id", "score_event_id", "team_id", "grounds", "reason", "created_by_id"
+            )):
+                raise ValidationError("A filed appeal keeps its original result, grounds and explanation.")
+        return super().save(*args, **kwargs)
+
+    @property
+    def competition(self):
+        return self.score_revision.event.competition if self.score_revision_id else self.submission.competition
 
     def __str__(self):
         return f"Appeal #{self.pk} :: {self.team.team_name} ({self.get_status_display()})"

@@ -281,6 +281,12 @@ def deliver_after_commit(pks=None, *, dedupe_key=None, user_ids=None, subject=No
             send_pending_emails(queryset=pending_email_queryset().filter(**filters))
         except Exception:  # noqa: BLE001 -- never let delivery break a request
             logger.exception("Post-commit email delivery failed")
+
+    def _send_in_thread():
+        # Only the background worker owns a separate database connection.
+        # Inline delivery leaves the caller's connection lifecycle alone.
+        try:
+            _send()
         finally:
             close_old_connections()
 
@@ -288,7 +294,7 @@ def deliver_after_commit(pks=None, *, dedupe_key=None, user_ids=None, subject=No
         if any(name in settings.EMAIL_BACKEND for name in _INLINE_BACKENDS):
             _send()
         else:
-            threading.Thread(target=_send, name="notification-email", daemon=True).start()
+            threading.Thread(target=_send_in_thread, name="notification-email", daemon=True).start()
 
     transaction.on_commit(_on_commit)
 

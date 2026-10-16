@@ -39,6 +39,64 @@ class WireGuardTests(unittest.TestCase):
 
 
 class PodObservationTests(unittest.TestCase):
+    def test_extra_image_proof_is_required_and_independent_of_health(self):
+        primary = "sha256:" + "a" * 64
+        extra = "sha256:" + "b" * 64
+        expected = "registry.internal/app@" + primary
+        worker = "registry.internal/worker@" + extra
+        cell = {"team_id": 3, "namespace": "jengasec-ent-a-app01", "service_ip": "10.108.0.11",
+                "image_digest": expected, "extra_digests": [worker]}
+        service = {"spec": {"type": "LoadBalancer", "loadBalancerIP": "10.108.0.11"},
+                   "status": {"loadBalancer": {"ingress": [{"ip": "10.108.0.11"}]}}}
+        for template, observed in ((worker, extra), (worker, None),
+                                   (worker, "sha256:" + "c" * 64), ("registry.internal/worker:changed", extra)):
+            deployment = {"spec": {"replicas": 1, "template": {"spec": {"containers": [
+                {"name": "app", "image": expected}, {"name": "extra-1", "image": template},
+            ]}}}, "status": {"readyReplicas": 0, "availableReplicas": 0}}
+            statuses = [{"name": "app", "ready": False, "imageID": "containerd://" + primary}]
+            if observed:
+                statuses.append({"name": "extra-1", "ready": False, "imageID": "containerd://" + observed})
+            pods = {"items": [{"status": {"containerStatuses": statuses}}]}
+            with self.subTest(template=template, observed=observed), patch.object(agent, "kubectl", side_effect=[
+                (0, json.dumps(deployment), ""), (0, json.dumps(pods), ""), (0, json.dumps(service), ""),
+            ]):
+                result = range_ops.pod_observation(cell)
+            self.assertFalse(result["healthy"])
+            if template == worker and observed == extra:
+                self.assertEqual(result["image_digest"], primary)
+                self.assertEqual(result["extra_digests"], [extra])
+            else:
+                self.assertEqual(result["image_digest"], "")
+                self.assertEqual(result.get("extra_digests", []), [])
+
+    def test_missing_or_mixed_pod_digests_cannot_confirm_a_frozen_image(self):
+        digest = "sha256:" + "a" * 64
+        expected = "registry.internal/apps/app@" + digest
+        deployment = {
+            "spec": {"replicas": 1, "template": {"spec": {"containers": [
+                {"name": "app", "image": expected},
+            ]}}},
+            "status": {"readyReplicas": 1, "availableReplicas": 1},
+        }
+        service = {
+            "spec": {"type": "LoadBalancer", "loadBalancerIP": "10.108.0.11"},
+            "status": {"loadBalancer": {"ingress": [{"ip": "10.108.0.11"}]}},
+        }
+        cell = {"team_id": 3, "namespace": "jengasec-ent-a-app01",
+                "service_ip": "10.108.0.11", "image_digest": expected}
+        for digests in ([], [""], [digest, "sha256:" + "b" * 64]):
+            pods = {"items": [{"status": {"containerStatuses": [
+                {"name": "app", "ready": True, "imageID": value},
+            ]}} for value in digests]}
+            with self.subTest(digests=digests), patch.object(agent, "kubectl", side_effect=[
+                (0, json.dumps(deployment), ""), (0, json.dumps(pods), ""),
+                (0, json.dumps(service), ""),
+            ]):
+                result = range_ops.pod_observation(cell)
+            self.assertFalse(result["healthy"])
+            self.assertEqual(result["status"], "down")
+            self.assertEqual(result["image_digest"], "")
+
     def test_reports_healthy_only_when_rollout_and_running_digest_match(self):
         expected = "registry.internal/apps/app@sha256:" + "a" * 64
         deployment = {

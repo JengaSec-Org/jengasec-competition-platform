@@ -17,11 +17,11 @@ the functions VLAN rather than through a person and a chat window.
 """
 import json
 import logging
-import re
 import secrets
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.http import Http404, JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -128,6 +128,8 @@ def status(request):
         return refusal
 
     try:
+        if len(request.body) > 65536:
+            return JsonResponse({"error": "body too large"}, status=413)
         body = json.loads(request.body or b"{}")
     except ValueError:
         return JsonResponse({"error": "body is not JSON"}, status=400)
@@ -150,13 +152,18 @@ def status(request):
     if not isinstance(detail, str) or (logs_excerpt is not None and not isinstance(logs_excerpt, str)):
         return JsonResponse({"error": "detail and logs_excerpt must be strings"}, status=400)
 
-    deploy.record_status(
-        submission,
-        new_status,
-        detail=detail.strip(),
-        scan_report=body.get("scan_report"),
-        logs_excerpt=logs_excerpt,
-    )
+    try:
+        deploy.record_status(
+            submission,
+            new_status,
+            detail=detail.strip(),
+            scan_report=body.get("scan_report"),
+            logs_excerpt=logs_excerpt,
+            resolved_digest=body.get("resolved_digest"),
+            extra_digests=body.get("extra_digests"),
+        )
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
     audit(
         AuditLog.Action.APP_STATUS_CHANGED,
         request=request,
@@ -201,7 +208,9 @@ def freeze_candidates(request):
         if passing is None:
             missing.append({"team": team.pk, "cell": label})
             continue
-        if passing.frozen_digest:
+        if any(deploy.valid_pinned_reference(value) for value in
+               AppSubmission.objects.filter(team=team, frozen_at__isnull=False)
+               .values_list("frozen_digest", flat=True)):
             continue
         try:
             namespace = deploy.namespace_for(team)
@@ -262,54 +271,13 @@ def freeze_submission(request):
         return JsonResponse({"error": "unknown submission"}, status=404)
 
     digest = body.get("digest", "")
-    if not isinstance(digest, str) or not re.fullmatch(
-        r"[^@\s]+@sha256:[0-9a-f]{64}", digest
-    ):
-        return JsonResponse(
-            {"error": "digest must be a registry image reference ending in @sha256:<64 hex>"},
-            status=400,
-        )
     extra_digests = body.get("extra_digests", [])
-    if (
-        not isinstance(extra_digests, list)
-        or len(extra_digests) != len(submission.extra_images or [])
-        or any(
-            not isinstance(item, str)
-            or not re.fullmatch(r"[^@\s]+@sha256:[0-9a-f]{64}", item)
-            for item in extra_digests
-        )
-    ):
-        return JsonResponse(
-            {"error": "extra_digests must contain one pinned digest per submitted extra image"},
-            status=400,
-        )
-    last_passing = deploy.last_passing(submission.team)
-    if not submission.is_passing or last_passing is None or last_passing.pk != submission.pk:
-        return JsonResponse({"error": "submission is not the team's last passing attempt"}, status=409)
-    if submission.frozen_digest:
-        if (
-            submission.frozen_digest != digest
-            or submission.frozen_extra_images != extra_digests
-        ):
-            return JsonResponse({"error": "submission is already frozen to another digest"}, status=409)
-        return JsonResponse({
-            "id": submission.pk,
-            "digest": digest,
-            "extra_digests": extra_digests,
-            "frozen": True,
-        })
-
-    with transaction.atomic():
-        submission = AppSubmission.objects.select_for_update().get(pk=submission.pk)
-        if submission.frozen_digest and (
-            submission.frozen_digest != digest
-            or submission.frozen_extra_images != extra_digests
-        ):
-            return JsonResponse({"error": "submission is already frozen to another digest"}, status=409)
-        submission.frozen_digest = digest
-        submission.frozen_extra_images = extra_digests
-        submission.frozen_at = submission.frozen_at or timezone.now()
-        submission.save(update_fields=["frozen_digest", "frozen_extra_images", "frozen_at"])
+    try:
+        submission = deploy.record_freeze(submission, digest, extra_digests)
+    except deploy.FreezeConflict as exc:
+        return JsonResponse({"error": str(exc)}, status=409)
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
     audit(
         AuditLog.Action.APP_FROZEN,
         request=request,
@@ -349,7 +317,13 @@ def range_state(request):
                 return JsonResponse({"error": "competition must be an integer"}, status=400)
         cells = []
         for team in teams:
-            passing = deploy.last_passing(team)
+            frozen = list(AppSubmission.objects.filter(
+                team=team, frozen_at__isnull=False,
+            ))
+            frozen = [row for row in frozen if deploy.valid_pinned_reference(row.frozen_digest)]
+            if len(frozen) > 1:
+                return JsonResponse({"error": "team has ambiguous frozen applications"}, status=409)
+            passing = frozen[0] if frozen else None
             runtime = getattr(team, "app_runtime_status", None)
             try:
                 namespace = deploy.namespace_for(team)
@@ -431,6 +405,10 @@ def range_state(request):
             or not isinstance(row.get("detail", ""), str)
         ):
             return JsonResponse({"error": "cell digest and detail must be strings"}, status=400)
+        extras = row.get("extra_digests", [])
+        if (not isinstance(extras, list) or len(extras) > deploy.MAX_EXTRA_IMAGES
+                or any(not deploy.valid_digest(value) for value in extras)):
+            return JsonResponse({"error": "extra_digests must be observed sha256 hashes"}, status=400)
         row["_checked_at"] = timezone.now()
         cell_ids.append(row["team_id"])
     for row in peers:
@@ -484,6 +462,22 @@ def range_state(request):
             runtime.save(update_fields=[
                 "status", "healthy", "observed_image_digest", "detail", "checked_at",
             ])
+            observed = row.get("image_digest", "")
+            if deploy.valid_pinned_reference(observed):
+                observed = observed.rsplit("@", 1)[1]
+            if deploy.valid_digest(observed):
+                frozen = [item for item in AppSubmission.objects.filter(
+                    team_id=row["team_id"], frozen_at__isnull=False,
+                ) if item.frozen_verified_digest or deploy.valid_pinned_reference(item.frozen_digest)]
+                if len(frozen) == 1:
+                    # The runner observed the pod image; availability is a
+                    # separate measurement, including when this cell is down.
+                    try:
+                        deploy.record_artifact(frozen[0], observed, row.get("extra_digests"))
+                    except ValueError:
+                        # Runtime health is still useful when the runner has
+                        # no complete proof for the frozen extra containers.
+                        logger.warning("Artifact confirmation incomplete for submission %s", frozen[0].pk)
         for row in peers:
             profile = profile_rows[row["id"]]
             profile.active = row["active"]
@@ -520,3 +514,60 @@ def range_exports(request):
     response = JsonResponse(payload)
     response["Cache-Control"] = "no-store"
     return response
+
+
+@never_cache
+@require_GET
+def active(request):
+    """Bounded artifact checks. This response never contains registry credentials."""
+    refusal = _authorise(request)
+    if refusal is not None:
+        return refusal
+    try:
+        after = int(request.GET.get("after", "0"))
+        if after < 0:
+            raise ValueError
+    except ValueError:
+        return JsonResponse({"error": "invalid cursor"}, status=400)
+    rows = list(AppSubmission.objects.filter(pk__gt=after, frozen_at__isnull=False).filter(
+        Q(frozen_verified_digest__regex=r"^sha256:[0-9a-f]{64}$")
+        | Q(frozen_digest__regex=r"^[^@\s]+@sha256:[0-9a-f]{64}$"))
+                .select_related("team").order_by("pk")[:100])
+    payload = []
+    for row in rows:
+        frozen_digest = row.frozen_verified_digest
+        if not frozen_digest and deploy.valid_pinned_reference(row.frozen_digest):
+            frozen_digest = row.frozen_digest.rsplit("@", 1)[1]
+        if not frozen_digest:
+            continue
+        try:
+            namespace = deploy.namespace_for(row.team)
+        except ValueError as exc:
+            return JsonResponse({"error": str(exc)}, status=409)
+        payload.append({"id": row.pk, "enterprise": row.team.enterprise,
+                        "cell": row.team.cell_id, "namespace": namespace,
+                        "frozen_verified_digest": frozen_digest,
+                        "frozen_digest": row.frozen_digest,
+                        "frozen_extra_images": row.frozen_extra_images or []})
+    return JsonResponse({"active": payload, "next_cursor": rows[-1].pk if rows else after})
+
+
+@csrf_exempt
+@never_cache
+@require_POST
+def artifact(request):
+    refusal = _authorise(request)
+    if refusal is not None:
+        return refusal
+    try:
+        if len(request.body) > 4096:
+            return JsonResponse({"error": "body too large"}, status=413)
+        body = json.loads(request.body)
+        if (not isinstance(body, dict) or not {"id", "resolved_digest"} <= set(body)
+                or set(body) - {"id", "resolved_digest", "extra_digests"} or type(body["id"]) is not int):
+            raise ValueError("Expected an id and verified digest.")
+        row = AppSubmission.objects.get(pk=body["id"])
+        row = deploy.record_artifact(row, body["resolved_digest"], body.get("extra_digests"))
+    except (ValueError, TypeError, AppSubmission.DoesNotExist) as error:
+        return JsonResponse({"error": "invalid artifact receipt"}, status=400)
+    return JsonResponse({"id": row.pk, "matches_frozen": row.resolved_digest == row.frozen_verified_digest})
