@@ -24,7 +24,7 @@ from django.utils import timezone
 
 from judging.models import CriterionScore, Evaluation
 from rubrics.models import Rubric
-from services import ai_service
+from services import ai_service, judge_assignment_service
 from submissions.models import ParsedDocument, Submission
 
 
@@ -202,4 +202,6 @@ class Command(BaseCommand):
         evaluation.completed_at = timezone.now()
         evaluation.save(update_fields=["status", "completed_at", "updated_at"])
         evaluation.recalculate_total()
+        # Judges assigned before the model ran get its suggestions too.
+        judge_assignment_service.share_ai_scores(submission, rubric)
         return evaluation

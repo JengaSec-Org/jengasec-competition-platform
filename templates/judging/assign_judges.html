@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Assign Judges{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+  <div class="eyebrow"><span class="tlabel">// JUDGE_ASSIGNMENT</span></div>
+  <h1>Assign <span class="text-gold">Judges</span></h1>
+</div>
+
+<p class="text-muted" style="margin-bottom:1.5rem;">
+  Each judge sees the submissions given to them in their Review Queue, with the model's
+  suggested scores filled in where it has run. An assignment can be removed until the
+  judge starts scoring.
+</p>
+
+<div class="card" style="margin-bottom:1.25rem;">
+  <h3 class="card-title" style="margin:0 0 0.6rem;">Judge workload</h3>
+  {% if judges %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Judge</th><th style="width:7rem;">Open</th><th style="width:7rem;">Done</th></tr></thead>
+        <tbody>
+          {% for j in judges %}
+            <tr>
+              <td>{{ j.get_full_name|default:j.username }}</td>
+              <td>{{ j.open_reviews }}</td>
+              <td>{{ j.done_reviews }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted" style="margin:0;">
+      No active judge accounts yet. Create them in User management with the Judge role.
+    </p>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-bottom:1.5rem;">
+  <h3 class="card-title" style="margin:0 0 0.4rem;">Assign evenly</h3>
+  <p class="text-muted" style="font-size:0.9rem; margin:0 0 0.8rem;">
+    {{ unassigned_count }} submission{{ unassigned_count|pluralize }} without a judge. Tops every
+    submission up to the number below, giving each to the judge with the fewest open reviews.
+  </p>
+  <form method="post" style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-end;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="distribute">
+    <div class="form-group" style="margin:0;">
+      <label class="form-label" for="id_per_submission">Judges per submission</label>
+      <input class="input" id="id_per_submission" type="number" name="per_submission"
+             value="1" min="1" max="5" style="width:7rem;">
+    </div>
+    <button type="submit" class="btn btn-primary" {% if not judges %}disabled{% endif %}>Assign evenly</button>
+  </form>
+</div>
+
+<form method="get" style="max-width:280px; margin-bottom:1.25rem;">
+  <div class="form-group">
+    <label class="form-label" for="id_show">Show</label>
+    <select class="input" id="id_show" name="show">
+      <option value="all" {% if show != "unassigned" %}selected{% endif %}>All awaiting review</option>
+      <option value="unassigned" {% if show == "unassigned" %}selected{% endif %}>Without a judge</option>
+    </select>
+  </div>
+</form>
+<script>
+  document.getElementById('id_show').addEventListener('change', function () { this.form.submit(); });
+</script>
+
+{% for row in rows %}
+  {% with s=row.submission %}
+  <div class="card" style="margin-bottom:0.9rem;">
+    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; justify-content:space-between;">
+      <div>
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;">
+          <h3 class="card-title" style="margin:0;">{{ s.team.team_name }}</h3>
+          <span class="tlabel">SUB-{{ s.id }}</span>
+        </div>
+        <p class="text-muted" style="font-size:0.9rem; margin:0.25rem 0 0;">
+          {{ s.submission_type.name }} · {{ s.get_status_display }}
+        </p>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+        {% if not row.has_rubric %}
+          {% include "components/badge.html" with label="No active rubric" color="red" %}
+        {% elif row.ai %}
+          {% include "components/badge.html" with label="AI scored" color="green" %}
+        {% else %}
+          {% include "components/badge.html" with label="AI not run" color="muted" %}
+        {% endif %}
+        {% if not row.assigned %}
+          {% include "components/badge.html" with label="Unassigned" color="gold" %}
+        {% endif %}
+      </div>
+    </div>
+
+    {% if row.assigned %}
+      <ul style="list-style:none; padding:0; margin:0.9rem 0 0;">
+        {% for e in row.assigned %}
+          <li style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; justify-content:space-between; padding:0.4rem 0; border-top:1px solid var(--border, rgba(127,127,127,.2));">
+            <span>
+              {{ e.judge.get_full_name|default:e.judge.username }}
+              <span class="text-muted" style="font-size:0.85rem;">· {{ e.get_status_display }}</span>
+            </span>
+            {% if e.removable %}
+              <form method="post" style="margin:0;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="unassign">
+                <input type="hidden" name="evaluation_id" value="{{ e.id }}">
+                <button type="submit" class="btn btn-ghost btn-sm">Remove</button>
+              </form>
+            {% else %}
+              <span class="text-muted" style="font-size:0.85rem;">In progress — stays with judge</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if row.has_rubric and row.available_judges %}
+      <form method="post" style="display:flex; flex-wrap:wrap; gap:0.6rem; align-items:flex-end; margin-top:0.9rem;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="assign">
+        <input type="hidden" name="submission_id" value="{{ s.id }}">
+        <div class="form-group" style="margin:0; flex:1 1 14rem; max-width:22rem;">
+          <label class="form-label" for="id_judge_{{ s.id }}">Add judge</label>
+          <select class="input" id="id_judge_{{ s.id }}" name="judge_id" required>
+            {% for j in row.available_judges %}
+              <option value="{{ j.id }}">{{ j.get_full_name|default:j.username }} ({{ j.open_reviews }} open)</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Assign</button>
+      </form>
+    {% endif %}
+  </div>
+  {% endwith %}
+{% empty %}
+  <div class="card">
+    <p class="text-muted" style="margin:0;">
+      {% if show == "unassigned" %}Every submission awaiting review has a judge.{% else %}No submissions are awaiting review.{% endif %}
+    </p>
+  </div>
+{% endfor %}
+
+{% endblock %}

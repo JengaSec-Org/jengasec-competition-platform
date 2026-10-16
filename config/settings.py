@@ -5,6 +5,7 @@ Architecture: Browser -> Templates -> Views -> Services -> Models -> PostgreSQL
 Business logic lives in `services/`, not in views.
 """
 import os
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -195,7 +196,11 @@ STORAGES = {
 #                         R2: auto        Supabase: the project's region
 #   S3_ACCESS_KEY_ID      an application key / API token with read+write on the bucket
 #   S3_SECRET_ACCESS_KEY
-if os.environ.get("S3_BUCKET"):
+# Never under `manage.py test`: a developer's .env holds the live bucket's
+# keys, and a full run made thousands of requests against it -- enough to
+# spend Backblaze's daily transaction cap and lock real uploads out.
+RUNNING_TESTS = sys.argv[1:2] == ["test"]
+if os.environ.get("S3_BUCKET") and not RUNNING_TESTS:
     STORAGES["default"] = {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
@@ -219,6 +224,11 @@ MEDIA_URL = "media/"
 # Overridable so a host with an ephemeral filesystem (Render) can point it at a
 # persistent disk — otherwise every deploy deletes every submission.
 MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "media"))
+if RUNNING_TESTS:
+    import tempfile
+
+    # Test uploads go to a throwaway folder, not the real media directory.
+    MEDIA_ROOT = Path(tempfile.mkdtemp(prefix="jengasec-test-media-"))
 
 # Upload limits. Django streams anything over FILE_UPLOAD_MAX_MEMORY_SIZE
 # to a temp file, and only then runs form validation — so without a cap

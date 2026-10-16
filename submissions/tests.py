@@ -398,3 +398,27 @@ class TwoDeadlineTests(Base):
         row.save()
         open_ids = set(svc.open_competitions_for(self.captain).values_list("id", flat=True))
         self.assertNotIn(self.comp.pk, open_ids)
+
+
+class StorageFailureTests(Base):
+    """The document store refusing an upload (Backblaze's daily cap answers
+    403 to everything) is told to the team, not shown as a 500."""
+
+    def test_refused_upload_is_a_message_not_a_500(self):
+        from unittest import mock
+
+        from django.urls import reverse
+
+        from submissions import views
+
+        self.client.login(username="amina", password=PASSWORD)
+        upload = SimpleUploadedFile(self.expected_name(), good_blue_pdf(), content_type="application/pdf")
+        with mock.patch.object(svc, "add_version", side_effect=OSError("403 Forbidden")):
+            response = self.client.post(
+                reverse("submissions:new_version", args=[self.submission.pk]),
+                {"file": upload}, follow=True,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(views.STORAGE_DOWN, [str(m) for m in response.context["messages"]])
+        self.assertEqual(self.submission.files.count(), 0)

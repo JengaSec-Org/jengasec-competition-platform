@@ -40,6 +40,7 @@ def password_reset_email_context():
 app_name = "accounts"
 
 from .converters import TokenConverter
+from .forms import SetOrResetPasswordForm
 
 # Named "token" so routes read `<token:token>`.
 register_converter(TokenConverter, "token")
@@ -95,6 +96,7 @@ urlpatterns = [
     path(
         "password-reset/",
         auth_views.PasswordResetView.as_view(
+            form_class=SetOrResetPasswordForm,
             template_name="accounts/forgot_password.html",
             subject_template_name="accounts/password_reset_subject.txt",
             email_template_name="accounts/password_reset_email.txt",

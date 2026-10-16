@@ -152,6 +152,11 @@ def ai_evaluation_detail(request, eval_id):
         Evaluation.objects.select_related("submission", "submission__team", "rubric"),
         pk=eval_id,
     )
+    # The assigned judge or an organiser, nobody else: this page approves
+    # marks, and it used to answer any signed-in account, competitors too.
+    if not (request.user.is_staff or request.user.is_superuser
+            or (evaluation.judge_id and evaluation.judge_id == request.user.pk)):
+        raise Http404
 
     if request.method == "POST":
         review_action = request.POST.get("review_action")
@@ -188,12 +193,17 @@ def ai_evaluation_detail(request, eval_id):
                 if cs.final_score is None or new_value != cs.final_score:
                     changes.append((cs, new_value))
 
-            if changes and not reason:
+            # A reason is owed for changing a score, not for giving the
+            # first one to a criterion the model left blank.
+            if any(cs.final_score is not None for cs, _ in changes) and not reason:
                 messages.error(request, "A reason is required when changing any score.")
                 return redirect("judging:ai_result_detail", eval_id=eval_id)
 
             for cs, new_value in changes:
-                cs.apply_judge_score(new_value, judge=request.user, reason=reason)
+                cs.apply_judge_score(
+                    new_value, judge=request.user,
+                    reason=reason or "First score; the model gave none.",
+                )
 
             evaluation.status = Evaluation.Status.JUDGE_REVIEWING
             evaluation.save(update_fields=["status", "updated_at"])
@@ -237,3 +247,93 @@ def scoring_configuration(request):
         "active_tab": "scoring_config",
     }
     return render(request, "judging/scoring_configuration.html", context)
+
+
+organiser_required = user_passes_test(lambda u: u.is_active and (u.is_staff or u.is_superuser))
+
+
+@login_required
+@organiser_required
+def assign_judges(request):
+    """Organisers hand submissions to judges; each judge sees theirs in the
+    Review Queue with the model's suggestions already filled in."""
+    from django.contrib.auth.models import User
+    from services import judge_assignment_service as assignments
+    from submissions.models import Submission
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        try:
+            if action == "assign":
+                submission = get_object_or_404(Submission, pk=request.POST.get("submission_id"))
+                judge = get_object_or_404(User, pk=request.POST.get("judge_id"))
+                _, created = assignments.assign(submission, judge, by=request.user, request=request)
+                name = judge.get_full_name() or judge.username
+                if created:
+                    messages.success(request, f"{submission.team.team_name} assigned to {name}.")
+                else:
+                    messages.info(request, f"{name} already has {submission.team.team_name}.")
+            elif action == "unassign":
+                evaluation = get_object_or_404(
+                    Evaluation.objects.exclude(judge=None), pk=request.POST.get("evaluation_id")
+                )
+                assignments.unassign(evaluation, by=request.user, request=request)
+                messages.success(request, "Assignment removed.")
+            elif action == "distribute":
+                try:
+                    per = max(1, min(int(request.POST.get("per_submission", 1)), 5))
+                except ValueError:
+                    per = 1
+                pending = Submission.objects.filter(
+                    status__in=assignments.ASSIGNABLE_STATUSES
+                ).select_related("team", "submission_type", "competition")
+                count, skipped = assignments.distribute(
+                    pending, per_submission=per, by=request.user, request=request
+                )
+                messages.success(
+                    request, f"Made {count} assignment(s), {per} judge(s) per submission."
+                )
+                for note in sorted(set(skipped)):
+                    messages.warning(request, note)
+        except assignments.AssignmentError as exc:
+            messages.error(request, str(exc))
+        query = request.GET.urlencode()
+        return redirect(f"{request.path}?{query}" if query else request.path)
+
+    show = request.GET.get("show", "all")
+    submissions = (
+        Submission.objects.filter(status__in=assignments.ASSIGNABLE_STATUSES)
+        .select_related("team", "submission_type", "competition")
+        .prefetch_related("evaluations__judge")
+        .order_by("submission_type__name", "team__team_name")
+    )
+    judge_list = list(assignments.judges())
+
+    rows = []
+    for submission in submissions:
+        evaluations = list(submission.evaluations.all())
+        assigned = [e for e in evaluations if e.judge_id]
+        for e in assigned:
+            e.removable = assignments.can_unassign(e)
+        ai = next((e for e in evaluations if e.judge_id is None), None)
+        if show == "unassigned" and assigned:
+            continue
+        taken = {e.judge_id for e in assigned}
+        rows.append({
+            "submission": submission,
+            "assigned": assigned,
+            "ai": ai,
+            "has_rubric": assignments.rubric_for(submission) is not None,
+            "available_judges": [j for j in judge_list if j.pk not in taken],
+        })
+
+    context = {
+        "rows": rows,
+        "judges": judge_list,
+        "show": show,
+        "unassigned_count": sum(
+            1 for s in submissions if not any(e.judge_id for e in s.evaluations.all())
+        ),
+        "active_tab": "assign",
+    }
+    return render(request, "judging/assign_judges.html", context)

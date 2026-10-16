@@ -7,6 +7,8 @@ The upload wizard is three steps:
 
 Business rules live in services/submission_service.py, not here.
 """
+import logging
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -30,6 +32,32 @@ from judging.models import Appeal
 from services.audit_service import record as audit
 
 from .forms import MAX_UPLOAD_BYTES, SubmissionFileForm
+
+logger = logging.getLogger(__name__)
+
+# Said to the team when the file store refuses an upload. Backblaze answers
+# 403 to every request once the account's daily transaction cap is spent,
+# which used to surface as a bare 500 with the upload silently lost.
+STORAGE_DOWN = (
+    "Your file could not be stored right now -- the document store refused it. "
+    "Nothing was saved; please try again later, and tell the organisers if it "
+    "keeps happening."
+)
+
+
+def _store_version(request, submission, form):
+    """add_version, with a storage failure turned into a message. Returns
+    the SubmissionFile, or None after flashing why it was not saved."""
+    try:
+        return svc.add_version(submission, form, request.user)
+    except ValueError as exc:
+        # Business rules (e.g. the version cap) surface as a message,
+        # never as a 500.
+        messages.error(request, str(exc))
+    except Exception:  # noqa: BLE001 -- storage backends raise their own types
+        logger.exception("Storing an upload for submission %s failed", submission.pk)
+        messages.error(request, STORAGE_DOWN)
+    return None
 from .models import (
     DocumentImage,
     PenaltySchedule,
@@ -392,12 +420,8 @@ def wizard_step2(request):
             messages.error(request, "You cannot upload to this submission.")
             return redirect("submissions:list")
         if form.is_valid():
-            try:
-                uploaded = svc.add_version(submission, form, request.user)
-            except ValueError as exc:
-                # Business rules (e.g. the version cap) surface as a message,
-                # never as a 500.
-                messages.error(request, str(exc))
+            uploaded = _store_version(request, submission, form)
+            if uploaded is None:
                 return redirect("submissions:detail", pk=submission.pk)
             svc.parse_file(uploaded)
             state["submission_id"] = submission.pk
@@ -479,10 +503,8 @@ def upload_new_version(request, pk):
 
     form = SubmissionFileForm(request.POST or None, request.FILES or None, submission=submission)
     if request.method == "POST" and form.is_valid():
-        try:
-            uploaded = svc.add_version(submission, form, request.user)
-        except ValueError as exc:
-            messages.error(request, str(exc))
+        uploaded = _store_version(request, submission, form)
+        if uploaded is None:
             return redirect("submissions:detail", pk=submission.pk)
         svc.parse_file(uploaded)
         request.session[WIZARD_SESSION_KEY] = {

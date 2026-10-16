@@ -90,6 +90,15 @@ def finding_list(request):
 def finding_new(request):
     red_team = _red_team_for(request.user)
     if red_team is None:
+        if user_in_role(request.user, "red_team"):
+            # The sidebar offers this page to every Red team member; a bare
+            # 404 read as "there is nowhere to submit findings".
+            messages.warning(
+                request,
+                "Findings open once your Red team's registration is approved. "
+                "Check your team status, or ask the organisers.",
+            )
+            return redirect("dashboard:main_dashboard")
         raise Http404("Not found")
     in_scope = _active_scope(red_team)
 

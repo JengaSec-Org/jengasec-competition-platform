@@ -613,3 +613,18 @@ class GenerateWireGuardProfilesTests(RangeTestBase):
     def test_judges_get_a_staff_profile(self):
         self.generate()
         self.assertTrue(self.profile("judy").count("Address = 10.63.0."))
+
+
+class FindingAccessMessageTests(RangeTestBase):
+    def test_unapproved_red_member_is_told_why(self):
+        from django.contrib.auth.models import Group
+
+        self.red.status = Team.Status.SUBMITTED
+        self.red.save(update_fields=["status"])
+        self.red_user.groups.add(Group.objects.get_or_create(name="red_team")[0])
+        self.client.login(username="otieno", password=PASSWORD)
+
+        response = self.client.get(reverse("cyberrange:finding_new"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("dashboard:main_dashboard"))

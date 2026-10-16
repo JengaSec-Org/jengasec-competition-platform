@@ -2,7 +2,7 @@
 import datetime
 
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
 from django.contrib.auth.models import User
 from django.utils import timezone
 
@@ -20,6 +20,20 @@ IDENTITY_TYPES = {
     ".jpeg": (b"\xff\xd8\xff",),
     ".png": (b"\x89PNG\r\n\x1a\n",),
 }
+
+
+class SetOrResetPasswordForm(PasswordResetForm):
+    """The forgot-password form, extended to accounts with no password yet.
+
+    Django's form skips users without a usable password, assuming they
+    sign in elsewhere. Here that state means a staff-issued account
+    (judge, partner, admin) whose set-password email never arrived or
+    expired, so the stock form left them with no way in and a page that
+    claimed an email was on its way.
+    """
+
+    def get_users(self, email):
+        return User.objects.filter(email__iexact=email, is_active=True).iterator()
 
 
 class UserProfileForm(forms.ModelForm):

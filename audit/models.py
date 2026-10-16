@@ -39,6 +39,8 @@ class AuditLog(models.Model):
         LIFECYCLE_CHANGED = "lifecycle_changed", "Lifecycle changed"
         # judging
         SCORE_OVERRIDDEN = "score_overridden", "Score overridden"
+        JUDGE_ASSIGNED = "judge_assigned", "Judge assigned"
+        JUDGE_UNASSIGNED = "judge_unassigned", "Judge unassigned"
         # cyber range
         FINDING_SUBMITTED = "finding_submitted", "Finding submitted"
         FINDING_REVIEWED = "finding_reviewed", "Finding reviewed"

@@ -1179,3 +1179,30 @@ class TeamlessCompetitorTests(CommitMixin, TestCase):
         self.assertEqual(team.status, Team.Status.APPROVED)
         # ...but everyone now shows as owing an acceptance.
         self.assertFalse(account_service.has_accepted_current_policy(captain))
+
+
+class FirstPasswordViaForgotPasswordTests(TestCase):
+    """A staff-issued judge has no password until they set one. When the
+    set-password email is lost or expires, "Forgot password" must still
+    reach them -- Django's stock form skipped them silently."""
+
+    def test_unusable_password_account_gets_reset_email(self):
+        from django.core import mail
+
+        judge = User.objects.create_user(username="judge1", email="judge@example.test")
+        judge.set_unusable_password()
+        judge.save()
+
+        self.client.post(reverse("accounts:password_reset"), {"email": "Judge@Example.test"})
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["judge@example.test"])
+
+    def test_inactive_account_gets_nothing(self):
+        from django.core import mail
+
+        User.objects.create_user(username="gone", email="gone@example.test", is_active=False)
+
+        self.client.post(reverse("accounts:password_reset"), {"email": "gone@example.test"})
+
+        self.assertEqual(len(mail.outbox), 0)

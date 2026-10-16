@@ -25,6 +25,8 @@ ACTION_CATEGORY = {
     AuditLog.Action.COMPETITION_UPDATED: AuditLog.Category.COMPETITION,
     AuditLog.Action.LIFECYCLE_CHANGED: AuditLog.Category.COMPETITION,
     AuditLog.Action.SCORE_OVERRIDDEN: AuditLog.Category.JUDGING,
+    AuditLog.Action.JUDGE_ASSIGNED: AuditLog.Category.JUDGING,
+    AuditLog.Action.JUDGE_UNASSIGNED: AuditLog.Category.JUDGING,
     AuditLog.Action.FINDING_SUBMITTED: AuditLog.Category.RANGE,
     AuditLog.Action.FINDING_REVIEWED: AuditLog.Category.RANGE,
     AuditLog.Action.WIREGUARD_DOWNLOADED: AuditLog.Category.RANGE,

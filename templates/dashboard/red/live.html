@@ -107,7 +107,9 @@
     </table>
     {% if not read_only %}
       <div style="margin-top:1rem;">
-        <a href="{% url 'submissions:wizard_step1' %}" class="btn btn-danger btn-sm">Submit Findings</a>
+        <a href="{% url 'cyberrange:finding_new' %}" class="btn btn-danger btn-sm">Report a Finding</a>
+        <a href="{% url 'cyberrange:finding_list' %}" class="btn btn-ghost btn-sm">Our Findings</a>
+        <a href="{% url 'submissions:wizard_step1' %}" class="btn btn-ghost btn-sm">Upload Report Document</a>
       </div>
     {% endif %}
     <p class="form-error" style="margin-top:1rem;">
