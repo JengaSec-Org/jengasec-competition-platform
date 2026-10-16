@@ -79,6 +79,35 @@ class Finding(models.Model):
             raise ValidationError({"ended_at": "The end time is before the start time."})
 
 
+class WifiClaim(models.Model):
+    """A venue Wi-Fi address, and who used it (cyberrange/attribution.py).
+
+    Observability reads these through the `obs_ip_allocations_v1` view. The
+    identity fields are copied at claim time, so a later team change never
+    rewrites what an address meant while an attack was happening.
+    """
+
+    ip_address = models.GenericIPAddressField(protocol="IPv4", db_index=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wifi_claims")
+    team = models.ForeignKey("accounts.Team", null=True, blank=True, on_delete=models.SET_NULL,
+                             related_name="wifi_claims")
+    participant_id = models.CharField(max_length=20)
+    team_identifier = models.CharField(max_length=40, blank=True, help_text="Team identifier, e.g. JS26-R-007.")
+    team_label = models.CharField(max_length=10)
+    namespace = models.CharField(max_length=63, blank=True)
+    first_seen = models.DateTimeField()
+    last_seen = models.DateTimeField()
+    ended_at = models.DateTimeField(null=True, blank=True,
+                                    help_text="Set when someone else signs in from this address.")
+
+    class Meta:
+        ordering = ["-last_seen"]
+        indexes = [models.Index(fields=["ip_address", "ended_at"])]
+
+    def __str__(self):
+        return f"{self.ip_address} -> {self.team_identifier or self.team_label}"
+
+
 class VpnRegistration(models.Model):
     """One person's registration with NET's WireGuard control plane.
 

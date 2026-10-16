@@ -83,6 +83,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Records which team uses which venue Wi-Fi address (cyberrange/attribution.py).
+    "cyberrange.attribution.WifiAttributionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -285,6 +287,12 @@ FEED_TOKEN = os.environ.get("DJANGO_FEED_TOKEN", "")
 # The token can revoke anyone's VPN access: server-side only. Unset, the
 # WireGuard page offers no self-service registration.
 PORTAL_API_URL = os.environ.get("PORTAL_API_URL", "")
+
+# The venue Wi-Fi pools participants attack and defend from. A signed-in team
+# member's address inside one of these is attributed to their team.
+VENUE_PARTICIPANT_CIDRS = [
+    c.strip() for c in os.environ.get("VENUE_PARTICIPANT_CIDRS", "10.52.0.0/18").split(",") if c.strip()
+]
 PORTAL_ADMIN_TOKEN = os.environ.get("PORTAL_ADMIN_TOKEN", "")
 
 EMAIL_BACKEND = os.environ.get("DJANGO_EMAIL_BACKEND") or (

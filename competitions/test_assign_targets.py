@@ -4,12 +4,14 @@
 
 The distribution is the part worth pinning. "Three per application" is
 only true when the turnout divides; what matters is that the leftovers are
-spread rather than dumped, that nobody is assigned twice, and that the
-strongest Red teams do not all land on one Blue team.
+spread rather than dumped, that nobody is assigned twice, that the draw is
+random yet repeatable with a seed, and that no Red team is left without a
+target when there are only a few applications.
 """
 from decimal import Decimal
 
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase
 
 from accounts.models import Team
@@ -79,27 +81,104 @@ class DistributionTests(TestCase):
         self.assertTrue(all(count == 1 for count in per_red.values()))
         self.assertEqual(len(per_red), 10)
 
-    def test_a_red_team_over_capacity_is_reported_not_silently_dropped(self):
-        self.build(blues=1, reds=5)  # one application, cap of 3
+    def test_with_no_cap_every_red_team_gets_a_target(self):
+        """Few applications must not leave Red teams out (the old cap of 3 did)."""
+        self.build(blues=3, reds=14)
         call_command("assign_targets", "--confirm", verbosity=0)
+        self.assertEqual(TargetAssignment.objects.count(), 14)
+        self.assertEqual(sorted(len(v) for v in self.load().values()), [4, 5, 5])
+
+    def test_an_optional_cap_is_reported_not_silently_dropped(self):
+        self.build(blues=1, reds=5)
+        call_command("assign_targets", "--confirm", "--per", "3", verbosity=0)
         self.assertEqual(TargetAssignment.objects.count(), 3)
 
-    def test_the_cap_can_be_raised(self):
-        self.build(blues=1, reds=5)
-        call_command("assign_targets", "--confirm", "--per", "5", verbosity=0)
-        self.assertEqual(TargetAssignment.objects.count(), 5)
-
-    def test_the_strongest_teams_are_dealt_apart(self):
-        """Top three qualifiers must not all land on one application."""
+    def test_the_draw_is_random_but_repeatable_with_a_seed(self):
         self.build(blues=3, reds=9)
-        for rank, team in enumerate(self.red):
-            scoring_service.award(team, "entry", Decimal(str(30 - rank)),
-                                  source="entry", dedupe_key="qualifier")
-            scoring_service.recompute(team)
+        draws = []
+        for _ in range(2):
+            call_command("assign_targets", "--confirm", "--reassign", "--seed", "7", verbosity=0)
+            draws.append({a.red_team_id: a.target_team_id for a in TargetAssignment.objects.all()})
+        self.assertEqual(draws[0], draws[1])
+        call_command("assign_targets", "--confirm", "--reassign", "--seed", "8", verbosity=0)
+        other = {a.red_team_id: a.target_team_id for a in TargetAssignment.objects.all()}
+        self.assertNotEqual(draws[0], other)
+
+    def test_only_the_named_applications_are_attacked_and_get_endpoints(self):
+        self.build(blues=4, reds=6)
+        call_command(
+            "assign_targets", "--confirm",
+            "--app", f"{self.blue[0].team_name}=http://10.250.0.1:30002/",
+            "--app", f"{self.blue[2].team_name}=http://10.250.0.1:30010/",
+            verbosity=0,
+        )
+        targets = set(TargetAssignment.objects.values_list("target_team_id", flat=True))
+        self.assertEqual(targets, {self.blue[0].pk, self.blue[2].pk})
+        self.assertEqual(
+            set(TargetAssignment.objects.filter(target_team=self.blue[0])
+                .values_list("endpoint", flat=True)),
+            {"http://10.250.0.1:30002/"},
+        )
+
+    def test_an_unknown_application_name_is_refused(self):
+        self.build(blues=2, reds=2)
+        with self.assertRaises(CommandError):
+            call_command("assign_targets", "--confirm", "--app", "Nobody=http://x/", verbosity=0)
+        self.assertEqual(TargetAssignment.objects.count(), 0)
+
+    def test_no_enterprise_or_cell_is_needed(self):
+        self.build(blues=3, reds=6)
+        Team.objects.update(enterprise="", cell_id="")
         call_command("assign_targets", "--confirm", verbosity=0)
-        top_three = {t.pk for t in self.red[:3]}
-        for attackers in self.load().values():
-            self.assertLessEqual(len(top_three & set(attackers)), 1)
+        self.assertEqual(TargetAssignment.objects.count(), 6)
+
+    def decoy_run(self, *extra):
+        call_command(
+            "assign_targets", "--confirm",
+            "--app", f"{self.blue[0].team_name}=http://10.250.0.1:30002/",
+            "--app", f"{self.blue[1].team_name}=http://10.250.0.1:30009/",
+            "--decoy", "http://10.250.0.1:30006/",
+            "--decoy", "http://10.250.0.1:30007/",
+            *extra, verbosity=0,
+        )
+        return {a.red_team_id: a.endpoint.split("  ·  ") for a in TargetAssignment.objects.all()}
+
+    def test_each_red_team_gets_its_target_and_one_decoy(self):
+        self.build(blues=2, reds=8)
+        shown = self.decoy_run()
+        decoys = {"http://10.250.0.1:30006/", "http://10.250.0.1:30007/"}
+        counts = {d: 0 for d in decoys}
+        for a in TargetAssignment.objects.all():
+            urls = shown[a.red_team_id]
+            self.assertEqual(len(urls), 2)
+            real = {self.blue[0].pk: "http://10.250.0.1:30002/",
+                    self.blue[1].pk: "http://10.250.0.1:30009/"}[a.target_team_id]
+            self.assertIn(real, urls)
+            decoy = (set(urls) - {real}).pop()
+            self.assertIn(decoy, decoys)
+            counts[decoy] += 1
+        self.assertEqual(sorted(counts.values()), [4, 4])  # spread evenly
+
+    def test_the_real_url_is_not_always_first(self):
+        self.build(blues=2, reds=12)
+        shown = self.decoy_run("--seed", "3")
+        reals = {"http://10.250.0.1:30002/", "http://10.250.0.1:30009/"}
+        firsts = {urls[0] in reals for urls in shown.values()}
+        self.assertEqual(firsts, {True, False})
+
+    def test_a_rerun_keeps_each_teams_decoy(self):
+        self.build(blues=2, reds=6)
+        before = {k: set(v) for k, v in self.decoy_run().items()}
+        after = {k: set(v) for k, v in self.decoy_run().items()}
+        self.assertEqual(before, after)
+
+    def test_decoys_are_optional(self):
+        self.build(blues=2, reds=4)
+        call_command("assign_targets", "--confirm",
+                     "--app", f"{self.blue[0].team_name}=http://10.250.0.1:30002/",
+                     "--app", f"{self.blue[1].team_name}=http://10.250.0.1:30009/",
+                     verbosity=0)
+        self.assertTrue(all("·" not in a.endpoint for a in TargetAssignment.objects.all()))
 
     def test_nothing_opens_until_it_is_activated(self):
         self.build(blues=2, reds=4)

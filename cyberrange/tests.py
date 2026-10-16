@@ -459,3 +459,153 @@ class VpnPortalTests(RangeTestBase):
         self.client.login(username="otieno", password=PASSWORD)
         self.assertContains(self.client.get(reverse("cyberrange:wireguard")), "Configurations are issued")
         self.assertEqual(self.client.post(reverse("cyberrange:wireguard_register"), {"public_key": KEY}).status_code, 404)
+
+
+@override_settings(VENUE_PARTICIPANT_CIDRS=["10.52.0.0/18"])
+class WifiAttributionTests(RangeTestBase):
+    """Venue Wi-Fi addresses are attributed to the signed-in person's team."""
+
+    def visit(self, user, ip, **headers):
+        from .attribution import SESSION_KEY
+
+        self.client.force_login(user)
+        session = self.client.session
+        session.pop(SESSION_KEY, None)     # skip the once-a-minute throttle between steps
+        session.save()
+        return self.client.get(reverse("cyberrange:wireguard"), HTTP_X_REAL_IP=ip, **headers)
+
+    def claims(self):
+        from .models import WifiClaim
+        return list(WifiClaim.objects.order_by("pk").values_list("ip_address", "team_identifier", "team_label", "ended_at"))
+
+    def test_a_red_member_on_the_wifi_is_attributed_to_their_team(self):
+        self.visit(self.red_user, "10.52.3.7")
+        (ip, team, label, ended), = self.claims()
+        self.assertEqual((ip, team, label, ended), ("10.52.3.7", "JS26-R-001", "red-app", None))
+
+    def test_blue_claims_carry_the_cell_namespace(self):
+        from .models import WifiClaim
+        self.blue_a.namespace = "jengasec-ent-a-app03"
+        self.blue_a.save(update_fields=["namespace"])
+        self.visit(self.blue_user, "10.52.0.40")
+        claim = WifiClaim.objects.get()
+        self.assertEqual((claim.team_label, claim.namespace), ("blue-app", "jengasec-ent-a-app03"))
+
+    def test_addresses_outside_the_pool_are_ignored(self):
+        self.visit(self.red_user, "192.168.40.253")
+        self.visit(self.red_user, "10.53.0.1")
+        self.assertEqual(self.claims(), [])
+
+    def test_a_forged_forwarded_for_header_cannot_claim_someone_elses_address(self):
+        self.visit(self.red_user, "10.52.9.9", HTTP_X_FORWARDED_FOR="10.52.0.40")
+        self.assertEqual([c[0] for c in self.claims()], ["10.52.9.9"])
+
+    def test_one_address_one_person_the_earlier_claim_ends(self):
+        self.visit(self.red_user, "10.52.1.1")
+        self.visit(self.blue_user, "10.52.1.1")
+        rows = self.claims()
+        self.assertEqual([r[1] for r in rows], ["JS26-R-001", "JS26-B-001"])
+        self.assertIsNotNone(rows[0][3])     # Red's claim ended when Blue took the address
+        self.assertIsNone(rows[1][3])
+
+    def test_the_same_person_refreshes_one_claim(self):
+        self.visit(self.red_user, "10.52.1.1")
+        self.visit(self.red_user, "10.52.1.1")
+        self.assertEqual(len(self.claims()), 1)
+
+    def test_people_without_an_approved_team_are_not_attributed(self):
+        nobody = User.objects.create_user("wanjiku", "wanjiku@strathmore.edu", PASSWORD)
+        self.visit(nobody, "10.52.2.2")
+        self.assertEqual(self.claims(), [])
+
+    def test_judges_are_labelled_as_judges(self):
+        self.visit(self.judge, "10.52.4.4")
+        self.assertEqual([(c[1], c[2]) for c in self.claims()], [("", "judge")])
+
+
+class GenerateWireGuardProfilesTests(RangeTestBase):
+    """generate_wireguard_profiles: addresses from NET's plan, stable keys, access rules."""
+
+    def setUp(self):
+        super().setUp()
+        self.out = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.out, ignore_errors=True)
+        self.staff = User.objects.create_user("stella", "stella@strathmore.edu", PASSWORD, is_staff=True)
+
+    def generate(self):
+        call_command("generate_wireguard_profiles", "--endpoint", "203.0.113.10",
+                     "--out", str(self.out), "--allow-local",
+                     stdout=io.StringIO(), stderr=io.StringIO())
+
+    def profile(self, username):
+        return (self.out / "profiles" / f"{username}.conf").read_text()
+
+    def test_addresses_follow_the_plan(self):
+        self.generate()
+        self.assertIn("Address = 10.60.1.10/32", self.profile("otieno"))   # App Red team 1
+        self.assertIn("Address = 10.61.1.10/32", self.profile("amina"))    # App Blue team 1, captain
+        self.assertIn("Address = 10.63.0.10/32", self.profile("stella"))   # staff
+        self.assertIn("Endpoint = 203.0.113.10:51820", self.profile("otieno"))
+        self.assertIn("AllowedIPs = 10.108.0.0/24, 10.250.0.1/32", self.profile("otieno"))
+
+    def test_every_profile_is_a_server_peer(self):
+        self.generate()
+        server = (self.out / "server" / "wg0.conf").read_text()
+        for address in ("10.60.1.10", "10.61.1.10", "10.63.0.10"):
+            self.assertIn(f"AllowedIPs = {address}/32", server)
+
+    def test_blue_teams_reach_only_their_own_app(self):
+        self.generate()
+        acl = (self.out / "server" / "acl.nft").read_text()
+        self.assertIn("ip saddr 10.61.1.0/24 ip daddr 10.108.0.11 tcp dport 80 accept", acl)
+        self.assertIn("ip saddr 10.61.2.0/24 ip daddr 10.108.0.12 tcp dport 80 accept", acl)
+        self.assertNotIn("flush ruleset", acl.replace("Never `flush ruleset`", ""))
+
+    def test_rerun_keeps_keys(self):
+        self.generate()
+        before = self.profile("otieno")
+        self.generate()
+        self.assertEqual(before, self.profile("otieno"))
+
+    def test_people_without_accounts_get_no_profile(self):
+        TeamMember.objects.create(team=self.red, user=None, student_name="Ghost",
+                                  email="ghost@strathmore.edu")
+        self.generate()
+        names = sorted(p.stem for p in (self.out / "profiles").glob("*.conf"))
+        self.assertEqual(names, ["amina", "otieno", "stella"])
+
+    def test_profiles_load_into_the_site(self):
+        self.generate()
+        call_command("load_wireguard_profiles", "--dir", str(self.out / "profiles"), stdout=io.StringIO())
+        self.assertEqual(WireGuardProfile.objects.get(user=self.red_user).address, "10.60.1.10/32")
+
+    def test_unapproved_teams_get_access_after_approved_ones(self):
+        pending = Team.objects.create(
+            competition=self.comp, team_name="Pending", team_identifier="JS26-R-009", team_type="red",
+            track="application", enterprise="a", cell_id="APPRED09", status=Team.Status.SUBMITTED,
+        )
+        newbie = User.objects.create_user("newbie", "newbie@strathmore.edu", PASSWORD)
+        TeamMember.objects.create(team=pending, user=newbie, student_name="Newbie", email="newbie@strathmore.edu")
+        self.generate()
+        self.assertIn("Address = 10.60.1.10/32", self.profile("otieno"))   # approved first: team 1
+        self.assertIn("Address = 10.60.2.10/32", self.profile("newbie"))   # pending after it
+        # Approving it later must not move anyone's address.
+        pending.status = Team.Status.APPROVED
+        pending.save(update_fields=["status"])
+        self.generate()
+        self.assertIn("Address = 10.60.2.10/32", self.profile("newbie"))
+        self.assertIn("Address = 10.60.1.10/32", self.profile("otieno"))
+
+    def test_withdrawn_teams_get_nothing(self):
+        self.red.status = Team.Status.WITHDRAWN
+        self.red.save(update_fields=["status"])
+        self.generate()
+        self.assertFalse((self.out / "profiles" / "otieno.conf").exists())
+
+    def test_challenges_sit_behind_the_gate(self):
+        self.generate()
+        acl = (self.out / "server" / "acl.nft").read_text()
+        self.assertIn("jump challenges", acl)
+        self.assertIn("tcp dport 8088 accept", acl)          # check page, always open
+        challenges = acl[acl.index("chain challenges"):]
+        self.assertIn("tcp dport { 30000-30099 } accept", challenges)

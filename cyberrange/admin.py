@@ -4,7 +4,7 @@ from audit.models import AuditLog
 from services import vpn_portal
 from services.audit_service import record as audit
 
-from .models import Finding, VpnRegistration, WireGuardProfile
+from .models import Finding, VpnRegistration, WifiClaim, WireGuardProfile
 
 
 @admin.register(Finding)
@@ -14,6 +14,20 @@ class FindingAdmin(admin.ModelAdmin):
     search_fields = ("title", "technique", "attack_id", "red_team__team_name", "target_team__cell_id")
     raw_id_fields = ("red_team", "target_team", "duplicate_of", "submitted_by")
     readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(WifiClaim)
+class WifiClaimAdmin(admin.ModelAdmin):
+    list_display = ("ip_address", "team_identifier", "team_label", "user", "first_seen", "last_seen", "ended_at")
+    list_filter = ("team_label", ("ended_at", admin.EmptyFieldListFilter))
+    search_fields = ("ip_address", "team_identifier", "user__username")
+    raw_id_fields = ("user", "team")
+
+    def has_add_permission(self, request):
+        return False  # recorded by the site itself
+
+    def has_change_permission(self, request, obj=None):
+        return False  # attribution is evidence: read-only
 
 
 @admin.register(VpnRegistration)
